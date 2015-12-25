@@ -2,6 +2,8 @@
 Renderers used to render a Python object into byte array.
 """
 
+import pickle
+
 from abc import ABCMeta, abstractmethod
 from . import json
 from .mimetypes import MimeType
@@ -21,7 +23,7 @@ def renderer(*args):
     return decorator
 
 
-class Renderer(metaclass=ABCMeta):
+class BaseRenderer(metaclass=ABCMeta):
     """
     Base class for all renderers.
     """
@@ -39,7 +41,7 @@ class Renderer(metaclass=ABCMeta):
         pass
 
 
-class JSONRenderer(Renderer):
+class JSONRenderer(BaseRenderer):
     """
     Renderer which render into JSON.
     """
@@ -49,6 +51,7 @@ class JSONRenderer(Renderer):
     def render(self, data, mimetype):
         """
         Serializes a Python object into a byte array containing a JSON document.
+
         :param data: A Python object.
         :param mimetype: The mimetype to render the data.
         :return: A byte array containing a JSON document.
@@ -61,6 +64,7 @@ class JSONRenderer(Renderer):
     def get_indent(self, mimetype):
         """
         Gets the indent parameter from the mimetype.
+
         :param MimeType mimetype: The mimetype with parameters.
         :return int: The indent if found, otherwise none.
         """
@@ -70,3 +74,22 @@ class JSONRenderer(Renderer):
             return None
 
         return indent
+
+
+class PickleRenderer(BaseRenderer):
+    """
+    Renderer which render into Pickle binary.
+    """
+
+    mimetype = MimeType('application/pickle')
+
+    def render(self, data, mimetype):
+        """
+        Serializes a Python object into a Pickle byte array.
+
+        :param data: A Python object.
+        :param mimetype: The mimetype to render the data.
+        :return: A byte array containing a Pickle document.
+        """
+
+        return pickle.dumps(data)

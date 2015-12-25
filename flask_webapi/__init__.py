@@ -6,6 +6,7 @@ from .api import WebAPI
 from .authentication import authenticator
 from .authorization import permissions
 from .negotiation import content_negotiator
+from .renderers import renderer
 from .response import make_response
 from .serialization import serializer
 from .views import APIView, route
