@@ -36,6 +36,7 @@ class MimeType(object):
     def __parse_mimetype(self, mimetype):
         """
         Extracts the full type and parameters from the given MimeType.
+
         :param str mimetype: The mimetype to be parsed.
         :return: Returns a tuple with full type and parameters.
         """

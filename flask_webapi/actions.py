@@ -49,7 +49,7 @@ class APIAction(object):
 
     def get_content_negotiator(self):
         """
-        Instantiates and returns the list of parsers that this view can use.
+        Instantiates and returns the content negotiator that this action can use.
         """
         return self.content_negotiator()
 
@@ -65,8 +65,10 @@ class APIAction(object):
         """
         return [renderer() for renderer in self.renderers]
 
-    def get_serializer(self, only=()):
+    def get_serializer(self, fields=()):
         """
-        Instantiates and returns the list of parsers that this view can use.
+        Instantiates and returns the serializer that this action can use.
+
+        :param fields: The name of the fields to be serialized.
         """
-        return self.serializer(only=only)
+        return self.serializer(only=fields)

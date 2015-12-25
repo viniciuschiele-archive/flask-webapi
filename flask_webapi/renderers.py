@@ -7,7 +7,14 @@ from . import json
 from .mimetypes import MimeType
 
 
-def renderers(*args):
+def renderer(*args):
+    """
+    A decorator that apply a list of renderers.
+
+    :param args: A list of renderers.
+    :return: A function.
+    """
+
     def decorator(func):
         func.renderers = args
         return func

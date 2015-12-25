@@ -1,3 +1,7 @@
+"""
+Serializers used to serialize a Python object into dict.
+"""
+
 from flask import request
 
 
@@ -18,6 +22,12 @@ def serializer(schema, envelope=None):
 
 
 def perform_serialization(data):
+    """
+    Serializes the given parameter into a Python dict.
+
+    :param data: The data to be serialized.
+    :return: A Python dict object.
+    """
     if data is request.action.app.response_class:
         return data
 
@@ -27,11 +37,11 @@ def perform_serialization(data):
     if data is not None:
         fields = request.args.get('fields')
         if fields:
-            only = fields.split(',')
+            fields = fields.split(',')
         else:
-            only = ()
+            fields = ()
 
-        ser = request.action.get_serializer(only=only)
+        ser = request.action.get_serializer(fields=fields)
 
         many = isinstance(data, list)
         data = ser.dump(data, many=many).data

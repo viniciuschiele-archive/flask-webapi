@@ -1,5 +1,5 @@
 from flask import Flask, Response
-from flask_webapi import WebAPI, APIView, route, authenticators, permissions
+from flask_webapi import WebAPI, APIView, route, authenticator, permissions
 from flask_webapi.authentication import BaseAuthenticator
 from flask_webapi.authorization import BasePermission, IsAuthenticated
 from unittest import TestCase
@@ -42,19 +42,19 @@ class NeverAllow(BasePermission):
 
 class BasicView(APIView):
     @route('/add', methods=['POST'])
-    @authenticators(AlwaysAuthenticated)
+    @authenticator(AlwaysAuthenticated)
     @permissions(IsAuthenticated)
     def add(self):
         return Response()
 
     @route('/remove', methods=['POST'])
-    @authenticators(NeverAuthenticated)
+    @authenticator(NeverAuthenticated)
     @permissions(IsAuthenticated)
     def remove(self):
         return Response()
 
     @route('/update', methods=['POST'])
-    @authenticators(AlwaysAuthenticated)
+    @authenticator(AlwaysAuthenticated)
     @permissions(NeverAllow)
     def update(self):
         return Response()

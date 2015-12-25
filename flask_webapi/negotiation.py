@@ -9,6 +9,13 @@ from .mimetypes import MimeType
 
 
 def content_negotiator(negotiator):
+    """
+    A decorator that apply a content negotiator.
+
+    :param negotiator: A class of content negotiator.
+    :return: A function.
+    """
+
     def decorator(func):
         func.content_negotiator = negotiator
         return func

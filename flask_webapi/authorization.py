@@ -8,6 +8,13 @@ from .errors import NotAuthenticated, PermissionDenied
 
 
 def permissions(*args):
+    """
+    A decorator that apply a list of permissions.
+
+    :param args: A list of permissions.
+    :return: A function.
+    """
+
     def decorator(func):
         func.permissions = args
         return func

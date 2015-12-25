@@ -35,6 +35,7 @@ class APIView(object):
             perform_content_negotiation()
 
             response = request.action(self, *args, **kwargs)
+
             response = perform_serialization(response)
             response = make_response(response)
         except Exception as e:

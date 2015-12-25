@@ -6,7 +6,14 @@ from abc import ABCMeta, abstractmethod
 from flask import request
 
 
-def authenticators(*args):
+def authenticator(*args):
+    """
+    A decorator that apply a list of authenticators.
+
+    :param args: A list of authenticators.
+    :return: A function.
+    """
+
     def decorator(func):
         func.authenticators = args
         return func

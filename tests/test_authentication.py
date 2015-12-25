@@ -1,5 +1,5 @@
 from flask import Flask, request, Response
-from flask_webapi import errors, WebAPI, APIView, route, authenticators
+from flask_webapi import errors, WebAPI, APIView, route, authenticator
 from flask_webapi.authentication import BaseAuthenticator
 from unittest import TestCase
 
@@ -39,7 +39,7 @@ class BasicAuthenticator(BaseAuthenticator):
 
 class BasicView(APIView):
     @route('/add', methods=['POST'])
-    @authenticators(BasicAuthenticator)
+    @authenticator(BasicAuthenticator)
     def add(self):
         if request.user is None:
             raise Exception('user is not authenticated')
