@@ -1,10 +1,10 @@
 from flask import Flask
 from flask_webapi import WebAPI, APIView, content_negotiator, route
-from flask_webapi.negotiation import DefaultContentNegotiation
+from flask_webapi.negotiation import DefaultContentNegotiator
 from unittest import TestCase
 
 
-class TestDefaultContentNegotiation(TestCase):
+class TestDefaultContentNegotiator(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
@@ -34,6 +34,6 @@ class TestDefaultContentNegotiation(TestCase):
 
 class BasicView(APIView):
     @route('/add', methods=['POST'])
-    @content_negotiator(DefaultContentNegotiation)
+    @content_negotiator(DefaultContentNegotiator)
     def add(self):
         return {}

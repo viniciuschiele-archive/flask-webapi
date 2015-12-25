@@ -1,7 +1,7 @@
 import inspect
 
 from werkzeug.utils import import_string
-from .negotiation import DefaultContentNegotiation
+from .negotiation import DefaultContentNegotiator
 from .renderers import JSONRenderer
 from .views import APIView
 
@@ -11,7 +11,7 @@ class WebAPI(object):
         self.app = None
         self.authenticators = []
         self.permissions = []
-        self.content_negotiator = DefaultContentNegotiation
+        self.content_negotiator = DefaultContentNegotiator
         self.parsers = []
         self.renderers = [JSONRenderer]
 

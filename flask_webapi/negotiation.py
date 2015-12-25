@@ -24,10 +24,10 @@ def perform_content_negotiation(force=False):
     """
     action = request.action
 
-    content_negotiator = action.get_content_negotiator()
+    negotiator = action.get_content_negotiator()
     renderers = action.get_renderers()
 
-    renderer_pair = content_negotiator.select_renderer(renderers)
+    renderer_pair = negotiator.select_renderer(renderers)
 
     if renderer_pair is None:
         if not force:
@@ -38,7 +38,7 @@ def perform_content_negotiation(force=False):
     request.accepted_renderer, request.accepted_mimetype = renderer_pair
 
 
-class BaseContentNegotiation(metaclass=ABCMeta):
+class BaseContentNegotiator(metaclass=ABCMeta):
     """
     Base class for all content negotiations.
     """
@@ -62,7 +62,7 @@ class BaseContentNegotiation(metaclass=ABCMeta):
         pass
 
 
-class DefaultContentNegotiation(BaseContentNegotiation):
+class DefaultContentNegotiator(BaseContentNegotiator):
     """
     Selects a parser by request content type and a
     renderer by request accept.
