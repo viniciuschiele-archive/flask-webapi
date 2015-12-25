@@ -1,5 +1,7 @@
+import simplejson as json
+
 from flask import Flask
-from flask_webapi import WebAPI, APIView, Schema, fields, json, route, serializer
+from flask_webapi import WebAPI, APIView, Schema, fields, route, serializer
 from unittest import TestCase
 
 
