@@ -8,10 +8,17 @@ from .authorization import perform_authorization
 from .errors import APIError, ErrorDetail, ServerError
 from .negotiation import perform_content_negotiation
 from .response import make_response
-from .serialization import perform_serialization
 
 
 def route(url, methods=None):
+    """
+    A decorator that is used to register a view function for a given URL rule.
+
+    :param url: The url rule.
+    :param methods: A list of http methods.
+    :return: A function.
+    """
+
     def decorator(func):
         func.url = url
         func.methods = methods
@@ -36,8 +43,7 @@ class APIView(object):
 
             response = request.action(self, *args, **kwargs)
 
-            response = perform_serialization(response)
-            response = make_response(response)
+            response = make_response(response, use_serializer=True)
         except Exception as e:
             response = self.handle_error(e)
 

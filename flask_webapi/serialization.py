@@ -28,10 +28,8 @@ def perform_serialization(data):
     :param data: The data to be serialized.
     :return: A Python dict object.
     """
-    if data is request.action.app.response_class:
-        return data
 
-    if request.action.serializer is None:
+    if not request.action.serializer:
         return data
 
     if data is not None:
