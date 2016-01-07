@@ -7,20 +7,6 @@ from flask import request
 from .errors import NotAuthenticated, PermissionDenied
 
 
-def permissions(*args):
-    """
-    A decorator that apply a list of permissions.
-
-    :param args: A list of permissions.
-    :return: A function.
-    """
-
-    def decorator(func):
-        func.permissions = args
-        return func
-    return decorator
-
-
 def perform_authorization():
     """
     Check if the request should be permitted.
@@ -35,7 +21,7 @@ def perform_authorization():
                 raise NotAuthenticated()
 
 
-class BasePermission(metaclass=ABCMeta):
+class PermissionBase(metaclass=ABCMeta):
     """
     A base class from which all permission classes should inherit.
     """
@@ -48,7 +34,7 @@ class BasePermission(metaclass=ABCMeta):
         pass
 
 
-class IsAuthenticated(BasePermission):
+class IsAuthenticated(PermissionBase):
     """
     Allows access only to authenticated users.
     """

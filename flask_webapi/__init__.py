@@ -3,11 +3,6 @@ from marshmallow import pre_load, pre_dump, post_load, post_dump, Schema, Valida
 from marshmallow.utils import missing
 
 from .api import WebAPI
-from .authentication import authenticator
-from .authorization import permissions
-from .negotiation import content_negotiator
-from .renderers import renderer
-from .response import make_response
-from .serialization import serializer
-from .views import APIView, route
+from .decorators import authenticator, permissions, content_negotiator, renderer, serializer, route
+from .views import ViewBase
 

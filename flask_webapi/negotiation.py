@@ -8,20 +8,6 @@ from .errors import NotAcceptable
 from .mimetypes import MimeType
 
 
-def content_negotiator(negotiator):
-    """
-    A decorator that apply a content negotiator.
-
-    :param negotiator: A class of content negotiator.
-    :return: A function.
-    """
-
-    def decorator(func):
-        func.content_negotiator = negotiator
-        return func
-    return decorator
-
-
 def perform_content_negotiation(force=False):
     """
     Determine which parser and renderer to be used to parse the incoming request
@@ -45,7 +31,7 @@ def perform_content_negotiation(force=False):
     request.accepted_renderer, request.accepted_mimetype = renderer_pair
 
 
-class BaseContentNegotiator(metaclass=ABCMeta):
+class ContentNegotiatorBase(metaclass=ABCMeta):
     """
     Base class for all content negotiations.
     """
@@ -69,7 +55,7 @@ class BaseContentNegotiator(metaclass=ABCMeta):
         pass
 
 
-class DefaultContentNegotiator(BaseContentNegotiator):
+class DefaultContentNegotiator(ContentNegotiatorBase):
     """
     Selects a parser by request content type and a
     renderer by request accept.

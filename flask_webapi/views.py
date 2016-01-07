@@ -1,73 +1,55 @@
-import inspect
-
-from flask import request
-from werkzeug.exceptions import HTTPException
-from .actions import APIAction
-from .authentication import perform_authentication
-from .authorization import perform_authorization
-from .errors import APIError, ErrorDetail, ServerError
-from .negotiation import perform_content_negotiation
-from .response import make_response
+class ViewBase(object):
+    pass
 
 
-def route(url, methods=None):
-    """
-    A decorator that is used to register a view function for a given URL rule.
+class ViewAction(object):
+    def __init__(self):
+        self.func = None
+        self.authenticators = []
+        self.permissions = []
+        self.content_negotiator = None
+        self.parsers = []
+        self.renderers = []
+        self.serializer = None
+        self.envelope = None
 
-    :param url: The url rule.
-    :param methods: A list of http methods.
-    :return: A function.
-    """
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
 
-    def decorator(func):
-        func.url = url
-        func.methods = methods
-        return func
-    return decorator
+    def get_authenticators(self):
+        """
+        Instantiates and returns the list of authenticators that this view can use.
+        """
+        return [authenticator() for authenticator in self.authenticators]
 
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        return [permission() for permission in self.permissions]
 
-class APIView(object):
-    url = None
-    authenticators = None
-    permissions = None
-    content_negotiator = None
-    parsers = None
-    renderers = None
-    serializer = None
+    def get_content_negotiator(self):
+        """
+        Instantiates and returns the content negotiator that this action can use.
+        """
+        return self.content_negotiator()
 
-    def dispatch(self, *args, **kwargs):
-        try:
-            perform_authentication()
-            perform_authorization()
-            perform_content_negotiation()
+    def get_parsers(self):
+        """
+        Instantiates and returns the list of parsers that this view can use.
+        """
+        return [parser() for parser in self.parsers]
 
-            response = request.action(self, *args, **kwargs)
+    def get_renderers(self):
+        """
+        Instantiates and returns the list of renderers that this view can use.
+        """
+        return [renderer() for renderer in self.renderers]
 
-            response = make_response(response, use_serializer=True)
-        except Exception as e:
-            response = self.handle_error(e)
+    def get_serializer(self, fields=()):
+        """
+        Instantiates and returns the serializer that this action can use.
 
-        return response
-
-    def handle_error(self, error):
-        if isinstance(error, APIError):
-            code = error.code
-            err = error.errors
-        elif isinstance(error, HTTPException):
-            code = error.code
-            err = [ErrorDetail(error.description)]
-        else:
-            code = ServerError.code
-            err = [ErrorDetail(ServerError.default_message)]
-
-        return make_response(([e.__dict__ for e in err], code))
-
-    @classmethod
-    def register(cls, api):
-        app = api.app
-
-        members = inspect.getmembers(cls, predicate=lambda obj: inspect.isfunction(obj) and hasattr(obj, 'url'))
-
-        for _, func in members:
-            action = APIAction(func, cls, api)
-            app.add_url_rule(action.url, action.name, action.as_view(), methods=func.methods)
+        :param fields: The name of the fields to be serialized.
+        """
+        return self.serializer(only=fields)

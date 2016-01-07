@@ -6,20 +6,6 @@ from abc import ABCMeta, abstractmethod
 from flask import request
 
 
-def authenticator(*args):
-    """
-    A decorator that apply a list of authenticators.
-
-    :param args: A list of authenticators.
-    :return: A function.
-    """
-
-    def decorator(func):
-        func.authenticators = args
-        return func
-    return decorator
-
-
 def perform_authentication():
     """
     Perform authentication on the incoming request.
@@ -28,8 +14,8 @@ def perform_authentication():
     request.user = None
     request.auth = None
 
-    for authenticator in request.action.get_authenticators():
-        auth_tuple = authenticator.authenticate()
+    for auth in request.action.get_authenticators():
+        auth_tuple = auth.authenticate()
 
         if auth_tuple:
             request.user = auth_tuple[0]
@@ -37,7 +23,7 @@ def perform_authentication():
             break
 
 
-class BaseAuthenticator(metaclass=ABCMeta):
+class AuthenticatorBase(metaclass=ABCMeta):
     """
     A base class from which all authentication classes should inherit.
     """

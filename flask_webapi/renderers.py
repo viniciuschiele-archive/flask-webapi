@@ -9,21 +9,7 @@ from abc import ABCMeta, abstractmethod
 from .mimetypes import MimeType
 
 
-def renderer(*args):
-    """
-    A decorator that apply a list of renderers.
-
-    :param args: A list of renderers.
-    :return: A function.
-    """
-
-    def decorator(func):
-        func.renderers = args
-        return func
-    return decorator
-
-
-class BaseRenderer(metaclass=ABCMeta):
+class RendererBase(metaclass=ABCMeta):
     """
     Base class for all renderers.
     """
@@ -41,7 +27,7 @@ class BaseRenderer(metaclass=ABCMeta):
         pass
 
 
-class JSONRenderer(BaseRenderer):
+class JSONRenderer(RendererBase):
     """
     Renderer which render into JSON.
     """
@@ -76,7 +62,7 @@ class JSONRenderer(BaseRenderer):
         return indent
 
 
-class PickleRenderer(BaseRenderer):
+class PickleRenderer(RendererBase):
     """
     Renderer which render into Pickle binary.
     """
