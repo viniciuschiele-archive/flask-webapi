@@ -1,6 +1,6 @@
 from flask import Flask, request, Response
-from flask_webapi import errors, WebAPI, APIView, route, authenticator
-from flask_webapi.authentication import BaseAuthenticator
+from flask_webapi import errors, WebAPI, ViewBase, route, authenticator
+from flask_webapi.authentication import AuthenticatorBase
 from unittest import TestCase
 
 
@@ -8,7 +8,7 @@ class TestAuthentication(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.load_module('tests.test_authentication')
+        self.api.add_view(BasicView)
         self.client = self.app.test_client()
 
     def test_valid_credentials(self):
@@ -24,7 +24,7 @@ class TestAuthentication(TestCase):
         self.assertEqual(response.status_code, 500)
 
 
-class BasicAuthenticator(BaseAuthenticator):
+class BasicAuthenticator(AuthenticatorBase):
     def authenticate(self):
         auth = request.headers.get('Authorization')
 
@@ -37,7 +37,7 @@ class BasicAuthenticator(BaseAuthenticator):
         return 'user1', auth
 
 
-class BasicView(APIView):
+class BasicView(ViewBase):
     @route('/add', methods=['POST'])
     @authenticator(BasicAuthenticator)
     def add(self):

@@ -1,7 +1,7 @@
 import simplejson as json
 
 from flask import Flask
-from flask_webapi import WebAPI, APIView, Schema, fields, route, serializer
+from flask_webapi import WebAPI, ViewBase, Schema, fields, route, serializer
 from unittest import TestCase
 
 
@@ -9,7 +9,7 @@ class TestSerializer(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.load_module('tests.test_serializer')
+        self.api.add_view(BasicView)
         self.client = self.app.test_client()
 
     def test_get_model(self):
@@ -48,7 +48,7 @@ class ModelSchema(Schema):
     name = fields.String()
 
 
-class BasicView(APIView):
+class BasicView(ViewBase):
     @route('/models/<id>', methods=['GET'])
     @serializer(ModelSchema)
     def get_model(self, id):

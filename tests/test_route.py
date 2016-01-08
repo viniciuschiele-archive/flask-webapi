@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_webapi import WebAPI, APIView, route
+from flask_webapi import WebAPI, ViewBase, route
 from unittest import TestCase
 
 
@@ -7,7 +7,7 @@ class TestRoute(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.load_module('tests.test_route')
+        self.api.add_view(BasicView)
         self.client = self.app.test_client()
 
     def test_204_response(self):
@@ -23,7 +23,7 @@ class TestRoute(TestCase):
         self.assertEqual(response.status_code, 405)
 
 
-class BasicView(APIView):
+class BasicView(ViewBase):
     @route('/view', methods=['POST'])
     def get(self):
         pass

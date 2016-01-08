@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_webapi import WebAPI, APIView, renderer, route
+from flask_webapi import WebAPI, ViewBase, renderer, route
 from flask_webapi.renderers import PickleRenderer
 from unittest import TestCase
 
@@ -8,7 +8,7 @@ class TestRenderer(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.load_module('tests.test_renderers')
+        self.api.add_view(BasicView)
         self.client = self.app.test_client()
 
     def test_pickle_renderer(self):
@@ -17,7 +17,7 @@ class TestRenderer(TestCase):
         self.assertEqual(response.headers['content-type'], 'application/pickle')
 
 
-class BasicView(APIView):
+class BasicView(ViewBase):
     @route('/add', methods=['POST'])
     @renderer(PickleRenderer)
     def add(self):
