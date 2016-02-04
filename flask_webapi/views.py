@@ -1,20 +1,31 @@
+import inspect
+
+from .utils import get_attr
+
+
 class ViewBase(object):
     pass
 
 
 class ViewAction(object):
-    def __init__(self):
-        self.func = None
-        self.authenticators = []
-        self.permissions = []
-        self.content_negotiator = None
-        self.parsers = []
-        self.renderers = []
-        self.serializer = None
-        self.envelope = None
+    def __init__(self, func, view, api):
+        self.func = func
+        self.view = view
+        self.api = api
 
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
+        args = inspect.getargspec(func).args
+        self.has_self_param = len(args) > 0 and args[0] == 'self'
+
+        self.url = getattr(view, '_url', None) or ''
+        self.url += getattr(func, '_url', None) or ''
+        self.allowed_methods = getattr(func, '_methods', None)
+        self.authenticators = get_attr((func, view), '_authenticators', api.authenticators)
+        self.permissions = get_attr((func, view), '_permissions', api.permissions)
+        self.content_negotiator = get_attr((func, view), '_content_negotiator', api.content_negotiator)
+        self.parsers = get_attr((func, view), '_parsers', api.parsers)
+        self.renderers = get_attr((func, view), '_renderers', api.renderers)
+        self.serializer = get_attr((func, view), '_serializer', None)
+        self.envelope = getattr(func, '_envelope', None)
 
     def get_authenticators(self):
         """

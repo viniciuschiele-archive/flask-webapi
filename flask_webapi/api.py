@@ -8,12 +8,23 @@ from .errors import APIError, ErrorDetail, ServerError
 from .negotiation import DefaultContentNegotiator, perform_content_negotiation
 from .renderers import JSONRenderer
 from .serialization import perform_serialization
-from .utils import get_attr, unpack
-from .views import ViewAction
+from .utils import unpack
+from .views import ViewAction, ViewBase
 
 
 class WebAPI(object):
     def __init__(self, app=None):
+        """
+        Initialize this class with the given :class:`flask.Flask` application
+        :param app: the Flask application
+        :type app: flask.Flask
+        Examples::
+            api = WebAPI()
+            api.add_view(...)
+            api.init_app(app)
+        """
+        self._views = []
+
         self.app = None
         self.authenticators = []
         self.permissions = []
@@ -24,46 +35,53 @@ class WebAPI(object):
         if app:
             self.init_app(app)
 
+    def add_view(self, view):
+        """
+        Adds a view to the web api.
+        :param view: the class of your view
+        :type view: :class:`ViewBase`
+        """
+        if self.app:
+            self._register_view(view)
+        else:
+            self._views.append(view)
+
     def init_app(self, app):
+        """
+        Initialize this class with the given :class:`flask.Flask` application
+        :param app: the Flask application
+        :type app: flask.Flask
+        Examples::
+            api = WebAPI()
+            api.add_view(...)
+            api.init_app(app)
+        """
         self.app = app
 
-    def add_view(self, view):
-        self._register_view(view)
+        if self._views:
+            for view in self._views:
+                self._register_view(view)
 
-    def _register_view(self, view):
-        members = inspect.getmembers(view, lambda obj: inspect.isfunction(obj) and hasattr(obj, '_url'))
+    def _as_view(self, action):
+        def view(*args, **kwargs):
+            request.action = action
+            return self._dispatch_request(*args, **kwargs)
+        return view
 
-        for name, func in members:
-            action = ViewAction()
-            action.func = func
-            action.authenticators = get_attr((func, view), '_authenticators', self.authenticators)
-            action.permissions = get_attr((func, view), '_permissions', self.permissions)
-            action.content_negotiator = get_attr((func, view), '_content_negotiator', self.content_negotiator)
-            action.parsers = get_attr((func, view), '_parsers', self.parsers)
-            action.renderers = get_attr((func, view), '_renderers', self.renderers)
-            action.serializer = get_attr((func, view), '_serializer', None)
-            action.envelope = getattr(func, '_envelope', None)
-
-            name = view.__name__ + ':' + func.__name__
-            url = (getattr(view, '_url', None) or '') + (getattr(func, '_url', None) or '')
-
-            self.app.add_url_rule(url, name, self._as_view(view, action), methods=func._methods)
-
-    def _as_view(self, view, action):
-        def view2(*args, **kwargs):
-            return self._dispatch_request(view, action, *args, **kwargs)
-        return view2
-
-    def _dispatch_request(self, view, action, *args, **kwargs):
-        request.action = action
-
+    def _dispatch_request(self, *args, **kwargs):
         try:
             perform_authentication()
             perform_authorization()
             perform_content_negotiation()
 
-            instance = view()
-            response = action(instance, *args, **kwargs)
+            action = request.action
+
+            instance = action.view()
+
+            if action.has_self_param:
+                response = action.func(instance, *args, **kwargs)
+            else:
+                response = action.func(*args, **kwargs)
 
             return self._make_response(response, use_serializer=True)
         except Exception as e:
@@ -81,6 +99,9 @@ class WebAPI(object):
             err = [ErrorDetail(ServerError.default_message)]
 
         return self._make_response(([e.__dict__ for e in err], code))
+
+    def _make_endpoint(self, view, func):
+        return view.__name__ + ':' + func.__name__
 
     def _make_response(self, data, use_serializer=False):
         """
@@ -119,3 +140,15 @@ class WebAPI(object):
             data.headers.extend(headers)
 
         return data
+
+    def _register_view(self, view):
+        if inspect.isfunction(view):
+            view = type('WrappedViewBase', (ViewBase,), {view.__name__: view})
+
+        members = inspect.getmembers(view, lambda obj: inspect.isfunction(obj) and hasattr(obj, '_url'))
+
+        for name, func in members:
+            action = ViewAction(func, view, self)
+            endpoint = self._make_endpoint(view, func)
+
+            self.app.add_url_rule(action.url, endpoint, self._as_view(action), methods=action.allowed_methods)
