@@ -4,31 +4,7 @@ Content negotiation selects a appropriated parser and renderer for a HTTP reques
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from .errors import NotAcceptable
 from .mimetypes import MimeType
-
-
-def perform_content_negotiation(force=False):
-    """
-    Determine which parser and renderer to be used to parse the incoming request
-    and to render the response.
-
-    :param force: True to select the first parser/renderer when the appropriated is not found.
-    """
-    action = request.action
-
-    negotiator = action.get_content_negotiator()
-    renderers = action.get_renderers()
-
-    renderer_pair = negotiator.select_renderer(renderers)
-
-    if renderer_pair is None:
-        if not force:
-            raise NotAcceptable()
-
-        renderer_pair = renderers[0], renderers[0].mimetype
-
-    request.accepted_renderer, request.accepted_mimetype = renderer_pair
 
 
 class ContentNegotiatorBase(metaclass=ABCMeta):

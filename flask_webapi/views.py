@@ -1,9 +1,16 @@
+"""
+Provides an ViewVase class that is the base of all views in Flask WebAPI.
+"""
+
 import inspect
 
 from .utils import get_attr
 
 
 class ViewBase(object):
+    """
+    A base class from which all view classes should inherit.
+    """
     pass
 
 
