@@ -7,4 +7,4 @@ install:
  - pip install -r requirements.txt
  - pip install -r test-requirements.txt
 script:
- - nosetests -v -l DEBUG --logging-level=DEBUG
+ - nosetests -v -l DEBUG --logging-level=DEBUG --with-coverage --cover-package=flask_webapi
