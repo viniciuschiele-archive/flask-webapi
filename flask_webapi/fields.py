@@ -12,7 +12,6 @@ from .validate import Complexity, Length
 
 __all__ = [
     'DelimitedList',
-    'Enum',
     'Password',
     'String'
 ]
@@ -46,43 +45,6 @@ class DelimitedList(List):
     def _deserialize(self, value, attr, data):
         values = value.split(self.delimiter)
         return super()._deserialize(values, attr, data)
-
-
-class Enum(Field):
-    """
-    A field that provides a set of enumerated values which an attribute must be constrained to.
-    """
-
-    def __init__(self, enum_type, *args, **kwargs):
-        """
-        Initializes a new instance of `Enum`.
-
-        :param enum_type: A Python enum class.
-        """
-
-        super().__init__(*args, **kwargs)
-        self.enum_type = enum_type
-        self.__member_type = type(list(self.enum_type)[0].value)
-
-    def _serialize(self, value, attr, obj):
-        try:
-            if type(value) is self.enum_type:
-                return value.value
-            if type(value) is not self.__member_type:
-                value = self.__member_type(value)
-            return self.enum_type(value).value
-        except:
-            self.fail('validator_failed')
-
-    def _deserialize(self, value, attr, data):
-        try:
-            if type(value) is self.enum_type:
-                return value
-            if type(value) is not self.__member_type:
-                value = self.__member_type(value)
-            return self.enum_type(value)
-        except:
-            self.fail('validator_failed')
 
 
 class Password(Field):

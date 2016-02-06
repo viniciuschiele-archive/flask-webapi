@@ -1,13 +1,6 @@
-from enum import Enum
 from flask_webapi import fields
 from flask_webapi.validate import ValidationError
 from unittest import TestCase
-
-
-class MyEnum(Enum):
-    member1 = 1
-    member2 = 2
-    member3 = 3
 
 
 class TestDelimitedList(TestCase):
@@ -20,27 +13,6 @@ class TestDelimitedList(TestCase):
         field = fields.DelimitedList(fields.Integer)
 
         self.assertEqual(field.deserialize('1,2, 3'), [1, 2, 3])
-
-
-class TestEnum(TestCase):
-    def test_serialize(self):
-        field = fields.Enum(MyEnum)
-
-        self.assertEqual(field.serialize('a', {'a': MyEnum.member2}), 2)
-
-    def test_deserialize(self):
-        field = fields.Enum(MyEnum)
-
-        self.assertEqual(field.deserialize(2), MyEnum.member2)
-
-    def test_invalid_value(self):
-        field = fields.Enum(MyEnum)
-
-        self.assertRaises(ValidationError, field.deserialize, 10)
-        self.assertRaises(ValidationError, field.deserialize, '10')
-
-        self.assertRaises(ValidationError, field.serialize, 'a', {'a': 10})
-        self.assertRaises(ValidationError, field.serialize, 'a', {'a': '10'})
 
 
 class TestPassword(TestCase):
