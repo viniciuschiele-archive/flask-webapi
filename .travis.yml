@@ -8,3 +8,5 @@ install:
  - pip install -r test-requirements.txt
 script:
  - nosetests -v -l DEBUG --logging-level=DEBUG --with-coverage --cover-package=flask_webapi
+after_success:
+  - codecov
