@@ -1,6 +1,6 @@
 =================================
 Flask-WebAPI
 =================================
-Flask-WebAPI is a framework to develop Web APIs in Flask.
+Flask WebAPI is a toolkit for building Web APIs
 
 It is still under development.
