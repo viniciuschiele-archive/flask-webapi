@@ -3,7 +3,7 @@ Flask-WebAPI
 =================================
 Flask WebAPI is a toolkit for building Web APIs
 
-|Coverage| |Travis|
+|Coverage| |CodeClimate| |Travis|
 
 It is still under development.
 
@@ -12,3 +12,7 @@ It is still under development.
 
 .. |Travis| image:: https://travis-ci.org/viniciuschiele/flask-webapi.svg
     :target: https://travis-ci.org/viniciuschiele/flask-webapi
+
+.. |CodeClimate| image:: https://codeclimate.com/github/viniciuschiele/flask-webapi/badges/gpa.svg
+   :target: https://codeclimate.com/github/viniciuschiele/flask-webapi
+
