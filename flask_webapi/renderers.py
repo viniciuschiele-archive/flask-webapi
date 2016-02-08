@@ -60,7 +60,7 @@ class JSONRenderer(RendererBase):
                 return None
 
             return indent
-        except:
+        except ValueError:
             return None
 
 
