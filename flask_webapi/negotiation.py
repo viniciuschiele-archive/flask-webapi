@@ -19,7 +19,6 @@ class ContentNegotiatorBase(metaclass=ABCMeta):
         :param parsers: The lists of parsers.
         :return: The parser selected or none.
         """
-        pass
 
     @abstractmethod
     def select_renderer(self, renderers):
@@ -28,7 +27,6 @@ class ContentNegotiatorBase(metaclass=ABCMeta):
         :param renderers: The lists of renderers.
         :return: The renderer selected or none.
         """
-        pass
 
 
 class DefaultContentNegotiator(ContentNegotiatorBase):

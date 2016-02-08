@@ -11,7 +11,6 @@ class ViewBase(object):
     """
     A base class from which all view classes should inherit.
     """
-    pass
 
 
 class ViewAction(object):

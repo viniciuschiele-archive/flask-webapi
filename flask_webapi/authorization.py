@@ -16,7 +16,6 @@ class PermissionBase(metaclass=ABCMeta):
         """
         Return `True` if permission is granted, `False` otherwise.
         """
-        pass
 
 
 class IsAuthenticated(PermissionBase):

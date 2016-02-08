@@ -24,7 +24,6 @@ class RendererBase(metaclass=ABCMeta):
         :param mimetype: The mimetype to render the data.
         :return: A byte array.
         """
-        pass
 
 
 class JSONRenderer(RendererBase):

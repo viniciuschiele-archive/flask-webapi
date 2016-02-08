@@ -15,4 +15,3 @@ class AuthenticatorBase(metaclass=ABCMeta):
         """
         Authenticate the request and return a two-tuple of (user, token).
         """
-        pass
