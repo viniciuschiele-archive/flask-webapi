@@ -102,15 +102,17 @@ class WebAPI(object):
         """
         if isinstance(error, APIError):
             code = error.code
-            err = error.errors
+            errors = error.errors
         elif isinstance(error, HTTPException):
             code = error.code
-            err = [ErrorDetail(error.description)]
+            errors = [ErrorDetail(error.description)]
         else:
             code = ServerError.code
-            err = [ErrorDetail(ServerError.default_message)]
+            errors = [ErrorDetail(ServerError.default_message)]
 
-        return self._make_response(([e.__dict__ for e in err], code))
+        errors = [e.__dict__ for e in errors]
+
+        return self._make_response((dict(errors=errors), code))
 
     def _make_endpoint(self, view, func):
         """
