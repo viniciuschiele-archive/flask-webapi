@@ -67,3 +67,6 @@ class TestComplexity(TestCase):
 
         validator = Complexity(special=2)
         self.assertRaises(ValidationError, validator, 'hell@')
+
+        validator = Complexity(special_chars='@')
+        self.assertRaises(ValidationError, validator, '#')

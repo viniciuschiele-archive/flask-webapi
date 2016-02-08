@@ -51,6 +51,17 @@ class TestView(TestCase):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data, b'')
 
+    def test_action_returning_headers(self):
+        response = self.client.get('/action_returning_headers')
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.data, b'')
+        self.assertEqual(response.headers['my_header'], 'value1')
+
+    def test_action_returning_status_code(self):
+        response = self.client.get('/action_returning_status_code')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, b'')
+
 
 class View(ViewBase):
     @route('/api_error')
@@ -72,6 +83,14 @@ class View(ViewBase):
     @route('/action_not_allowed', methods=['POST'])
     def action_not_allowed(self):
         pass
+
+    @route('/action_returning_headers')
+    def action_returning_headers(self):
+        return None, None, {'my_header': 'value1'}
+
+    @route('/action_returning_status_code')
+    def action_returning_status_code(self):
+        return None, 201
 
 
 @route('/prefix')
