@@ -38,7 +38,7 @@ class JSONRenderer(RendererBase):
         Serializes a Python object into a byte array containing a JSON document.
 
         :param data: A Python object.
-        :param mimetype: The mimetype to render the data.
+        :param MimeType mimetype: The mimetype to render the data.
         :return: A byte array containing a JSON document.
         """
 
@@ -53,12 +53,15 @@ class JSONRenderer(RendererBase):
         :param MimeType mimetype: The mimetype with parameters.
         :return int: The indent if found, otherwise none.
         """
-        indent = max(int(mimetype.params.get('indent', '0')), 0)
+        try:
+            indent = max(int(mimetype.params.get('indent', '0')), 0)
 
-        if indent == 0:
+            if indent == 0:
+                return None
+
+            return indent
+        except:
             return None
-
-        return indent
 
 
 class PickleRenderer(RendererBase):
