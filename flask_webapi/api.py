@@ -86,6 +86,14 @@ class WebAPI(object):
         """
         self.app = app
 
+        # gets all the module paths from the config
+        # and import them to register its views.
+        modules = self.app.config.get('WEBAPI_IMPORTS')
+        if modules:
+            for module in modules:
+                self.import_views(module)
+
+        # register all views added before the initialization
         if self._views:
             for view in self._views:
                 self._register_view(view)
