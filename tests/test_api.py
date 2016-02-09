@@ -24,6 +24,14 @@ class TestWebAPI(TestCase):
         response = self.client.post('/view/action')
         self.assertEqual(response.status_code, 204)
 
+    def test_import_views(self):
+        self.api = WebAPI()
+        self.api.import_views(['tests'], 'test_api')
+        self.api.init_app(self.app)
+
+        response = self.client.post('/view/action')
+        self.assertEqual(response.status_code, 204)
+
 
 class View(ViewBase):
     @route('/view/action', methods=['POST'])

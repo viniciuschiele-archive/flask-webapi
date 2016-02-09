@@ -5,7 +5,7 @@ from werkzeug.exceptions import BadRequest
 from unittest import TestCase
 
 
-class TestView(TestCase):
+class TestViews(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)

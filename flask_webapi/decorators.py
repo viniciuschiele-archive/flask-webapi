@@ -1,3 +1,8 @@
+import inspect
+
+from .views import ViewBase
+
+
 def authenticator(*args):
     """
     A decorator that apply a list of authenticators.
@@ -7,7 +12,7 @@ def authenticator(*args):
     """
 
     def decorator(func):
-        func._authenticators = args
+        func.authenticators = args
         return func
     return decorator
 
@@ -21,7 +26,7 @@ def permissions(*args):
     """
 
     def decorator(func):
-        func._permissions = args
+        func.permissions = args
         return func
     return decorator
 
@@ -35,7 +40,7 @@ def content_negotiator(negotiator):
     """
 
     def decorator(func):
-        func._content_negotiator = negotiator
+        func.content_negotiator = negotiator
         return func
     return decorator
 
@@ -49,7 +54,7 @@ def renderer(*args):
     """
 
     def decorator(func):
-        func._renderers = args
+        func.renderers = args
         return func
     return decorator
 
@@ -64,8 +69,8 @@ def route(url, methods=None):
     """
 
     def decorator(func):
-        func._url = url
-        func._methods = methods
+        func.url = url
+        func.allowed_methods = methods
         return func
     return decorator
 
@@ -80,8 +85,8 @@ def serializer(schema, envelope=None):
     """
 
     def decorator(func):
-        func._serializer = schema
-        func._envelope = envelope
+        func.serializer = schema
+        func.envelope = envelope
         return func
     return decorator
 

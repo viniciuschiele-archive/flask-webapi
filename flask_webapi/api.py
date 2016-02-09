@@ -6,6 +6,7 @@ import inspect
 
 from flask import request
 from werkzeug.exceptions import HTTPException
+from werkzeug.utils import import_string
 from .errors import APIError, ErrorDetail, NotAcceptable, NotAuthenticated, PermissionDenied, ServerError
 from .negotiation import DefaultContentNegotiator
 from .renderers import JSONRenderer
@@ -50,13 +51,29 @@ class WebAPI(object):
     def add_view(self, view):
         """
         Adds a view to the WebAPI.
-        :param view: the class of your view
-        :type view: :class:`ViewBase`
+        :param ViewBase view: the class of your view
         """
         if self.app:
             self._register_view(view)
         else:
             self._views.append(view)
+
+    def import_views(self, packages, related_name='views'):
+        """
+        Tries to import modules with a specific name (by default 'views').
+        :param list packages: A list of packages to search.
+        :param str related_name: The name of the module to find.
+        """
+        for package in packages:
+            module = import_string(package + '.' + related_name)
+
+            members = inspect.getmembers(module)
+
+            for _, member in members:
+                if inspect.isfunction(member) and hasattr(member, 'url'):
+                    self.add_view(member)
+                elif inspect.isclass(member) and issubclass(member, ViewBase) and member != ViewBase:
+                    self.add_view(member)
 
     def init_app(self, app):
         """
@@ -117,8 +134,7 @@ class WebAPI(object):
     def _make_endpoint(self, view, func):
         """
         Returns a endpoint for the specified view and func.
-        :param view: the class of your view
-        :type view: :class:`ViewBase`
+        :param ViewBase view: the class of your view
         :param func: the function of your view
         :return: the endpoint
         """
@@ -164,8 +180,7 @@ class WebAPI(object):
     def _make_view(self, action):
         """
         Returns a view method expected by Flask.
-        :param action: the action
-        :type action: :class:`ViewAction`
+        :param ViewAction action: the action
         :return: A function
         """
         def view(*args, **kwargs):
@@ -256,15 +271,12 @@ class WebAPI(object):
     def _register_view(self, view):
         """
         Registers a view into Flask.
-        The view can be a ViewBase class or a function.
-        :param view: the view to be registered.
-        :type view: :class:`ViewBase`
-        :type view: :class:`Function`
+        :param ViewBase view: the view to be registered.
         """
         if inspect.isfunction(view):
             view = type('WrappedViewBase', (ViewBase,), {view.__name__: view})
 
-        members = inspect.getmembers(view, lambda obj: inspect.isfunction(obj) and hasattr(obj, '_url'))
+        members = inspect.getmembers(view, lambda obj: inspect.isfunction(obj) and hasattr(obj, 'url'))
 
         for name, func in members:
             action = ViewAction(func, view, self)

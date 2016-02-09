@@ -4,10 +4,11 @@ Provides an ViewVase class that is the base of all views in Flask WebAPI.
 
 import inspect
 
+from abc import ABCMeta
 from .utils import get_attr
 
 
-class ViewBase(object):
+class ViewBase(metaclass=ABCMeta):
     """
     A base class from which all view classes should inherit.
     """
@@ -22,16 +23,16 @@ class ViewAction(object):
         args = inspect.getargspec(func).args
         self.has_self_param = len(args) > 0 and args[0] == 'self'
 
-        self.url = getattr(view, '_url', None) or ''
-        self.url += getattr(func, '_url', None) or ''
-        self.allowed_methods = getattr(func, '_methods', None)
-        self.authenticators = get_attr((func, view), '_authenticators', api.authenticators)
-        self.permissions = get_attr((func, view), '_permissions', api.permissions)
-        self.content_negotiator = get_attr((func, view), '_content_negotiator', api.content_negotiator)
-        self.parsers = get_attr((func, view), '_parsers', api.parsers)
-        self.renderers = get_attr((func, view), '_renderers', api.renderers)
-        self.serializer = get_attr((func, view), '_serializer', None)
-        self.envelope = getattr(func, '_envelope', None)
+        self.url = getattr(view, 'url', None) or ''
+        self.url += getattr(func, 'url', None) or ''
+        self.allowed_methods = getattr(func, 'allowed_methods', None)
+        self.authenticators = get_attr((func, view), 'authenticators', api.authenticators)
+        self.permissions = get_attr((func, view), 'permissions', api.permissions)
+        self.content_negotiator = get_attr((func, view), 'content_negotiator', api.content_negotiator)
+        self.parsers = get_attr((func, view), 'parsers', api.parsers)
+        self.renderers = get_attr((func, view), 'renderers', api.renderers)
+        self.serializer = get_attr((func, view), 'serializer', None)
+        self.envelope = getattr(func, 'envelope', None)
 
     def get_authenticators(self):
         """
