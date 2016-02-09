@@ -1,3 +1,5 @@
+import inspect
+
 from flask import Flask
 from flask_webapi import WebAPI, ViewBase, route
 from unittest import TestCase
@@ -24,9 +26,17 @@ class TestWebAPI(TestCase):
         response = self.client.post('/view/action')
         self.assertEqual(response.status_code, 204)
 
-    def test_import_views(self):
+    def test_import_views_with_module_path(self):
         self.api = WebAPI()
-        self.api.import_views(['tests'], 'test_api')
+        self.api.import_views('tests.test_api')
+        self.api.init_app(self.app)
+
+        response = self.client.post('/view/action')
+        self.assertEqual(response.status_code, 204)
+
+    def test_import_views_with_module_object(self):
+        self.api = WebAPI()
+        self.api.import_views(inspect.getmodule(TestWebAPI))
         self.api.init_app(self.app)
 
         response = self.client.post('/view/action')

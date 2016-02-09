@@ -58,22 +58,21 @@ class WebAPI(object):
         else:
             self._views.append(view)
 
-    def import_views(self, packages, related_name='views'):
+    def import_views(self, module):
         """
         Tries to import modules with a specific name (by default 'views').
-        :param list packages: A list of packages to search.
-        :param str related_name: The name of the module to find.
+        :param module: The path of the module or the module itself.
         """
-        for package in packages:
-            module = import_string(package + '.' + related_name)
+        if type(module) is str:
+            module = import_string(module)
 
-            members = inspect.getmembers(module)
+        members = inspect.getmembers(module)
 
-            for _, member in members:
-                if inspect.isfunction(member) and hasattr(member, 'url'):
-                    self.add_view(member)
-                elif inspect.isclass(member) and issubclass(member, ViewBase) and member != ViewBase:
-                    self.add_view(member)
+        for _, member in members:
+            if inspect.isfunction(member) and hasattr(member, 'url'):
+                self.add_view(member)
+            elif inspect.isclass(member) and issubclass(member, ViewBase) and member != ViewBase:
+                self.add_view(member)
 
     def init_app(self, app):
         """
