@@ -2,10 +2,10 @@
 Renderers used to render a Python object into byte array.
 """
 
-import simplejson
 import pickle
 
 from abc import ABCMeta, abstractmethod
+from flask import json
 from .mimetypes import MimeType
 
 
@@ -44,7 +44,7 @@ class JSONRenderer(RendererBase):
 
         indent = self.get_indent(mimetype)
         encoding = mimetype.params.get('charset') or 'utf-8'
-        return simplejson.dumps(data, indent=indent).encode(encoding)
+        return json.dumps(data, indent=indent).encode(encoding)
 
     def get_indent(self, mimetype):
         """
