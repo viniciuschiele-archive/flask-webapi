@@ -15,7 +15,7 @@ class TestWebAPI(TestCase):
         self.api.init_app(self.app)
         self.api.add_view(View)
 
-        response = self.client.post('/view/action')
+        response = self.client.get('/view/action')
         self.assertEqual(response.status_code, 204)
 
     def test_add_view_before_init_app(self):
@@ -23,7 +23,7 @@ class TestWebAPI(TestCase):
         self.api.add_view(View)
         self.api.init_app(self.app)
 
-        response = self.client.post('/view/action')
+        response = self.client.get('/view/action')
         self.assertEqual(response.status_code, 204)
 
     def test_import_views_with_module_path(self):
@@ -31,7 +31,7 @@ class TestWebAPI(TestCase):
         self.api.import_views('tests.test_api')
         self.api.init_app(self.app)
 
-        response = self.client.post('/view/action')
+        response = self.client.get('/view/action')
         self.assertEqual(response.status_code, 204)
 
     def test_import_views_with_module_object(self):
@@ -39,7 +39,10 @@ class TestWebAPI(TestCase):
         self.api.import_views(inspect.getmodule(TestWebAPI))
         self.api.init_app(self.app)
 
-        response = self.client.post('/view/action')
+        response = self.client.get('/view/action')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.client.get('/view/action2')
         self.assertEqual(response.status_code, 204)
 
     def test_import_views_from_config(self):
@@ -47,10 +50,19 @@ class TestWebAPI(TestCase):
         self.api = WebAPI()
         self.api.init_app(self.app)
 
-        response = self.client.post('/view/action')
+        response = self.client.get('/view/action')
         self.assertEqual(response.status_code, 204)
 
+        response = self.client.get('/view/action2')
+        self.assertEqual(response.status_code, 204)
+
+
 class View(ViewBase):
-    @route('/view/action', methods=['POST'])
-    def get(self):
+    @route('/view/action')
+    def action(self):
         pass
+
+
+@route('/view/action2')
+def action():
+    pass
