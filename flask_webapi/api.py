@@ -7,11 +7,11 @@ import inspect
 from flask import request
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import import_string
+from .controllers import ControllerAction, ControllerBase
 from .errors import APIError, ErrorDetail, NotAcceptable, NotAuthenticated, PermissionDenied, ServerError
 from .negotiation import DefaultContentNegotiator
 from .renderers import JSONRenderer
 from .utils import unpack
-from .views import ViewAction, ViewBase
 
 
 class WebAPI(object):
@@ -33,10 +33,10 @@ class WebAPI(object):
         :type app: flask.Flask
         Examples::
             api = WebAPI()
-            api.add_view(...)
+            api.add_controller(...)
             api.init_app(app)
         """
-        self._views = []
+        self._controllers = []
 
         self.app = None
         self.authenticators = []
@@ -49,19 +49,19 @@ class WebAPI(object):
         if app:
             self.init_app(app)
 
-    def add_view(self, view):
+    def add_controller(self, controller):
         """
-        Adds a view to the WebAPI.
-        :param ViewBase view: the class of your view
+        Adds a controller to the WebAPI.
+        :param ControllerBase controller: the class of your controller
         """
         if self.app:
-            self._register_view(view)
+            self._register_controller(controller)
         else:
-            self._views.append(view)
+            self._controllers.append(controller)
 
-    def import_views(self, module):
+    def import_controllers(self, module):
         """
-        Tries to import modules with a specific name (by default 'views').
+        Tries to import modules and register its controllers.
         :param module: The path of the module or the module itself.
         """
         if type(module) is str:
@@ -71,9 +71,9 @@ class WebAPI(object):
 
         for _, member in members:
             if inspect.isfunction(member) and hasattr(member, 'url'):
-                self.add_view(member)
-            elif inspect.isclass(member) and issubclass(member, ViewBase) and member != ViewBase:
-                self.add_view(member)
+                self.add_controller(member)
+            elif inspect.isclass(member) and issubclass(member, ControllerBase) and member != ControllerBase:
+                self.add_controller(member)
 
     def init_app(self, app):
         """
@@ -82,22 +82,22 @@ class WebAPI(object):
         :type app: flask.Flask
         Examples::
             api = WebAPI()
-            api.add_view(...)
+            api.add_controller(...)
             api.init_app(app)
         """
         self.app = app
 
         # gets all the module paths from the config
-        # and import them to register its views.
+        # and import them to register its controllers.
         modules = self.app.config.get('WEBAPI_IMPORTS')
         if modules:
             for module in modules:
-                self.import_views(module)
+                self.import_controllers(module)
 
-        # register all views added before the initialization
-        if self._views:
-            for view in self._views:
-                self._register_view(view)
+        # register all controllers added before the initialization
+        if self._controllers:
+            for controller in self._controllers:
+                self._register_controller(controller)
 
     def _dispatch_request(self, *args, **kwargs):
         """
@@ -110,7 +110,7 @@ class WebAPI(object):
 
             action = request.action
 
-            instance = action.view()
+            instance = action.controller()
 
             if action.has_self_param:
                 response = action.func(instance, *args, **kwargs)
@@ -160,14 +160,14 @@ class WebAPI(object):
 
         return self._make_response((dict(errors=errors), code))
 
-    def _make_endpoint(self, view, func):
+    def _make_endpoint(self, controller, func):
         """
-        Returns a endpoint for the specified view and func.
-        :param ViewBase view: the class of your view
-        :param func: the function of your view
+        Returns a endpoint for the specified controller and func.
+        :param ControllerBase controller: the class of your controller
+        :param func: the function of your controller
         :return: the endpoint
         """
-        return view.__name__ + ':' + func.__name__
+        return controller.__name__ + ':' + func.__name__
 
     def _make_response(self, data, use_serializer=False):
         """
@@ -209,7 +209,7 @@ class WebAPI(object):
     def _make_view(self, action):
         """
         Returns a view method expected by Flask.
-        :param ViewAction action: the action
+        :param ControllerAction action: the action
         :return: A function
         """
         def view(*args, **kwargs):
@@ -297,18 +297,18 @@ class WebAPI(object):
 
         return data
 
-    def _register_view(self, view):
+    def _register_controller(self, controller):
         """
-        Registers a view into Flask.
-        :param ViewBase view: the view to be registered.
+        Registers a controller into Flask.
+        :param ControllerBase controller: the controller to be registered.
         """
-        if inspect.isfunction(view):
-            view = type('WrappedViewBase', (ViewBase,), {view.__name__: view})
+        if inspect.isfunction(controller):
+            controller = type('WrappedControllerBase', (ControllerBase,), {controller.__name__: controller})
 
-        members = inspect.getmembers(view, lambda obj: inspect.isfunction(obj) and hasattr(obj, 'url'))
+        members = inspect.getmembers(controller, lambda obj: inspect.isfunction(obj) and hasattr(obj, 'url'))
 
         for name, func in members:
-            action = ViewAction(func, view, self)
-            endpoint = self._make_endpoint(view, func)
+            action = ControllerAction(func, controller, self)
+            endpoint = self._make_endpoint(controller, func)
 
             self.app.add_url_rule(action.url, endpoint, self._make_view(action), methods=action.allowed_methods)

@@ -1,16 +1,16 @@
 from flask import Flask, json, Response
-from flask_webapi import WebAPI, ViewBase, route
+from flask_webapi import WebAPI, ControllerBase, route
 from flask_webapi.decorators import error_handler
 from flask_webapi.errors import ServerError
 from werkzeug.exceptions import BadRequest
 from unittest import TestCase
 
 
-class TestView(TestCase):
+class TestController(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.add_view(View)
+        self.api.add_controller(Controller)
         self.client = self.app.test_client()
 
     def test_api_error(self):
@@ -41,7 +41,7 @@ def app_error_handler(error):
     return Response(str(error), status=500)
 
 
-class View(ViewBase):
+class Controller(ControllerBase):
     @route('/api_error')
     def api_error(self):
         raise ServerError(field='id')

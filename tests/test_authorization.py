@@ -1,5 +1,5 @@
 from flask import Flask, Response
-from flask_webapi import WebAPI, ViewBase, route, authenticator, permissions
+from flask_webapi import WebAPI, ControllerBase, route, authenticator, permissions
 from flask_webapi.authentication import AuthenticatorBase
 from flask_webapi.authorization import PermissionBase, IsAuthenticated
 from unittest import TestCase
@@ -9,7 +9,7 @@ class TestAuthorization(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.add_view(BasicView)
+        self.api.add_controller(Controller)
         self.client = self.app.test_client()
 
     def test_permission_granted(self):
@@ -40,7 +40,7 @@ class NeverAllow(PermissionBase):
         return False
 
 
-class BasicView(ViewBase):
+class Controller(ControllerBase):
     @route('/add', methods=['POST'])
     @authenticator(AlwaysAuthenticated)
     @permissions(IsAuthenticated)

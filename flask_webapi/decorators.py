@@ -1,12 +1,11 @@
 """
-Provides various decorators to set up the views.
+Provides various decorators to set up the controllers and actions.
 """
 
 
 def authenticator(*args):
     """
-    A decorator that apply a list of authenticators.
-
+    A decorator that apply a list of authenticators to the controller or action.
     :param args: A list of authenticators.
     :return: A function.
     """
@@ -19,8 +18,7 @@ def authenticator(*args):
 
 def permissions(*args):
     """
-    A decorator that apply a list of permissions.
-
+    A decorator that apply a list of permissions to the controller or action.
     :param args: A list of permissions.
     :return: A function.
     """
@@ -33,8 +31,7 @@ def permissions(*args):
 
 def content_negotiator(negotiator):
     """
-    A decorator that apply a content negotiator.
-
+    A decorator that apply a content negotiator to the controller or action.
     :param ContentNegotiatorBase negotiator: A class of content negotiator.
     :return: A function.
     """
@@ -47,8 +44,7 @@ def content_negotiator(negotiator):
 
 def renderer(*args):
     """
-    A decorator that apply a list of renderers.
-
+    A decorator that apply a list of renderers to the controller or action.
     :param args: A list of renderers.
     :return: A function.
     """
@@ -61,8 +57,7 @@ def renderer(*args):
 
 def route(url, methods=None):
     """
-    A decorator that is used to register a view function for a given URL rule.
-
+    A decorator that apply a route to the controller or action.
     :param str url: The url rule.
     :param list methods: A list of http methods.
     :return: A function.
@@ -77,8 +72,7 @@ def route(url, methods=None):
 
 def serializer(schema, envelope=None):
     """
-    A decorator that apply marshalling to the return values of your methods.
-
+    A decorator that apply marshalling to the return value from the action.
     :param Schema schema: The schema class to be used to serialize the values.
     :param str envelope: The key used to envelope the data.
     :return: A function.
@@ -93,7 +87,7 @@ def serializer(schema, envelope=None):
 
 def error_handler(handler):
     """
-    A decorator that apply error handling to an action or view.
+    A decorator that apply error handling to the controller or action.
     :param handler: A callable object.
     :return: A function.
     """

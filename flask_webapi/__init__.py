@@ -3,6 +3,6 @@ from marshmallow import pre_load, pre_dump, post_load, post_dump, Schema, Valida
 from marshmallow.utils import missing
 
 from .api import WebAPI
+from .controllers import ControllerBase
 from .errors import APIError
 from .decorators import authenticator, permissions, content_negotiator, renderer, serializer, route
-from .views import ViewBase

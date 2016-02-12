@@ -1,5 +1,5 @@
 from flask import Flask, json
-from flask_webapi import WebAPI, ViewBase, Schema, fields, route, serializer
+from flask_webapi import WebAPI, ControllerBase, Schema, fields, route, serializer
 from unittest import TestCase
 
 
@@ -7,7 +7,7 @@ class TestSerializer(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.add_view(BasicView)
+        self.api.add_controller(Controller)
         self.client = self.app.test_client()
 
     def test_get_model(self):
@@ -46,7 +46,7 @@ class ModelSchema(Schema):
     name = fields.String()
 
 
-class BasicView(ViewBase):
+class Controller(ControllerBase):
     @route('/models/<id>', methods=['GET'])
     @serializer(ModelSchema)
     def get_model(self, id):
