@@ -1,9 +1,37 @@
 from flask import Flask, json, Response
-from flask_webapi import WebAPI, ControllerBase, route
+from flask_webapi import APIError, WebAPI, ControllerBase, route
 from flask_webapi.decorators import error_handler
-from flask_webapi.errors import ServerError
+from flask_webapi.errors import ErrorDetail, ServerError
 from werkzeug.exceptions import BadRequest
 from unittest import TestCase
+
+
+class TestErrorDetail(TestCase):
+    def test_ctr(self):
+        self.assertRaises(TypeError, ErrorDetail, None)
+        self.assertEqual('value1', ErrorDetail('message', attribute1='value1').attribute1)
+
+    def test_str(self):
+        self.assertEqual('message', str(ErrorDetail('message')))
+
+
+class TestAPIError(TestCase):
+    def test_append(self):
+        error = APIError()
+        error.append('message 1')
+        error.append('message 2')
+
+        self.assertRaises(TypeError, error.append, None)
+        self.assertEqual('message 1', error.errors[0].message)
+        self.assertEqual('message 2', error.errors[1].message)
+
+    def test_str(self):
+        error = APIError()
+        self.assertEqual('', str(error))
+
+        error = APIError()
+        error.append('message')
+        self.assertEqual('message', str(error))
 
 
 class TestController(TestCase):

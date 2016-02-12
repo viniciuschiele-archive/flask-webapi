@@ -5,6 +5,9 @@ Provides various exceptions raised by Flask WebAPI.
 
 class ErrorDetail(object):
     def __init__(self, message, **fields):
+        if message is None:
+            raise TypeError('\'NoneType\' object has no attribute \'message\'')
+
         self.message = message
         self.__dict__.update(fields)
 
