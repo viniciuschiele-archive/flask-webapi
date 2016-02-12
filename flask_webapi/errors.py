@@ -1,7 +1,15 @@
+"""
+Provides various exceptions raised by Flask WebAPI.
+"""
+
+
 class ErrorDetail(object):
     def __init__(self, message, **fields):
         self.message = message
         self.__dict__.update(fields)
+
+    def __str__(self):
+        return self.message
 
 
 class APIError(Exception):
@@ -13,6 +21,11 @@ class APIError(Exception):
     def append(self, message, **fields):
         self.errors.append(ErrorDetail(message, **fields))
         return self
+
+    def __str__(self):
+        if self.errors:
+            return str(self.errors[0])
+        return ''
 
 
 class SingleError(APIError):

@@ -6,4 +6,3 @@ from .api import WebAPI
 from .errors import APIError
 from .decorators import authenticator, permissions, content_negotiator, renderer, serializer, route
 from .views import ViewBase
-

@@ -33,6 +33,7 @@ class ViewAction(object):
         self.renderers = get_attr((func, view), 'renderers', api.renderers)
         self.serializer = get_attr((func, view), 'serializer', None)
         self.envelope = getattr(func, 'envelope', None)
+        self.error_handler = get_attr((func, view), 'error_handler', None)
 
     def get_authenticators(self):
         """

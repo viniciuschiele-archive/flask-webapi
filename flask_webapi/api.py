@@ -44,6 +44,7 @@ class WebAPI(object):
         self.content_negotiator = DefaultContentNegotiator
         self.parsers = []
         self.renderers = [JSONRenderer]
+        self.error_handler = None
 
         if app:
             self.init_app(app)
@@ -122,7 +123,28 @@ class WebAPI(object):
 
     def _handle_error(self, error):
         """
-        Handles any error that occurs, by returning an appropriate response.
+        Handles any error that occurs, giving the opportunity for
+        custom error handling by user code.
+        :param Exception error: The exception.
+        :return: A response.
+        """
+        action = request.action
+
+        response = None
+
+        if action.error_handler is not None:
+            response = action.error_handler(error)
+
+        if response is None:
+            response = self._error_handler(error)
+
+        return response
+
+    def _error_handler(self, error):
+        """
+        Handles a specific error, by returning an appropriate response.
+        :param Exception error: The exception.
+        :return: A response
         """
         if isinstance(error, APIError):
             code = error.code

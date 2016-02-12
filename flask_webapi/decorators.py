@@ -1,6 +1,6 @@
-import inspect
-
-from .views import ViewBase
+"""
+Provides various decorators to set up the views.
+"""
 
 
 def authenticator(*args):
@@ -35,7 +35,7 @@ def content_negotiator(negotiator):
     """
     A decorator that apply a content negotiator.
 
-    :param negotiator: A class of content negotiator.
+    :param ContentNegotiatorBase negotiator: A class of content negotiator.
     :return: A function.
     """
 
@@ -63,8 +63,8 @@ def route(url, methods=None):
     """
     A decorator that is used to register a view function for a given URL rule.
 
-    :param url: The url rule.
-    :param methods: A list of http methods.
+    :param str url: The url rule.
+    :param list methods: A list of http methods.
     :return: A function.
     """
 
@@ -79,8 +79,8 @@ def serializer(schema, envelope=None):
     """
     A decorator that apply marshalling to the return values of your methods.
 
-    :param schema: The schema class to be used to serialize the values.
-    :param envelope: The key used to envelope the data.
+    :param Schema schema: The schema class to be used to serialize the values.
+    :param str envelope: The key used to envelope the data.
     :return: A function.
     """
 
@@ -90,3 +90,15 @@ def serializer(schema, envelope=None):
         return func
     return decorator
 
+
+def error_handler(handler):
+    """
+    A decorator that apply error handling to an action or view.
+    :param handler: A callable object.
+    :return: A function.
+    """
+
+    def decorator(func):
+        func.error_handler = handler
+        return func
+    return decorator
