@@ -1,6 +1,6 @@
-from flask import Flask, json
-from flask_webapi import WebAPI, ControllerBase, route
-
+from flask import Flask
+from flask_webapi import WebAPI, ControllerBase
+from flask_webapi.decorators import route
 from unittest import TestCase
 
 

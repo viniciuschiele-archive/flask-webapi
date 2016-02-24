@@ -1,7 +1,8 @@
 import pickle
 
 from flask import Flask, json
-from flask_webapi import WebAPI, ControllerBase, renderer, route
+from flask_webapi import WebAPI, ControllerBase
+from flask_webapi.decorators import renderer, route
 from flask_webapi.mimetypes import MimeType
 from flask_webapi.renderers import JSONRenderer, PickleRenderer
 from unittest import TestCase

@@ -1,5 +1,5 @@
-from flask_webapi import missing
 from flask_webapi.mimetypes import MimeType
+from flask_webapi.utils import missing
 from unittest import TestCase
 
 

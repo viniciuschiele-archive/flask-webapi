@@ -1,5 +1,6 @@
 from flask import Flask
-from flask_webapi import WebAPI, ControllerBase, content_negotiator, route
+from flask_webapi import WebAPI, ControllerBase
+from flask_webapi.decorators import content_negotiator, route
 from flask_webapi.negotiation import DefaultContentNegotiator
 from unittest import TestCase
 

@@ -1,5 +1,7 @@
 from flask import Flask, request, Response
-from flask_webapi import errors, WebAPI, ControllerBase, route, authenticator
+from flask_webapi import WebAPI, ControllerBase
+from flask_webapi.decorators import route, authenticator
+from flask_webapi.exceptions import AuthenticationFailed
 from flask_webapi.authentication import AuthenticatorBase
 from unittest import TestCase
 
@@ -32,7 +34,7 @@ class BasicAuthenticator(AuthenticatorBase):
             return None
 
         if auth != '1234':
-            raise errors.AuthenticationFailed()
+            raise AuthenticationFailed()
 
         return 'user1', auth
 
