@@ -68,7 +68,6 @@ class ControllerAction(object):
     def get_serializer(self, fields=()):
         """
         Instantiates and returns the serializer that this action can use.
-
         :param fields: The name of the fields to be serialized.
         """
         return self.serializer(only=fields)

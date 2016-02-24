@@ -8,10 +8,11 @@ from flask import request
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import import_string
 from .controllers import ControllerAction, ControllerBase
-from .errors import APIError, ErrorDetail, NotAcceptable, NotAuthenticated, PermissionDenied, ServerError
+from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
 from .negotiation import DefaultContentNegotiator
 from .renderers import JSONRenderer
 from .utils import unpack
+from .utils import error
 
 
 class WebAPI(object):
@@ -140,23 +141,28 @@ class WebAPI(object):
 
         return response
 
-    def _error_handler(self, error):
+    def _error_handler(self, exc):
         """
         Handles a specific error, by returning an appropriate response.
-        :param Exception error: The exception.
+        :param Exception exc: The exception.
         :return: A response
         """
-        if isinstance(error, APIError):
-            code = error.code
-            errors = error.errors
-        elif isinstance(error, HTTPException):
-            code = error.code
-            errors = [ErrorDetail(error.description)]
+        if isinstance(exc, ValidationError):
+            code = exc.status_code
+            message = exc.message
+        elif isinstance(exc, APIException):
+            code = exc.status_code
+            message = [exc.message] if not isinstance(exc.message, list) else exc.message
+        elif isinstance(exc, HTTPException):
+            code = exc.code
+            message = [exc.description]
         else:
-            code = ServerError.code
-            errors = [ErrorDetail(ServerError.default_message)]
+            code = APIException.status_code
+            message = [APIException.default_message]
 
-        errors = [e.__dict__ for e in errors]
+        errors = []
+
+        error.prepare_error_message_for_response(errors, message)
 
         return self._make_response((dict(errors=errors), code))
 
@@ -287,8 +293,7 @@ class WebAPI(object):
 
             ser = request.action.get_serializer(fields=fields)
 
-            many = isinstance(data, list)
-            data = ser.dump(data, many=many).data
+            data = ser.dump(data)
 
         envelope = request.action.envelope
 
