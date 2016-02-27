@@ -154,6 +154,50 @@ class FieldValues(object):
             self.assertEqual(self.field.serialize(output_value), expected_output)
 
 
+class TestBooleanField(FieldValues, TestCase):
+    """
+    Valid and invalid values for `BooleanField`.
+    """
+    valid_inputs = {
+        'true': True,
+        'false': False,
+        '1': True,
+        '0': False,
+        1: True,
+        0: False,
+        True: True,
+        False: False,
+    }
+    invalid_inputs = {
+        'foo': ['"foo" is not a valid boolean.'],
+    }
+    outputs = {
+        'true': True,
+        'false': False,
+        '1': True,
+        '0': False,
+        1: True,
+        0: False,
+        True: True,
+        False: False,
+        'other': True,
+        None: None
+    }
+    field = serializers.BooleanField()
+
+    def test_unhashable_types(self):
+        inputs = (
+            [],
+            {},
+        )
+        field = serializers.BooleanField()
+        for input_value in inputs:
+            with self.assertRaises(serializers.ValidationError) as exc_info:
+                field.safe_deserialize(input_value)
+            expected = ['"{0}" is not a valid boolean.'.format(input_value)]
+            assert exc_info.exception.message == expected
+
+
 class TestIntegerField(FieldValues, TestCase):
     """
     Valid and invalid values for `IntegerField`.
@@ -168,7 +212,7 @@ class TestIntegerField(FieldValues, TestCase):
     }
     invalid_inputs = {
         'abc': ['A valid integer is required.'],
-        '1.0': ['A valid integer is required.']
+        '1.0': ['A valid integer is required.'],
     }
     outputs = {
         '1': 1,
@@ -176,7 +220,8 @@ class TestIntegerField(FieldValues, TestCase):
         1: 1,
         0: 0,
         1.0: 1,
-        0.0: 0
+        0.0: 0,
+        None: None
     }
     field = serializers.IntegerField()
 
@@ -201,6 +246,55 @@ class TestMinMaxIntegerField(FieldValues, TestCase):
     field = serializers.IntegerField(min_value=1, max_value=3)
 
 
+class TestFloatField(FieldValues, TestCase):
+    """
+    Valid and invalid values for `FloatField`.
+    """
+    valid_inputs = {
+        '1': 1.0,
+        '0': 0.0,
+        1: 1.0,
+        0: 0.0,
+        1.0: 1.0,
+        0.0: 0.0,
+    }
+    invalid_inputs = {
+        'abc': ["A valid number is required."]
+    }
+    outputs = {
+        '1': 1.0,
+        '0': 0.0,
+        1: 1.0,
+        0: 0.0,
+        1.0: 1.0,
+        0.0: 0.0,
+        None: None
+    }
+    field = serializers.FloatField()
+
+
+class TestMinMaxFloatField(FieldValues):
+    """
+    Valid and invalid values for `FloatField` with min and max limits.
+    """
+    valid_inputs = {
+        '1': 1,
+        '3': 3,
+        1: 1,
+        3: 3,
+        1.0: 1.0,
+        3.0: 3.0,
+    }
+    invalid_inputs = {
+        0.9: ['Ensure this value is greater than or equal to 1.'],
+        3.1: ['Ensure this value is less than or equal to 3.'],
+        '0.0': ['Ensure this value is greater than or equal to 1.'],
+        '3.1': ['Ensure this value is less than or equal to 3.'],
+    }
+    outputs = {}
+    field = serializers.FloatField(min_value=1, max_value=3)
+
+
 class TestStringField(FieldValues, TestCase):
     """
     Valid and invalid values for `StringField`.
@@ -214,7 +308,8 @@ class TestStringField(FieldValues, TestCase):
     }
     outputs = {
         1: '1',
-        'abc': 'abc'
+        'abc': 'abc',
+        None: None
     }
     field = serializers.StringField()
 

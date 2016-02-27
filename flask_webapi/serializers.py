@@ -110,6 +110,34 @@ class Field(object):
             raise ValidationError(errors)
 
 
+class BooleanField(Field):
+    default_error_messages = {
+        'invalid': '"{input}" is not a valid boolean.'
+    }
+
+    TRUE_VALUES = {'t', 'T', 'true', 'True', 'TRUE', '1', 1, True}
+    FALSE_VALUES = {'f', 'F', 'false', 'False', 'FALSE', '0', 0, 0.0, False}
+
+    def deserialize(self, data):
+        try:
+            if data in self.TRUE_VALUES:
+                return True
+            if data in self.FALSE_VALUES:
+                return False
+        except TypeError:
+            pass
+        self._fail('invalid', input=data)
+
+    def serialize(self, value):
+        if value is None:
+            return None
+        if value in self.TRUE_VALUES:
+            return True
+        if value in self.FALSE_VALUES:
+            return False
+        return bool(value)
+
+
 class IntegerField(Field):
     default_error_messages = {
         'invalid': 'A valid integer is required.',
@@ -143,7 +171,47 @@ class IntegerField(Field):
             self._fail('invalid')
 
     def serialize(self, value):
+        if value is None:
+            return None
         return int(value)
+
+
+class FloatField(Field):
+    default_error_messages = {
+        'invalid': 'A valid number is required.',
+        'max_value': 'Ensure this value is less than or equal to {max_value}.',
+        'min_value': 'Ensure this value is greater than or equal to {min_value}.',
+        'max_string_length': 'String value too large.'
+    }
+
+    MAX_STRING_LENGTH = 1000  # Guard against malicious string inputs.
+
+    def __init__(self, min_value=None, max_value=None, **kwargs):
+        super().__init__(**kwargs)
+        self.min_value = min_value
+        self.max_value = max_value
+
+        if self.max_value is not None:
+            message = self.error_messages['max_value'].format(max_value=self.max_value)
+            self.validators.append(MaxValueValidator(self.max_value, message=message))
+
+        if self.min_value is not None:
+            message = self.error_messages['min_value'].format(min_value=self.min_value)
+            self.validators.append(MinValueValidator(self.min_value, message=message))
+
+    def deserialize(self, data):
+        if isinstance(data, str) and len(data) > self.MAX_STRING_LENGTH:
+            self._fail('max_string_length')
+
+        try:
+            return float(data)
+        except (TypeError, ValueError):
+            self._fail('invalid')
+
+    def serialize(self, value):
+        if value is None:
+            return None
+        return float(value)
 
 
 class StringField(Field):
@@ -182,6 +250,8 @@ class StringField(Field):
         return value
 
     def serialize(self, value):
+        if value is None:
+            return None
         return str(value)
 
 
