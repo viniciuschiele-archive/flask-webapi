@@ -247,7 +247,7 @@ class TestDateTimeField(FieldValues, TestCase):
     field = serializers.DateTimeField(default_timezone=timezone.UTC())
 
 
-class TestNaiveDateTimeField(FieldValues):
+class TestNaiveDateTimeField(FieldValues, TestCase):
     """
     Valid and invalid values for `DateTimeField` with naive datetimes.
     """
