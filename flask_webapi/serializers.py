@@ -294,6 +294,38 @@ class FloatField(Field):
         return float(value)
 
 
+class ListField(Field):
+    default_error_messages = {
+        'not_a_list': 'Expected a list of items but got type "{input_type}".',
+        'empty': 'This list may not be empty.'
+    }
+
+    def __init__(self, child, allow_empty=True, *args, **kwargs):
+        super(ListField, self).__init__(*args, **kwargs)
+
+        self.child = child
+        self.allow_empty = allow_empty
+        # self.child.bind(field_name='', parent=self)
+
+    def deserialize(self, data):
+        """
+        List of dicts of native values <- List of dicts of primitive datatypes.
+        """
+        if not isinstance(data, list):
+            self._fail('not_a_list', input_type=type(data).__name__)
+
+        if not self.allow_empty and len(data) == 0:
+            self._fail('empty')
+
+        return [self.child.safe_deserialize(item) for item in data]
+
+    def serialize(self, data):
+        """
+        List of object instances -> List of dicts of primitive datatypes.
+        """
+        return [self.child.serialize(item) for item in data]
+
+
 class StringField(Field):
     default_error_messages = {
         'blank': 'This field may not be blank.',

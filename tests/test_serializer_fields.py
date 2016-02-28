@@ -321,7 +321,7 @@ class TestFloatField(FieldValues, TestCase):
     field = serializers.FloatField()
 
 
-class TestMinMaxFloatField(FieldValues):
+class TestMinMaxFloatField(FieldValues, TestCase):
     """
     Valid and invalid values for `FloatField` with min and max limits.
     """
@@ -341,6 +341,27 @@ class TestMinMaxFloatField(FieldValues):
     }
     outputs = {}
     field = serializers.FloatField(min_value=1, max_value=3)
+
+
+class TestListField(FieldValues, TestCase):
+    """
+    Values for `ListField` with IntegerField as child.
+    """
+    valid_inputs = [
+        ([1, 2, 3], [1, 2, 3]),
+        (['1', '2', '3'], [1, 2, 3]),
+        ([], [])
+    ]
+    invalid_inputs = [
+        ('not a list', ['Expected a list of items but got type "str".']),
+        ([1, 2, 'error'], ['A valid integer is required.']),
+        ({'one': 'two'}, ['Expected a list of items but got type "dict".'])
+    ]
+    outputs = [
+        ([1, 2, 3], [1, 2, 3]),
+        (['1', '2', '3'], [1, 2, 3])
+    ]
+    field = serializers.ListField(child=serializers.IntegerField())
 
 
 class TestStringField(FieldValues, TestCase):
