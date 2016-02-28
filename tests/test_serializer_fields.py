@@ -1,4 +1,7 @@
+import datetime
+
 from flask_webapi import serializers
+from flask_webapi.utils import timezone
 from unittest import TestCase
 
 
@@ -196,6 +199,30 @@ class TestBooleanField(FieldValues, TestCase):
                 field.safe_deserialize(input_value)
             expected = ['"{0}" is not a valid boolean.'.format(input_value)]
             assert exc_info.exception.message == expected
+
+
+class TestDateTimeField(FieldValues, TestCase):
+    """
+    Valid and invalid values for `DateTimeField`.
+    """
+    valid_inputs = {
+        '2001-01-01 13:00': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()),
+        '2001-01-01T13:00': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()),
+        '2001-01-01T13:00Z': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()),
+        datetime.datetime(2001, 1, 1, 13, 00): datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()),
+        datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()): datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()),
+    }
+    invalid_inputs = {
+        'abc': ['Datetime has wrong format.'],
+        '2001-99-99T99:00': ['Datetime has wrong format.'],
+        datetime.date(2001, 1, 1): ['Expected a datetime but got a date.'],
+    }
+    outputs = {
+        datetime.datetime(2001, 1, 1, 13, 00): '2001-01-01T13:00:00',
+        datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()): '2001-01-01T13:00:00Z',
+        None: None,
+    }
+    field = serializers.DateTimeField(default_timezone=timezone.UTC())
 
 
 class TestIntegerField(FieldValues, TestCase):

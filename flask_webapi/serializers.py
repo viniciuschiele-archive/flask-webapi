@@ -1,6 +1,8 @@
+import datetime
+
 from collections import OrderedDict
 from .exceptions import ValidationError
-from .utils import missing
+from .utils import missing, dateparse, timezone
 from .utils.cache import cached_property
 from .validators import MaxValueValidator, MinValueValidator, MaxLengthValidator, MinLengthValidator
 
@@ -136,6 +138,54 @@ class BooleanField(Field):
         if value in self.FALSE_VALUES:
             return False
         return bool(value)
+
+
+class DateTimeField(Field):
+    default_error_messages = {
+        'invalid': 'Datetime has wrong format.',
+        'date': 'Expected a datetime but got a date.',
+    }
+
+    default_timezone = None
+
+    def __init__(self, default_timezone=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if default_timezone is not None:
+            self.default_timezone = default_timezone
+
+    def deserialize(self, data):
+        if isinstance(data, datetime.datetime):
+            return self._enforce_timezone(data)
+
+        if isinstance(data, datetime.date):
+            self._fail('date')
+
+        try:
+            parsed = dateparse.parse_datetime(data)
+            if parsed is not None:
+                return self._enforce_timezone(parsed)
+        except (ValueError, TypeError):
+            pass
+
+        self._fail('invalid')
+
+    def serialize(self, value):
+        if value is None:
+            return None
+
+        value = value.isoformat()
+        if value.endswith('+00:00'):
+            value = value[:-6] + 'Z'
+        return value
+
+    def _enforce_timezone(self, value):
+        """
+        When `self.default_timezone` is `None`, always return naive datetimes.
+        When `self.default_timezone` is not `None`, always return aware datetimes.
+        """
+        if self.default_timezone is not None and not timezone.is_aware(value):
+            return timezone.make_aware(value, self.default_timezone)
+        return value
 
 
 class IntegerField(Field):
