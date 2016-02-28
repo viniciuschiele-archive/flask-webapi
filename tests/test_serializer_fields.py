@@ -246,6 +246,23 @@ class TestDateTimeField(FieldValues, TestCase):
     field = serializers.DateTimeField(default_timezone=timezone.UTC())
 
 
+class TestDictField(FieldValues, TestCase):
+    """
+    Values for `ListField` with StringField as child.
+    """
+    valid_inputs = [
+        ({'a': 1, 'b': '2', 3: 3}, {'a': '1', 'b': '2', '3': '3'}),
+    ]
+    invalid_inputs = [
+        ({'a': 1, 'b': None}, ['This field may not be null.']),
+        ('not a dict', ['Expected a dictionary of items but got type "str".']),
+    ]
+    outputs = [
+        ({'a': 1, 'b': '2', 3: 3}, {'a': '1', 'b': '2', '3': '3'}),
+    ]
+    field = serializers.DictField(child=serializers.StringField())
+
+
 class TestIntegerField(FieldValues, TestCase):
     """
     Valid and invalid values for `IntegerField`.

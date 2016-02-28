@@ -218,6 +218,35 @@ class DateTimeField(Field):
         return value
 
 
+class DictField(Field):
+    default_error_messages = {
+        'not_a_dict': 'Expected a dictionary of items but got type "{input_type}".'
+    }
+
+    def __init__(self, child, *args, **kwargs):
+        super(DictField, self).__init__(*args, **kwargs)
+        self.child = child
+
+    def deserialize(self, data):
+        """
+        Dicts of native values <- Dicts of primitive datatypes.
+        """
+        if not isinstance(data, dict):
+            self._fail('not_a_dict', input_type=type(data).__name__)
+
+        return {
+            str(key): self.child.safe_deserialize(value) for key, value in data.items()
+        }
+
+    def serialize(self, value):
+        """
+        List of object instances -> List of dicts of primitive datatypes.
+        """
+        return {
+            str(key): self.child.serialize(val) for key, val in value.items()
+        }
+
+
 class IntegerField(Field):
     default_error_messages = {
         'invalid': 'A valid integer is required.',
