@@ -201,6 +201,26 @@ class TestBooleanField(FieldValues, TestCase):
             assert exc_info.exception.message == expected
 
 
+class TestDateField(FieldValues, TestCase):
+    """
+    Valid and invalid values for `DateField`.
+    """
+    valid_inputs = {
+        '2001-01-01': datetime.date(2001, 1, 1),
+        datetime.date(2001, 1, 1): datetime.date(2001, 1, 1),
+    }
+    invalid_inputs = {
+        'abc': ['Date has wrong format.'],
+        '2001-99-99': ['Date has wrong format.'],
+        datetime.datetime(2001, 1, 1, 12, 00): ['Expected a date but got a datetime.'],
+    }
+    outputs = {
+        datetime.date(2001, 1, 1): '2001-01-01',
+        None: None,
+    }
+    field = serializers.DateField()
+
+
 class TestDateTimeField(FieldValues, TestCase):
     """
     Valid and invalid values for `DateTimeField`.

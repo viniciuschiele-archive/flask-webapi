@@ -140,6 +140,35 @@ class BooleanField(Field):
         return bool(value)
 
 
+class DateField(Field):
+    default_error_messages = {
+        'invalid': 'Date has wrong format.',
+        'datetime': 'Expected a date but got a datetime.',
+    }
+
+    def deserialize(self, data):
+        if isinstance(data, datetime.datetime):
+            self._fail('datetime')
+
+        if isinstance(data, datetime.date):
+            return data
+
+        try:
+            parsed = dateparse.parse_date(data)
+            if parsed is not None:
+                return parsed
+        except (ValueError, TypeError):
+            pass
+
+        self._fail('invalid')
+
+    def serialize(self, value):
+        if value is None:
+            return None
+
+        return value.isoformat()
+
+
 class DateTimeField(Field):
     default_error_messages = {
         'invalid': 'Datetime has wrong format.',
