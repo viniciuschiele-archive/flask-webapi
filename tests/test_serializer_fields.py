@@ -247,6 +247,20 @@ class TestDateTimeField(FieldValues, TestCase):
     field = serializers.DateTimeField(default_timezone=timezone.UTC())
 
 
+class TestNaiveDateTimeField(FieldValues):
+    """
+    Valid and invalid values for `DateTimeField` with naive datetimes.
+    """
+    valid_inputs = {
+        datetime.datetime(2001, 1, 1, 13, 00): datetime.datetime(2001, 1, 1, 13, 00),
+        datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()): datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()),
+        '2001-01-01 13:00': datetime.datetime(2001, 1, 1, 13, 00),
+    }
+    invalid_inputs = {}
+    outputs = {}
+    field = serializers.DateTimeField(default_timezone=None)
+
+
 class TestDecimalField(FieldValues, TestCase):
     """
     Valid and invalid values for `DecimalField`.
