@@ -1,4 +1,5 @@
 import datetime
+import uuid
 
 from collections import OrderedDict
 from .exceptions import ValidationError
@@ -331,6 +332,24 @@ class StringField(Field):
     def serialize(self, value):
         if value is None:
             return None
+        return str(value)
+
+
+class UUIDField(Field):
+    default_error_messages = {
+        'invalid': '"{value}" is not a valid UUID.',
+    }
+
+    def deserialize(self, data):
+        if isinstance(data, uuid.UUID):
+            return data
+
+        try:
+            return uuid.UUID(hex=data)
+        except (AttributeError, ValueError):
+            self._fail('invalid', value=data)
+
+    def serialize(self, value):
         return str(value)
 
 

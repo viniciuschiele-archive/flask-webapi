@@ -1,4 +1,5 @@
 import datetime
+import uuid
 
 from flask_webapi import serializers
 from flask_webapi.utils import timezone
@@ -393,3 +394,22 @@ class TestMinMaxStringField(FieldValues, TestCase):
     }
     outputs = {}
     field = serializers.StringField(min_length=2, max_length=4)
+
+
+class TestUUIDField(FieldValues, TestCase):
+    """
+    Valid and invalid values for `UUIDField`.
+    """
+    valid_inputs = {
+        '825d7aeb-05a9-45b5-a5b7-05df87923cda': uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'),
+        '825d7aeb05a945b5a5b705df87923cda': uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'),
+    }
+    invalid_inputs = {
+        '825d7aeb-05a9-45b5-a5b7': ['"825d7aeb-05a9-45b5-a5b7" is not a valid UUID.'],
+        (1, 2, 3): ['"(1, 2, 3)" is not a valid UUID.'],
+        123: ['"123" is not a valid UUID.'],
+    }
+    outputs = {
+        uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'): '825d7aeb-05a9-45b5-a5b7-05df87923cda'
+    }
+    field = serializers.UUIDField()
