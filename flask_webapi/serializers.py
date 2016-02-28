@@ -1,4 +1,5 @@
 import datetime
+import decimal
 import uuid
 
 from collections import OrderedDict
@@ -215,6 +216,121 @@ class DateTimeField(Field):
         """
         if self.default_timezone is not None and not timezone.is_aware(value):
             return timezone.make_aware(value, self.default_timezone)
+        return value
+
+
+class DecimalField(Field):
+    default_error_messages = {
+        'invalid': 'A valid number is required.',
+        'max_value': 'Ensure this value is less than or equal to {max_value}.',
+        'min_value': 'Ensure this value is greater than or equal to {min_value}.',
+        'max_digits': 'Ensure that there are no more than {max_digits} digits in total.',
+        'max_decimal_places': 'Ensure that there are no more than {max_decimal_places} decimal places.',
+        'max_whole_digits': 'Ensure that there are no more than {max_whole_digits} digits before the decimal point.',
+        'max_string_length': 'String value too large.'
+    }
+    MAX_STRING_LENGTH = 1000  # Guard against malicious string inputs.
+
+    def __init__(self, max_digits, decimal_places, max_value=None, min_value=None, as_string=True, **kwargs):
+        super(DecimalField, self).__init__(**kwargs)
+
+        self.max_digits = max_digits
+        self.decimal_places = decimal_places
+        self.as_string = as_string
+
+        self.max_value = max_value
+        self.min_value = min_value
+
+        if self.max_digits is not None and self.decimal_places is not None:
+            self.max_whole_digits = self.max_digits - self.decimal_places
+        else:
+            self.max_whole_digits = None
+
+        if self.max_value is not None:
+            message = self.error_messages['max_value'].format(max_value=self.max_value)
+            self.validators.append(MaxValueValidator(self.max_value, message=message))
+        if self.min_value is not None:
+            message = self.error_messages['min_value'].format(min_value=self.min_value)
+            self.validators.append(MinValueValidator(self.min_value, message=message))
+
+    def deserialize(self, data):
+        """
+        Validate that the input is a decimal number and return a Decimal
+        instance.
+        """
+        data = str(data)
+        if len(data) > self.MAX_STRING_LENGTH:
+            self._fail('max_string_length')
+
+        try:
+            value = decimal.Decimal(data)
+        except decimal.DecimalException:
+            self._fail('invalid')
+
+        # Check for NaN. It is the only value that isn't equal to itself,
+        # so we can use this to identify NaN values.
+        if value.is_nan():
+            self._fail('invalid')
+
+        # Check for infinity and negative infinity.
+        if value.is_infinite():
+            self._fail('invalid')
+
+        return self._validate_precision(value)
+
+    def serialize(self, value):
+        if not isinstance(value, decimal.Decimal):
+            value = decimal.Decimal(str(value))
+
+        quantized = self._quantize(value)
+
+        if self.as_string:
+            return '{0:f}'.format(quantized)
+
+        return quantized
+
+    def _quantize(self, value):
+        """
+        Quantize the decimal value to the configured precision.
+        """
+        context = decimal.getcontext().copy()
+        context.prec = self.max_digits
+        return value.quantize(
+            decimal.Decimal('.1') ** self.decimal_places,
+            context=context)
+
+    def _validate_precision(self, value):
+        """
+        Ensure that there are no more than max_digits in the number, and no
+        more than decimal_places digits after the decimal point.
+        Override this method to disable the precision validation for input
+        values or to enhance it in any way you need to.
+        """
+        sign, digittuple, exponent = value.as_tuple()
+
+        if exponent >= 0:
+            # 1234500.0
+            total_digits = len(digittuple) + exponent
+            whole_digits = total_digits
+            decimal_places = 0
+        elif len(digittuple) > abs(exponent):
+            # 123.45
+            total_digits = len(digittuple)
+            whole_digits = total_digits - abs(exponent)
+            decimal_places = abs(exponent)
+        else:
+            # 0.001234
+            total_digits = abs(exponent)
+            whole_digits = 0
+            decimal_places = total_digits
+
+        if self.max_digits is not None and total_digits > self.max_digits:
+            self._fail('max_digits', max_digits=self.max_digits)
+        if self.decimal_places is not None and decimal_places > self.decimal_places:
+            self._fail('max_decimal_places', max_decimal_places=self.decimal_places)
+        if self.max_whole_digits is not None and whole_digits > self.max_whole_digits:
+            self._fail('max_whole_digits', max_whole_digits=self.max_whole_digits)
+
         return value
 
 

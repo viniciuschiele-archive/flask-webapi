@@ -1,6 +1,7 @@
 import datetime
 import uuid
 
+from decimal import Decimal
 from flask_webapi import serializers
 from flask_webapi.utils import timezone
 from unittest import TestCase
@@ -244,6 +245,44 @@ class TestDateTimeField(FieldValues, TestCase):
         None: None,
     }
     field = serializers.DateTimeField(default_timezone=timezone.UTC())
+
+
+class TestDecimalField(FieldValues, TestCase):
+    """
+    Valid and invalid values for `DecimalField`.
+    """
+    valid_inputs = {
+        '12.3': Decimal('12.3'),
+        '0.1': Decimal('0.1'),
+        10: Decimal('10'),
+        0: Decimal('0'),
+        12.3: Decimal('12.3'),
+        0.1: Decimal('0.1'),
+        '2E+1': Decimal('20'),
+    }
+    invalid_inputs = {
+        'abc': ["A valid number is required."],
+        Decimal('Nan'): ["A valid number is required."],
+        Decimal('Inf'): ["A valid number is required."],
+        '12.345': ["Ensure that there are no more than 3 digits in total."],
+        200000000000.0: ["Ensure that there are no more than 3 digits in total."],
+        '0.01': ["Ensure that there are no more than 1 decimal places."],
+        123: ["Ensure that there are no more than 2 digits before the decimal point."],
+        '2E+2': ["Ensure that there are no more than 2 digits before the decimal point."]
+    }
+    outputs = {
+        '1': '1.0',
+        '0': '0.0',
+        '1.09': '1.1',
+        '0.04': '0.0',
+        1: '1.0',
+        0: '0.0',
+        Decimal('1.0'): '1.0',
+        Decimal('0.0'): '0.0',
+        Decimal('1.09'): '1.1',
+        Decimal('0.04'): '0.0'
+    }
+    field = serializers.DecimalField(max_digits=3, decimal_places=1)
 
 
 class TestDictField(FieldValues, TestCase):
