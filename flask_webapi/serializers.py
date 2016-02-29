@@ -2,7 +2,7 @@ import datetime
 import decimal
 import uuid
 
-from collections import OrderedDict
+from collections import namedtuple, OrderedDict
 from .exceptions import ValidationError
 from .utils import missing, dateparse, timezone
 from .utils.cache import cached_property
@@ -13,6 +13,8 @@ MISSING_ERROR_MESSAGE = (
     'ValidationError raised by `{class_name}`, but error key `{key}` does '
     'not exist in the `error_messages` dictionary.'
 )
+
+LoadResult = namedtuple('LoadResult', ['data', 'errors'])
 
 
 class Field(object):
@@ -248,12 +250,11 @@ class DecimalField(Field):
     }
     MAX_STRING_LENGTH = 1000  # Guard against malicious string inputs.
 
-    def __init__(self, max_digits, decimal_places, max_value=None, min_value=None, as_string=True, **kwargs):
+    def __init__(self, max_digits, decimal_places, max_value=None, min_value=None, **kwargs):
         super(DecimalField, self).__init__(**kwargs)
 
         self.max_digits = max_digits
         self.decimal_places = decimal_places
-        self.as_string = as_string
 
         self.max_value = max_value
         self.min_value = min_value
@@ -281,19 +282,14 @@ class DecimalField(Field):
 
         try:
             value = decimal.Decimal(data)
+
+            # Check for NaN and for infinity and negative infinity.
+            if value.is_nan() or value.is_infinite():
+                self._fail('invalid')
+
+            return self._validate_precision(value)
         except decimal.DecimalException:
             self._fail('invalid')
-
-        # Check for NaN. It is the only value that isn't equal to itself,
-        # so we can use this to identify NaN values.
-        if value.is_nan():
-            self._fail('invalid')
-
-        # Check for infinity and negative infinity.
-        if value.is_infinite():
-            self._fail('invalid')
-
-        return self._validate_precision(value)
 
     def serialize(self, value):
         if not isinstance(value, decimal.Decimal):
@@ -301,10 +297,7 @@ class DecimalField(Field):
 
         quantized = self._quantize(value)
 
-        if self.as_string:
-            return '{0:f}'.format(quantized)
-
-        return quantized
+        return '{0:f}'.format(quantized)
 
     def _quantize(self, value):
         """
@@ -593,10 +586,13 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         return ret
 
     def load(self, data):
-        if self.many:
-            return [self.safe_deserialize(value) for value in data]
+        try:
+            if self.many:
+                return [self.safe_deserialize(value) for value in data]
 
-        return self.safe_deserialize(data)
+            return self.safe_deserialize(data)
+        except ValidationError as error:
+            return LoadResult(None, error.message)
 
     def dump(self, obj):
         if self.many:
@@ -623,7 +619,7 @@ class Serializer(Field, metaclass=SerializerMetaclass):
                 errors[field.field_name] = err.message
 
         if errors:
-            raise ValidationError(errors)
+            raise ValidationError(errors, has_fields=True)
 
         return result
 
