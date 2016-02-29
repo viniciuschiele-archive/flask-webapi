@@ -30,7 +30,6 @@ class Field(object):
         self.allow_none = allow_none
         self.dump_to = dump_to
         self.load_from = load_from
-        self.field_name = None
         self.validators = validators or []
 
         if allow_none is None:
@@ -45,8 +44,22 @@ class Field(object):
         messages.update(error_messages or {})
         self.error_messages = messages
 
-    def bind(self, field_name):
+        self.field_name = None
+        self.parent = None
+
+    @cached_property
+    def root(self):
+        """
+        Returns the top-level serializer for this field.
+        """
+        root = self
+        while root.parent is not None:
+            root = root.parent
+        return root
+
+    def bind(self, field_name, parent):
         self.field_name = field_name
+        self.parent = parent
 
         if not self.dump_to:
             self.dump_to = field_name
@@ -76,8 +89,12 @@ class Field(object):
 
     def safe_deserialize(self, data):
         if data is missing:
+            if getattr(self.root, 'partial', False):
+                return missing
+
             if self.required:
                 self._fail('required')
+
             return self.get_default()
 
         if data is None:
@@ -532,21 +549,20 @@ class UUIDField(Field):
 
 class SerializerMetaclass(type):
     def __new__(mcs, name, bases, attrs):
-        attrs['fields'] = mcs._get_fields(bases, attrs)
+        attrs['_declared_fields'] = mcs._get_declared_fields(bases, attrs)
         return super(SerializerMetaclass, mcs).__new__(mcs, name, bases, attrs)
 
     @classmethod
-    def _get_fields(mcs, bases, attrs):
+    def _get_declared_fields(mcs, bases, attrs):
         fields = []
 
         for attr_name, attr in list(attrs.items()):
             if isinstance(attr, Field):
-                attr.bind(attr_name)
                 fields.append((attr_name, attr))
 
         for base in reversed(bases):
-            if hasattr(base, '_fields'):
-                fields = list(base._fields.items()) + fields
+            if hasattr(base, '_declared_fields'):
+                fields = list(base._declared_fields.items()) + fields
 
         return OrderedDict(fields)
 
@@ -556,11 +572,25 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         'invalid': 'Invalid data. Expected a dictionary, but got {datatype}.'
     }
 
-    def __init__(self, only=(), many=False):
+    def __init__(self, only=(), many=False, partial=False):
         super().__init__()
-        self._fields = None
         self.only = only
         self.many = many
+        self.partial = partial
+
+    @cached_property
+    def fields(self):
+        """
+        A dictionary of {field_name: field_instance}.
+        """
+        # `fields` is evaluated lazily. We do this to ensure that we don't
+        # have issues importing modules that use ModelSerializers as fields,
+        # even if Django's app-loading stage has not yet run.
+        ret = {}
+        for field_name, field in self._declared_fields.items():
+            field.bind(field_name, self)
+            ret[field_name] = field
+        return ret
 
     def load(self, data):
         if self.many:
@@ -604,13 +634,8 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         for field in fields:
             value = field.get_attribute(instance)
 
-            if value is missing:
-                value = field.default
-            else:
-                value = field.serialize(value)
-
             if value is not missing:
-                result[field.field_name] = value
+                result[field.field_name] = field.serialize(value)
 
         return result
 
