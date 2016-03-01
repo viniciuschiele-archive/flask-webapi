@@ -565,11 +565,12 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         'invalid': 'Invalid data. Expected a dictionary, but got {datatype}.'
     }
 
-    def __init__(self, only=(), many=False, partial=False):
+    def __init__(self, only=None, many=False, partial=False, envelope=None):
         super().__init__()
-        self.only = only
+        self.only = only or ()
         self.many = many
         self.partial = partial
+        self.envelope = envelope
 
     @cached_property
     def fields(self):
@@ -596,9 +597,14 @@ class Serializer(Field, metaclass=SerializerMetaclass):
 
     def dump(self, obj):
         if self.many:
-            return [self.serialize(value) for value in obj]
+            data = [self.serialize(value) for value in obj]
+        else:
+            data = self.serialize(obj)
 
-        return self.serialize(obj)
+        if self.envelope:
+            data = {self.envelope: data}
+
+        return data
 
     def deserialize(self, data):
         if not isinstance(data, dict):
