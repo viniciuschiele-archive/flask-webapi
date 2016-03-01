@@ -1,5 +1,7 @@
 from collections import OrderedDict
-from flask_webapi import serializers
+from flask import Flask, json
+from flask_webapi import WebAPI, ControllerBase, serializers
+from flask_webapi.decorators import route, serializer
 from unittest import TestCase
 
 
@@ -73,3 +75,57 @@ class TestSerializer(TestCase):
 
         self.assertIsNone(output)
         self.assertEqual(errors, OrderedDict({'field_1': ['A valid integer is required.']}))
+
+
+class TestController(TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.api = WebAPI(self.app)
+        self.api.add_controller(Controller)
+        self.client = self.app.test_client()
+
+    def test_single_result(self):
+        response = self.client.get('/single_result')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.data), dict(field='value'))
+
+    def test_multiple_results(self):
+        response = self.client.get('/multiple_results')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.data), [dict(field='value')])
+
+    def test_multiple_results_with_envelope(self):
+        response = self.client.get('/multiple_results_with_envelope')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.data), dict(results=[dict(field='value')]))
+
+    def test_none_with_envelope(self):
+        response = self.client.get('/none_with_envelope')
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.data, b'')
+
+
+class Serializer(serializers.Serializer):
+    field = serializers.StringField()
+
+
+class Controller(ControllerBase):
+    @route('/single_result')
+    @serializer(Serializer)
+    def single_result(self):
+        return {'field': 'value'}
+
+    @route('/multiple_results')
+    @serializer(Serializer, many=True)
+    def multiple_results(self):
+        return [{'field': 'value'}]
+
+    @route('/multiple_results_with_envelope')
+    @serializer(Serializer, many=True, envelope='results')
+    def multiple_results_with_envelope(self):
+        return [{'field': 'value'}]
+
+    @route('/none_with_envelope')
+    @serializer(Serializer, envelope='results')
+    def none_with_envelope(self):
+        return None

@@ -284,23 +284,12 @@ class WebAPI(object):
         if not request.action.serializer:
             return data
 
-        if data is not None:
-            fields = request.args.get('fields')
-            if fields:
-                fields = fields.split(',')
-            else:
-                fields = ()
+        if data is None:
+            return None
 
-            ser = request.action.get_serializer(fields=fields)
+        serializer = request.action.get_serializer(**request.action.serializer_kwargs)
 
-            data = ser.dump(data)
-
-        envelope = request.action.envelope
-
-        if envelope:
-            data = {envelope: data}
-
-        return data
+        return serializer.dump(data)
 
     def _register_controller(self, controller):
         """

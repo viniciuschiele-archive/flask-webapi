@@ -70,17 +70,21 @@ def route(url, methods=None):
     return decorator
 
 
-def serializer(schema, envelope=None):
+def serializer(serializer_cls, only=None, many=False, envelope=None):
     """
     A decorator that apply marshalling to the return value from the action.
-    :param Schema schema: The schema class to be used to serialize the values.
+    :param Serializer serializer_cls: The schema class to be used to serialize the values.
+    :param only: The name of the fields to be serialized.
+    :param bool many: `True` if ``obj`` is a collection so that the object will be serialized to a list.
     :param str envelope: The key used to envelope the data.
     :return: A function.
     """
 
     def decorator(func):
-        func.serializer = schema
-        func.envelope = envelope
+        func.serializer = serializer_cls
+        func.serializer_kwargs = {'only': only,
+                                  'many': many,
+                                  'envelope': envelope}
         return func
     return decorator
 

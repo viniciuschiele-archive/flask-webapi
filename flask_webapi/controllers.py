@@ -32,7 +32,7 @@ class ControllerAction(object):
         self.parsers = get_attr((func, controller), 'parsers', api.parsers)
         self.renderers = get_attr((func, controller), 'renderers', api.renderers)
         self.serializer = get_attr((func, controller), 'serializer', None)
-        self.envelope = getattr(func, 'envelope', None)
+        self.serializer_kwargs = getattr(func, 'serializer_kwargs', None)
         self.error_handler = get_attr((func, controller), 'error_handler', api.error_handler)
 
     def get_authenticators(self):
@@ -65,9 +65,8 @@ class ControllerAction(object):
         """
         return [renderer() for renderer in self.renderers]
 
-    def get_serializer(self, fields=()):
+    def get_serializer(self, **kwargs):
         """
         Instantiates and returns the serializer that this action can use.
-        :param fields: The name of the fields to be serialized.
         """
-        return self.serializer(only=fields)
+        return self.serializer(**kwargs)
