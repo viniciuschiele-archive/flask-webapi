@@ -7,12 +7,13 @@ import inspect
 from flask import request
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import import_string
+from . import locations
 from .controllers import ControllerAction, ControllerBase
 from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
 from .negotiation import DefaultContentNegotiator
 from .renderers import JSONRenderer
-from .utils import unpack
-from .utils import error
+from .serializers import Serializer
+from .utils import error, missing, unpack
 
 
 class WebAPI(object):
@@ -46,6 +47,8 @@ class WebAPI(object):
         self.parsers = []
         self.renderers = [JSONRenderer]
         self.error_handler = None
+
+        self.locations = {'query': locations.load_query}
 
         if app:
             self.init_app(app)
@@ -108,6 +111,7 @@ class WebAPI(object):
             self._perform_authentication()
             self._perform_authorization()
             self._perform_content_negotiation()
+            self._perform_deserialization(kwargs)
 
             action = request.action
 
@@ -272,6 +276,30 @@ class WebAPI(object):
             renderer_pair = renderers[0], renderers[0].mimetype
 
         request.accepted_renderer, request.accepted_mimetype = renderer_pair
+
+    def _perform_deserialization(self, kwargs):
+        if not request.action.params:
+            return
+
+        params = request.action.get_params()
+
+        for field_name, field in params.items():
+            location = locations.guess_location(field)
+            func = self.locations.get(location)
+            if not func:
+                raise Exception()
+
+            data = func()
+
+            if isinstance(field, Serializer):
+                kwargs[field_name] = field.load(data, raise_exception=True)
+            else:
+                try:
+                    value = field.get_value(data)
+                    value = field.safe_deserialize(value)
+                    kwargs[field_name] = None if value == missing else value
+                except ValidationError as e:
+                    raise ValidationError({field.load_from: e.message}, has_fields=True)
 
     def _perform_serialization(self, data):
         """

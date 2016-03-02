@@ -31,6 +31,7 @@ class ControllerAction(object):
         self.content_negotiator = get_attr((func, controller), 'content_negotiator', api.content_negotiator)
         self.parsers = get_attr((func, controller), 'parsers', api.parsers)
         self.renderers = get_attr((func, controller), 'renderers', api.renderers)
+        self.params = getattr(func, 'params', None)
         self.serializer = get_attr((func, controller), 'serializer', None)
         self.serializer_kwargs = getattr(func, 'serializer_kwargs', None)
         self.error_handler = get_attr((func, controller), 'error_handler', api.error_handler)
@@ -64,6 +65,12 @@ class ControllerAction(object):
         Instantiates and returns the list of renderers that this controller can use.
         """
         return [renderer() for renderer in self.renderers]
+
+    def get_params(self):
+        """
+        Instantiates and returns the serializer that this action can use.
+        """
+        return self.params
 
     def get_serializer(self, **kwargs):
         """

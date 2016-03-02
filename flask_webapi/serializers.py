@@ -4,7 +4,7 @@ import uuid
 
 from collections import namedtuple, OrderedDict
 from .exceptions import ValidationError
-from .utils import missing, dateparse, timezone
+from .utils import dateparse, html, missing, timezone
 from .utils.cache import cached_property
 from .validators import MaxValueValidator, MinValueValidator, MaxLengthValidator, MinLengthValidator
 
@@ -76,7 +76,12 @@ class Field(object):
         return getattr(instance, self.field_name, self.default)
 
     def get_value(self, dictionary):
-        return dictionary.get(self.load_from, missing)
+        value = dictionary.get(self.load_from, missing)
+
+        if value == '' and html.is_html_input(dictionary):
+            return missing
+
+        return value
 
     def get_default(self):
         if callable(self.default):
@@ -586,13 +591,15 @@ class Serializer(Field, metaclass=SerializerMetaclass):
             ret[field_name] = field
         return ret
 
-    def load(self, data):
+    def load(self, data, raise_exception=False):
         try:
             if self.many:
                 return [self.safe_deserialize(value) for value in data]
 
             return self.safe_deserialize(data)
         except ValidationError as error:
+            if raise_exception:
+                raise
             return LoadResult(None, error.message)
 
     def dump(self, obj):
