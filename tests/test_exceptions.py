@@ -1,5 +1,5 @@
 from flask import Flask, json, Response
-from flask_webapi import WebAPI, ControllerBase
+from flask_webapi import WebAPI, ViewBase
 from flask_webapi.decorators import route
 from flask_webapi.decorators import error_handler
 from flask_webapi.exceptions import APIException, AuthenticationFailed, MethodNotAllowed, UnsupportedMediaType, \
@@ -57,11 +57,11 @@ class TestUnsupportedMediaType(TestCase):
         self.assertEqual(UnsupportedMediaType(mimetype, 'error message').message, 'error message')
 
 
-class TestController(TestCase):
+class TestView(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.add_controller(Controller)
+        self.api.add_view(View)
         self.client = self.app.test_client()
 
     def test_api_exception(self):
@@ -98,7 +98,7 @@ def app_error_handler(error):
     return Response(str(error), status=501)
 
 
-class Controller(ControllerBase):
+class View(ViewBase):
     @route('/api_exception')
     def api_exception(self):
         raise AuthenticationFailed()

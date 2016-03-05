@@ -65,6 +65,21 @@ class ModelSchema(Schema):
 
 
 if __name__ == '__main__':
+    model = Model()
+
+    serializer = ModelSerializer()
+    schema = ModelSchema()
+
+    s = time.time()
+    for i in range(500):
+        data = ModelSerializer().dump(model)
+    print('Serializer - dump: ' + str(time.time() - s))
+
+    s = time.time()
+    for i in range(500):
+        data2 = schema.dump(model).data
+    print('Marshmallow - dump: ' + str(time.time() - s))
+
     models = [Model() for i in range(500)]
 
     serializer = ModelSerializer(many=True)

@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from flask import Flask, json
-from flask_webapi import WebAPI, ControllerBase, serializers
+from flask_webapi import WebAPI, ViewBase, serializers
 from flask_webapi.decorators import route, serializer
 from unittest import TestCase
 
@@ -77,11 +77,11 @@ class TestSerializer(TestCase):
         self.assertEqual(errors, OrderedDict({'field_1': ['A valid integer is required.']}))
 
 
-class TestController(TestCase):
+class TestView(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.add_controller(Controller)
+        self.api.add_view(View)
         self.client = self.app.test_client()
 
     def test_single_result(self):
@@ -109,7 +109,7 @@ class Serializer(serializers.Serializer):
     field = serializers.StringField()
 
 
-class Controller(ControllerBase):
+class View(ViewBase):
     @route('/single_result')
     @serializer(Serializer)
     def single_result(self):

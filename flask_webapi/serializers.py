@@ -5,7 +5,7 @@ import uuid
 from collections import namedtuple, OrderedDict
 from .exceptions import ValidationError
 from .utils import dateparse, html, missing, timezone
-from .utils.cache import cached_property
+from .utils.caching import cached_property
 from .validators import MaxValueValidator, MinValueValidator, MaxLengthValidator, MinLengthValidator
 
 

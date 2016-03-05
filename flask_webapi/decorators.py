@@ -1,5 +1,5 @@
 """
-Provides various decorators to set up the controllers and actions.
+Provides various decorators to set up the views and actions.
 """
 
 from inspect import isclass
@@ -7,7 +7,7 @@ from inspect import isclass
 
 def authenticator(*args):
     """
-    A decorator that apply a list of authenticators to the controller or action.
+    A decorator that apply a list of authenticators to the view or action.
     :param args: A list of authenticators.
     :return: A function.
     """
@@ -20,7 +20,7 @@ def authenticator(*args):
 
 def permissions(*args):
     """
-    A decorator that apply a list of permissions to the controller or action.
+    A decorator that apply a list of permissions to the view or action.
     :param args: A list of permissions.
     :return: A function.
     """
@@ -33,7 +33,7 @@ def permissions(*args):
 
 def content_negotiator(negotiator):
     """
-    A decorator that apply a content negotiator to the controller or action.
+    A decorator that apply a content negotiator to the view or action.
     :param ContentNegotiatorBase negotiator: A class of content negotiator.
     :return: A function.
     """
@@ -57,7 +57,7 @@ def params(p):
 
 def renderer(*args):
     """
-    A decorator that apply a list of renderers to the controller or action.
+    A decorator that apply a list of renderers to the view or action.
     :param args: A list of renderers.
     :return: A function.
     """
@@ -68,17 +68,20 @@ def renderer(*args):
     return decorator
 
 
-def route(url, methods=None):
+def route(url, endpoint=None, methods=None):
     """
-    A decorator that apply a route to the controller or action.
+    A decorator that apply a route to the view or action.
     :param str url: The url rule.
+    :param str endpoint: The endpoint.
     :param list methods: A list of http methods.
     :return: A function.
     """
 
     def decorator(func):
-        func.url = url
-        func.allowed_methods = methods
+        routes = getattr(func, 'routes', None)
+        if not routes:
+            func.routes = routes = []
+        routes.append((url, endpoint, methods))
         return func
     return decorator
 
@@ -104,7 +107,7 @@ def serializer(serializer_cls, only=None, many=False, envelope=None):
 
 def error_handler(handler):
     """
-    A decorator that apply error handling to the controller or action.
+    A decorator that apply error handling to the view or action.
     :param handler: A callable object.
     :return: A function.
     """

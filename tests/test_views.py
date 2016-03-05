@@ -1,16 +1,16 @@
 from flask import Flask
-from flask_webapi import WebAPI, ControllerBase
+from flask_webapi import WebAPI, ViewBase
 from flask_webapi.decorators import route
 from unittest import TestCase
 
 
-class TestController(TestCase):
+class TestView(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.add_controller(Controller)
-        self.api.add_controller(ControllerWithPrefix)
-        self.api.add_controller(action_without_controller)
+        self.api.add_view(View)
+        self.api.add_view(ViewWithPrefix)
+        self.api.add_view(function_view)
         self.client = self.app.test_client()
 
     def test_action_not_allowed(self):
@@ -22,12 +22,12 @@ class TestController(TestCase):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data, b'')
 
-    def test_action_without_controller(self):
-        response = self.client.get('/action_without_controller')
+    def test_function_view(self):
+        response = self.client.get('/function_view')
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data, b'')
 
-    def test_controller_with_prefix(self):
+    def test_view_with_prefix(self):
         response = self.client.get('/prefix/action')
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data, b'')
@@ -44,7 +44,7 @@ class TestController(TestCase):
         self.assertEqual(response.data, b'')
 
 
-class Controller(ControllerBase):
+class View(ViewBase):
     @route('/action_with_not_return')
     def action_with_not_return(self):
         pass
@@ -63,12 +63,12 @@ class Controller(ControllerBase):
 
 
 @route('/prefix')
-class ControllerWithPrefix(ControllerBase):
+class ViewWithPrefix(ViewBase):
     @route('/action')
     def get(self):
         pass
 
 
-@route('/action_without_controller')
-def action_without_controller():
+@route('/function_view')
+def function_view():
     pass

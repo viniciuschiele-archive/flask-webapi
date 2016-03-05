@@ -1,14 +1,14 @@
 from flask import Flask, json
-from flask_webapi import WebAPI, ControllerBase, serializers
+from flask_webapi import WebAPI, ViewBase, serializers
 from flask_webapi.decorators import params, route
 from unittest import TestCase
 
 
-class TestController(TestCase):
+class TestView(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.add_controller(Controller)
+        self.api.add_view(View)
         self.client = self.app.test_client()
 
     def test_query_param(self):
@@ -27,7 +27,7 @@ class TestController(TestCase):
         self.assertEqual(json.loads(response.data), dict(name=None))
 
 
-class Controller(ControllerBase):
+class View(ViewBase):
     @route('/action')
     @params({'name': serializers.StringField})
     def action(self, name):

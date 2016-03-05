@@ -30,6 +30,7 @@ class ValidationError(APIException):
         if not isinstance(message, list) and not has_fields:
             message = [message]
 
+        self.has_fields = has_fields
         self.message = message
 
 
