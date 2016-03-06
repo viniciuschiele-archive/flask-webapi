@@ -4,7 +4,7 @@ Content negotiation selects a appropriated parser and renderer for a HTTP reques
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from .mimetypes import MimeType
+from .utils.mimetypes import MimeType
 
 
 class ContentNegotiatorBase(metaclass=ABCMeta):

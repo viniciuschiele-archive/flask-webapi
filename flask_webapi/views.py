@@ -8,9 +8,10 @@ from abc import ABCMeta
 from flask import request
 from werkzeug.exceptions import HTTPException
 from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
-from .parameters import guess_location
+from .parsers import guess_location
 from .serializers import Serializer
-from .utils import error, get_attr, missing, unpack
+from .utils import get_attr, missing, unpack
+from .utils.formatting import prepare_error_message_for_response
 
 
 class ViewBase(metaclass=ABCMeta):
@@ -23,7 +24,7 @@ class ViewBase(metaclass=ABCMeta):
         try:
             self._authenticate()
             self._check_permissions()
-            self._prepare_arguments(kwargs)
+            self._parse_arguments(kwargs)
 
             if self.context.has_self:
                 response = self.context.func(self, *args, **kwargs)
@@ -83,7 +84,7 @@ class ViewBase(metaclass=ABCMeta):
         return renderer_pair
         # request.accepted_renderer, request.accepted_mimetype = renderer_pair
 
-    def _prepare_arguments(self, kwargs):
+    def _parse_arguments(self, kwargs):
         if not self.context.params:
             return
 
@@ -93,10 +94,10 @@ class ViewBase(metaclass=ABCMeta):
 
         for field_name, field in params.items():
             location = guess_location(field)
-            func = self.context.api.parameter_locations.get(location)
+            func = self.context.api.parser_locations.get(location)
 
             if not func:
-                raise Exception()
+                raise Exception('location %s not found' % location)
 
             data = func(self.context)
 
@@ -207,7 +208,7 @@ class ViewBase(metaclass=ABCMeta):
 
         errors = []
 
-        error.prepare_error_message_for_response(errors, message)
+        prepare_error_message_for_response(errors, message)
 
         return self._make_response((dict(errors=errors), code), force_renderer=True)
 

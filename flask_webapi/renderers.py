@@ -6,7 +6,7 @@ import pickle
 
 from abc import ABCMeta, abstractmethod
 from flask import json
-from .mimetypes import MimeType
+from .utils.mimetypes import MimeType
 
 
 class RendererBase(metaclass=ABCMeta):
