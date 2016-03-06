@@ -105,7 +105,7 @@ def serializer(serializer_cls, only=None, many=False, envelope=None):
     return decorator
 
 
-def error_handler(handler):
+def exception_handler(handler):
     """
     A decorator that apply error handling to the view or action.
     :param handler: A callable object.

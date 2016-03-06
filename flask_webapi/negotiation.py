@@ -67,6 +67,6 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
             accept_mimetype = MimeType(mimetype)
             for renderer in renderers:
                 if accept_mimetype.match(renderer.mimetype):
-                    return renderer, accept_mimetype
+                    return renderer, renderer.mimetype
 
         return None

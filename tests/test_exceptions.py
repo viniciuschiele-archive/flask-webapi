@@ -1,9 +1,7 @@
 from flask import Flask, json, Response
-from flask_webapi import WebAPI, ViewBase
-from flask_webapi.decorators import route
-from flask_webapi.decorators import error_handler
-from flask_webapi.exceptions import APIException, AuthenticationFailed, MethodNotAllowed, UnsupportedMediaType, \
-    ValidationError
+from flask_webapi import WebAPI
+from flask_webapi.decorators import exception_handler, route
+from flask_webapi.exceptions import APIException, UnsupportedMediaType, ValidationError
 from unittest import TestCase
 from werkzeug.exceptions import BadRequest
 
@@ -32,18 +30,8 @@ class TestValidationError(TestCase):
         self.assertEqual(ValidationError(message).message, [message])
 
     def test_has_fields(self):
-        message = {'user_id': {'message': 'error message', 'code': 'error code'}}
+        message = {'user_id': [{'message': 'error message', 'code': 'error code'}]}
         self.assertEqual(ValidationError(message, has_fields=True).message, message)
-
-
-class TestMethodNotAllowed(TestCase):
-    def test_default_message(self):
-        method = 'my_method'
-        self.assertEqual(MethodNotAllowed(method).message, MethodNotAllowed.default_message.format(method=method))
-
-    def test_user_message(self):
-        method = 'my_method'
-        self.assertEqual(MethodNotAllowed(method, 'error message').message, 'error message')
 
 
 class TestUnsupportedMediaType(TestCase):
@@ -61,61 +49,62 @@ class TestView(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.add_view(View)
         self.client = self.app.test_client()
 
     def test_api_exception(self):
-        response = self.client.get('/api_exception')
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(json.loads(response.get_data(as_text=True)),
-                         dict(errors=[dict(message='Incorrect authentication credentials.')]))
+        @route('/view')
+        def view():
+            raise APIException('user error.')
 
-    def test_user_exception(self):
-        response = self.client.get('/user_exception')
+        self.api.add_view(view)
+        response = self.client.get('/view')
         self.assertEqual(response.status_code, 500)
         self.assertEqual(json.loads(response.get_data(as_text=True)),
-                         dict(errors=[dict(message='A server error occurred.')]))
-
-    def test_http_error(self):
-        response = self.client.get('/http_exception')
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.get_data(as_text=True)),
-                         dict(errors=[dict(message=BadRequest.description)]))
+                         dict(errors=[dict(message='user error.')]))
 
     def test_validation_exception(self):
-        response = self.client.get('/validation_exception')
+        @route('/view')
+        def view():
+            raise ValidationError(dict(message='User not found.', field='user_id'))
+
+        self.api.add_view(view)
+        response = self.client.get('/view')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(json.loads(response.get_data(as_text=True)),
                          dict(errors=[dict(message='User not found.', field='user_id')]))
 
-    def test_customer_error_handler(self):
-        response = self.client.get('/custom_error_handler')
-        self.assertEqual(response.status_code, 501)
-        self.assertEqual('A server error occurred.', response.get_data(as_text=True))
+    def test_http_exception(self):
+        @route('/view')
+        def http_exception():
+            raise BadRequest()
 
+        self.api.add_view(http_exception)
+        response = self.client.get('/view')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(json.loads(response.get_data(as_text=True)),
+                         dict(errors=[dict(message=BadRequest.description)]))
 
-def app_error_handler(error):
-    return Response(str(error), status=501)
+    def test_unhandled_exception(self):
+        @route('/view')
+        def view():
+            raise Exception()
 
+        self.api.add_view(view)
+        response = self.client.get('/view')
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(json.loads(response.get_data(as_text=True)),
+                         dict(errors=[dict(message='A server error occurred.')]))
 
-class View(ViewBase):
-    @route('/api_exception')
-    def api_exception(self):
-        raise AuthenticationFailed()
+    def test_exception_handler(self):
+        def custom_exception_handler(error):
+            return Response(error.message[0], status=400)
 
-    @route('/user_exception')
-    def user_exception(self):
-        raise Exception()
+        @route('/view')
+        @exception_handler(custom_exception_handler)
+        def view():
+            raise ValidationError('user error.')
 
-    @route('/http_exception')
-    def http_exception(self):
-        raise BadRequest()
-
-    @route('/validation_exception')
-    def validation_exception(self):
-        raise ValidationError(dict(message='User not found.', field='user_id'))
-
-    @route('/custom_error_handler')
-    @error_handler(app_error_handler)
-    def custom_error_handler(self):
-        raise APIException()
+        self.api.add_view(view)
+        response = self.client.get('/view')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual('user error.', response.get_data(as_text=True))

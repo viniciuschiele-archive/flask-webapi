@@ -51,7 +51,7 @@ class WebAPI(object):
     def add_view(self, view):
         """
         Adds a view to the WebAPI.
-        :param ViewBase view: the class of your view
+        :param view: the class of your view
         """
         if inspect.isclass(view):
             if not issubclass(view, ViewBase):

@@ -9,61 +9,81 @@ from unittest import TestCase
 class TestWebAPI(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
+        self.api = WebAPI()
         self.client = self.app.test_client()
 
     def test_add_view_after_init_app(self):
-        self.api = WebAPI()
         self.api.init_app(self.app)
         self.api.add_view(View)
+        self.api.add_view(view_func)
 
-        response = self.client.get('/view/action')
+        response = self.client.get('/view')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.client.get('/view_func')
         self.assertEqual(response.status_code, 204)
 
     def test_add_view_before_init_app(self):
-        self.api = WebAPI()
         self.api.add_view(View)
+        self.api.add_view(view_func)
         self.api.init_app(self.app)
 
-        response = self.client.get('/view/action')
+        response = self.client.get('/view')
         self.assertEqual(response.status_code, 204)
 
-    def test_scan_path(self):
-        self.api = WebAPI()
+        response = self.client.get('/view_func')
+        self.assertEqual(response.status_code, 204)
+
+    def test_add_invalid_view(self):
+        def invalid_view():
+            pass
+
+        class InvalidView(object):
+            pass
+
+        with self.assertRaises(TypeError):
+            self.api.add_view(invalid_view)
+
+        with self.assertRaises(TypeError):
+            self.api.add_view(InvalidView)
+
+    def test_scan_views_from_path(self):
         self.api.scan('tests.test_api')
         self.api.init_app(self.app)
 
-        response = self.client.get('/view/action')
+        response = self.client.get('/view')
         self.assertEqual(response.status_code, 204)
 
-    def test_scan_module(self):
-        self.api = WebAPI()
+        response = self.client.get('/view_func')
+        self.assertEqual(response.status_code, 204)
+
+    def test_scan_views_from_module(self):
         self.api.scan(inspect.getmodule(TestWebAPI))
         self.api.init_app(self.app)
 
-        response = self.client.get('/view/action')
+        response = self.client.get('/view')
         self.assertEqual(response.status_code, 204)
 
-        response = self.client.get('/view/action2')
+        response = self.client.get('/view_func')
         self.assertEqual(response.status_code, 204)
 
-    def test_scan_from_config(self):
+    def test_scan_views_from_config(self):
         self.app.config['WEBAPI_IMPORTS'] = ['tests.test_api']
-        self.api = WebAPI()
         self.api.init_app(self.app)
 
-        response = self.client.get('/view/action')
+        response = self.client.get('/view')
         self.assertEqual(response.status_code, 204)
 
-        response = self.client.get('/view/action2')
+        response = self.client.get('/view_func')
         self.assertEqual(response.status_code, 204)
 
 
 class View(ViewBase):
-    @route('/view/action')
-    def action(self):
+    @route('/view')
+    def view(self):
         pass
 
 
-@route('/view/action2')
-def action():
+@route('/view_func')
+def view_func():
     pass

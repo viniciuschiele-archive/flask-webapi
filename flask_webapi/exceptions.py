@@ -54,17 +54,6 @@ class NotFound(APIException):
     default_message = 'Not found.'
 
 
-class MethodNotAllowed(APIException):
-    status_code = status.HTTP_405_METHOD_NOT_ALLOWED
-    default_message = 'Method "{method}" not allowed.'
-
-    def __init__(self, method, message=None):
-        if message is not None:
-            self.message = message
-        else:
-            self.message = self.default_message.format(method=method)
-
-
 class NotAcceptable(APIException):
     status_code = status.HTTP_406_NOT_ACCEPTABLE
     default_message = 'Could not satisfy the request Accept header.'
