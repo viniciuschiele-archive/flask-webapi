@@ -356,7 +356,7 @@ class DictField(Field):
 
     def __init__(self, child, *args, **kwargs):
         super(DictField, self).__init__(*args, **kwargs)
-        self.child = child
+        self.child = child() if isinstance(child, type) else child
 
     def deserialize(self, data):
         """
@@ -463,9 +463,8 @@ class ListField(Field):
     def __init__(self, child, allow_empty=True, *args, **kwargs):
         super(ListField, self).__init__(*args, **kwargs)
 
-        self.child = child
+        self.child = child() if isinstance(child, type) else child
         self.allow_empty = allow_empty
-        # self.child.bind(field_name='', parent=self)
 
     def deserialize(self, data):
         """
@@ -555,6 +554,8 @@ class SerializerMetaclass(type):
         fields = []
 
         for attr_name, attr in list(attrs.items()):
+            if isinstance(attr, type) and issubclass(attr, Field):
+                attr = attr()
             if isinstance(attr, Field):
                 fields.append((attr_name, attr))
 

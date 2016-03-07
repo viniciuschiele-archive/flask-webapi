@@ -8,8 +8,8 @@ from unittest import TestCase
 class TestSerializer(TestCase):
     def test_missing_data_during_deserialization(self):
         class Serializer(serializers.Serializer):
-            field_1 = serializers.StringField()
-            field_2 = serializers.StringField()
+            field_1 = serializers.StringField
+            field_2 = serializers.StringField
 
         s = Serializer()
 
@@ -20,8 +20,8 @@ class TestSerializer(TestCase):
 
     def test_missing_attribute_during_serialization(self):
         class Serializer(serializers.Serializer):
-            field_1 = serializers.StringField()
-            field_2 = serializers.StringField()
+            field_1 = serializers.StringField
+            field_2 = serializers.StringField
 
         s = Serializer()
 
@@ -32,7 +32,7 @@ class TestSerializer(TestCase):
 
     def test_partial(self):
         class Serializer(serializers.Serializer):
-            field_1 = serializers.StringField()
+            field_1 = serializers.StringField
             field_2 = serializers.StringField(required=True)
 
         s = Serializer(partial=True)
@@ -44,7 +44,7 @@ class TestSerializer(TestCase):
 
     def test_dump_with_errors(self):
         class Serializer(serializers.Serializer):
-            field_1 = serializers.IntegerField()
+            field_1 = serializers.IntegerField
 
         s = Serializer()
 
@@ -55,7 +55,7 @@ class TestSerializer(TestCase):
 
     def test_dump_without_errors(self):
         class Serializer(serializers.Serializer):
-            field_1 = serializers.StringField()
+            field_1 = serializers.StringField
 
         s = Serializer()
 
@@ -66,7 +66,7 @@ class TestSerializer(TestCase):
 
     def test_load_with_errors(self):
         class Serializer(serializers.Serializer):
-            field_1 = serializers.IntegerField()
+            field_1 = serializers.IntegerField
 
         s = Serializer()
 
@@ -85,7 +85,7 @@ class TestView(TestCase):
 
     def test_single_result(self):
         class Serializer(serializers.Serializer):
-            field = serializers.StringField()
+            field = serializers.StringField
 
         @route('/view')
         @serializer(Serializer)
@@ -99,7 +99,7 @@ class TestView(TestCase):
 
     def test_multiple_results(self):
         class Serializer(serializers.Serializer):
-            field = serializers.StringField()
+            field = serializers.StringField
 
         @route('/view')
         @serializer(Serializer, many=True)
@@ -113,7 +113,7 @@ class TestView(TestCase):
 
     def test_multiple_results_with_envelope(self):
         class Serializer(serializers.Serializer):
-            field = serializers.StringField()
+            field = serializers.StringField
 
         @route('/view')
         @serializer(Serializer, many=True, envelope='results')
@@ -127,7 +127,7 @@ class TestView(TestCase):
 
     def test_none_with_envelope(self):
         class Serializer(serializers.Serializer):
-            field = serializers.StringField()
+            field = serializers.StringField
 
         @route('/view')
         @serializer(Serializer, envelope='results')
