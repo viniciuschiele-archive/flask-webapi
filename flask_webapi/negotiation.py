@@ -49,7 +49,7 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
 
         for parser in parsers:
             if mimetype.match(parser.mimetype):
-                return parser, mimetype
+                return parser
 
         return None
 

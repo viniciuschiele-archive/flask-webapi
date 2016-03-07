@@ -8,7 +8,6 @@ from abc import ABCMeta
 from flask import request
 from werkzeug.exceptions import HTTPException
 from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
-from .parsers import guess_location
 from .serializers import Serializer
 from .utils import get_attr, missing, unpack
 from .utils.formatting import prepare_error_message_for_response
@@ -82,9 +81,30 @@ class ViewBase(metaclass=ABCMeta):
             renderer_pair = renderers[0], renderers[0].mimetype
 
         return renderer_pair
-        # request.accepted_renderer, request.accepted_mimetype = renderer_pair
+
+    def _parse_data_for_field(self, field):
+        """
+        Parses the data from the incoming request for a specified field.
+        :param Field field: The field which provides the location.
+        :return: The data parsed from the incoming request.
+        """
+        location = getattr(field, 'location', None)
+
+        if location is None:
+            location = 'query' if request.method == 'GET' else 'body'
+
+        func = self.context.api.parser_locations.get(location)
+
+        if not func:
+            raise Exception('location %s not found' % location)
+
+        return func(self.context)
 
     def _parse_arguments(self, kwargs):
+        """
+        Parses the incoming request and turn it into parameters.
+        :param kwargs: The output parameters.
+        """
         if not self.context.params:
             return
 
@@ -93,13 +113,7 @@ class ViewBase(metaclass=ABCMeta):
         params = self.context.get_params()
 
         for field_name, field in params.items():
-            location = guess_location(field)
-            func = self.context.api.parser_locations.get(location)
-
-            if not func:
-                raise Exception('location %s not found' % location)
-
-            data = func(self.context)
+            data = self._parse_data_for_field(field)
 
             try:
                 if isinstance(field, Serializer):

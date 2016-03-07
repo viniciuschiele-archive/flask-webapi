@@ -34,6 +34,11 @@ class ValidationError(APIException):
         self.message = message
 
 
+class ParseError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = 'Malformed request.'
+
+
 class AuthenticationFailed(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     default_message = 'Incorrect authentication credentials.'

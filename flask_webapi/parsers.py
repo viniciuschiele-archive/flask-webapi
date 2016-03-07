@@ -4,6 +4,7 @@ Parsers used to parse a byte array into Python object.
 
 from abc import ABCMeta, abstractmethod
 from flask import json, request
+from .exceptions import ParseError, UnsupportedMediaType
 from .utils.mimetypes import MimeType
 
 
@@ -15,13 +16,6 @@ def build_locations():
     }
 
 
-def guess_location(field):
-    location = getattr(field, 'location', None)
-    if location is None:
-        location = 'query' if request.method == 'GET' else 'body'
-    return location
-
-
 def parse_body(context):
     if request.content_type == 'application/x-www-form-urlencoded':
         return request.form
@@ -29,14 +23,15 @@ def parse_body(context):
     negotiator = context.get_content_negotiator()
     parsers = context.get_parsers()
 
-    parser_pair = negotiator.select_parser(parsers)
+    parser = negotiator.select_parser(parsers)
 
-    if not parser_pair:
-        raise Exception()
+    if not parser:
+        raise UnsupportedMediaType(request.content_type)
 
-    parser, mimetype = parser_pair
-
-    return parser.parse(request.data, mimetype)
+    try:
+        return parser.parse(request.data, request.content_type)
+    except:
+        raise ParseError()
 
 
 class ParserBase(metaclass=ABCMeta):
