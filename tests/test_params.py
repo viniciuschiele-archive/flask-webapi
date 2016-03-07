@@ -1,6 +1,6 @@
 from flask import Flask, json
 from flask_webapi import WebAPI, serializers
-from flask_webapi.decorators import params, route
+from flask_webapi.decorators import param, route
 from unittest import TestCase
 
 
@@ -12,7 +12,7 @@ class TestView(TestCase):
 
     def test_query_param(self):
         @route('/view')
-        @params({'name': serializers.StringField})
+        @param('name', serializers.StringField)
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -22,7 +22,7 @@ class TestView(TestCase):
 
     def test_empty_query_param(self):
         @route('/view')
-        @params({'name': serializers.StringField})
+        @param('name', serializers.StringField)
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -32,7 +32,7 @@ class TestView(TestCase):
 
     def test_missing_query_param(self):
         @route('/view')
-        @params({'name': serializers.StringField})
+        @param('name', serializers.StringField)
         def view(name):
             return {'name': name}
         self.api.add_view(view)

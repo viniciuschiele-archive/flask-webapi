@@ -2,8 +2,6 @@
 Provides various decorators to set up the views and actions.
 """
 
-from inspect import isclass
-
 
 def authenticator(*args):
     """
@@ -44,13 +42,15 @@ def content_negotiator(negotiator):
     return decorator
 
 
-def params(p):
+def param(name, field):
     def decorator(func):
-        for field_name, field in p.items():
-            if isclass(field):
-                p[field_name] = field = field()
-            field.bind(field_name, None)
-        func.params = p
+        params = getattr(func, 'params', None)
+        if params is None:
+            func.params = params = {}
+
+        field_instance = field() if isinstance(field, type) else field
+        field_instance.bind(name, None)
+        params[name] = field_instance
         return func
     return decorator
 
