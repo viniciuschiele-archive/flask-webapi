@@ -59,7 +59,7 @@ class TestView(TestCase):
         self.api.add_view(view)
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.get_data(as_text=True)),
+        self.assertEqual(json.loads(response.data),
                          dict(errors=[dict(message='user error.')]))
 
     def test_validation_exception(self):
@@ -70,7 +70,7 @@ class TestView(TestCase):
         self.api.add_view(view)
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.get_data(as_text=True)),
+        self.assertEqual(json.loads(response.data),
                          dict(errors=[dict(message='User not found.', field='user_id')]))
 
     def test_http_exception(self):
@@ -81,7 +81,7 @@ class TestView(TestCase):
         self.api.add_view(http_exception)
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.get_data(as_text=True)),
+        self.assertEqual(json.loads(response.data),
                          dict(errors=[dict(message=BadRequest.description)]))
 
     def test_unhandled_exception(self):
@@ -92,7 +92,7 @@ class TestView(TestCase):
         self.api.add_view(view)
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.get_data(as_text=True)),
+        self.assertEqual(json.loads(response.data),
                          dict(errors=[dict(message='A server error occurred.')]))
 
     def test_exception_handler(self):

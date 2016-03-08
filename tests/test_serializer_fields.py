@@ -104,7 +104,7 @@ class TestFieldParameters(TestCase):
         """
         class Serializer(serializers.Serializer):
             field_1 = serializers.IntegerField(dump_only=True)
-            field_2 = serializers.IntegerField()
+            field_2 = serializers.IntegerField
 
         data = {'field_1': 123, 'field_2': 456}
         serializer = Serializer()
@@ -117,7 +117,7 @@ class TestFieldParameters(TestCase):
         """
         class Serializer(serializers.Serializer):
             field_1 = serializers.IntegerField(load_only=True)
-            field_2 = serializers.IntegerField()
+            field_2 = serializers.IntegerField
 
         data = {'field_1': 123, 'field_2': 456}
         serializer = Serializer()
@@ -431,7 +431,12 @@ class TestListField(FieldValues, TestCase):
         ([1, 2, 3], [1, 2, 3]),
         (['1', '2', '3'], [1, 2, 3])
     ]
-    field = serializers.ListField(child=serializers.IntegerField())
+    field = serializers.ListField(serializers.IntegerField)
+
+    def test_disallow_empty(self):
+        field = serializers.ListField(serializers.IntegerField(), allow_empty=False)
+        with self.assertRaises(serializers.ValidationError):
+            field.safe_deserialize([])
 
 
 class TestStringField(FieldValues, TestCase):
