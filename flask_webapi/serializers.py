@@ -23,17 +23,21 @@ class Field(object):
         'null': 'This field may not be null.'
     }
 
-    def __init__(self, dump_only=False, load_only=False, required=False, default=missing, allow_none=None,
-                 dump_to=None, load_from=None, error_messages=None, validators=None, location=None):
+    def __init__(self, dump_only=False, load_only=False, required=None, default=missing, allow_none=None,
+                 dump_to=None, load_from=None, error_messages=None, validators=None):
         self.dump_only = dump_only
         self.load_only = load_only
-        self.required = required
         self.default = default
         self.allow_none = allow_none
         self.dump_to = dump_to
         self.load_from = load_from
         self.validators = validators or []
-        self.location = location
+
+        # If `required` is unset, then use `True` unless a default is provided.
+        if required is None:
+            self.required = default is missing
+        else:
+            self.required = required
 
         if allow_none is None:
             self.allow_none = default is None
@@ -79,10 +83,16 @@ class Field(object):
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
 
-        if html.is_html_input(dictionary) and value == '':
-            return missing
+        if not html.is_html_input(dictionary):
+            return value
 
-        return value
+        if value != '':
+            return value
+
+        if self.allow_none:
+            return None
+
+        return missing
 
     def get_default(self):
         if callable(self.default):
@@ -468,10 +478,15 @@ class ListField(Field):
         self.allow_empty = allow_empty
 
     def get_value(self, dictionary):
-        if html.is_html_input(dictionary):
-            return dictionary.getlist(self.load_from) or missing
+        value = dictionary.get(self.load_from, missing)
 
-        return dictionary.get(self.load_from, missing)
+        if value == missing:
+            return value
+
+        if html.is_html_input(dictionary):
+            value = dictionary.getlist(self.load_from)
+
+        return value
 
     def deserialize(self, data):
         """
@@ -513,6 +528,23 @@ class StringField(Field):
         if self.max_length is not None:
             message = self.error_messages['max_length'].format(max_length=self.max_length)
             self.validators.append(MaxLengthValidator(self.max_length, message=message))
+
+    def get_value(self, dictionary):
+        value = dictionary.get(self.load_from, missing)
+
+        if not html.is_html_input(dictionary):
+            return value
+
+        if value != '':
+            return value
+
+        if self.allow_blank:
+            return ''
+
+        if self.allow_none:
+            return None
+
+        return missing
 
     def deserialize(self, data):
         value = str(data)
@@ -600,16 +632,11 @@ class Serializer(Field, metaclass=SerializerMetaclass):
             ret[field_name] = field
         return ret
 
-    def load(self, data, raise_exception=False):
-        try:
-            if self.many:
-                return [self.safe_deserialize(value) for value in data]
+    def load(self, data):
+        if self.many:
+            return [self.safe_deserialize(value) for value in data]
 
-            return self.safe_deserialize(data)
-        except ValidationError as error:
-            if raise_exception:
-                raise
-            return LoadResult(None, error.message)
+        return self.safe_deserialize(data)
 
     def dump(self, obj):
         if self.many:

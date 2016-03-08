@@ -82,14 +82,12 @@ class ViewBase(metaclass=ABCMeta):
 
         return renderer_pair
 
-    def _parse_data_for_field(self, field):
+    def _parse_data(self, location):
         """
         Parses the data from the incoming request for a specified field.
-        :param Field field: The field which provides the location.
+        :param str location: The location to retrieve the data.
         :return: The data parsed from the incoming request.
         """
-        location = getattr(field, 'location', None)
-
         if location is None:
             location = 'query' if request.method == 'GET' else 'body'
 
@@ -112,16 +110,17 @@ class ViewBase(metaclass=ABCMeta):
 
         params = self.context.get_params()
 
-        for field_name, field in params.items():
-            data = self._parse_data_for_field(field)
+        for field_name, (field, location) in params.items():
+            data = self._parse_data(location)
 
             try:
                 if isinstance(field, Serializer):
-                    kwargs[field_name] = field.load(data, raise_exception=True)
+                    kwargs[field_name] = field.load(data)
                 else:
                     value = field.get_value(data)
                     value = field.safe_deserialize(value)
-                    kwargs[field_name] = None if value == missing else value
+                    if value is not missing:
+                        kwargs[field_name] = value
             except ValidationError as e:
                 if e.has_fields:
                     errors.update(e.message)

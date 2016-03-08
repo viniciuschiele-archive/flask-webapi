@@ -42,7 +42,7 @@ def content_negotiator(negotiator):
     return decorator
 
 
-def param(name, field):
+def param(name, field, location=None):
     def decorator(func):
         params = getattr(func, 'params', None)
         if params is None:
@@ -50,7 +50,7 @@ def param(name, field):
 
         field_instance = field() if isinstance(field, type) else field
         field_instance.bind(name, None)
-        params[name] = field_instance
+        params[name] = field_instance, location
         return func
     return decorator
 
