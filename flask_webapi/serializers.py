@@ -24,7 +24,7 @@ class Field(object):
     }
 
     def __init__(self, dump_only=False, load_only=False, required=False, default=missing, allow_none=None,
-                 dump_to=None, load_from=None, error_messages=None, validators=None):
+                 dump_to=None, load_from=None, error_messages=None, validators=None, location=None):
         self.dump_only = dump_only
         self.load_only = load_only
         self.required = required
@@ -33,6 +33,7 @@ class Field(object):
         self.dump_to = dump_to
         self.load_from = load_from
         self.validators = validators or []
+        self.location = location
 
         if allow_none is None:
             self.allow_none = default is None
@@ -78,7 +79,7 @@ class Field(object):
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
 
-        if value == '' and html.is_html_input(dictionary):
+        if html.is_html_input(dictionary) and value == '':
             return missing
 
         return value
@@ -461,10 +462,16 @@ class ListField(Field):
     }
 
     def __init__(self, child, allow_empty=True, *args, **kwargs):
-        super(ListField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.child = child() if isinstance(child, type) else child
         self.allow_empty = allow_empty
+
+    def get_value(self, dictionary):
+        if html.is_html_input(dictionary):
+            return dictionary.getlist(self.load_from) or missing
+
+        return dictionary.get(self.load_from, missing)
 
     def deserialize(self, data):
         """
@@ -571,8 +578,9 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         'invalid': 'Invalid data. Expected a dictionary, but got {datatype}.'
     }
 
-    def __init__(self, only=None, many=False, partial=False, envelope=None):
-        super().__init__()
+    def __init__(self, only=None, many=False, partial=False, envelope=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         self.only = only or ()
         self.many = many
         self.partial = partial
