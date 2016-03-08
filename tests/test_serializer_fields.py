@@ -4,6 +4,7 @@ import uuid
 from decimal import Decimal
 from flask_webapi import serializers
 from flask_webapi.utils import timezone
+from werkzeug.datastructures import MultiDict
 from unittest import TestCase
 
 
@@ -15,7 +16,7 @@ class TestFieldParameters(TestCase):
         """
         By default a field must be included in the input.
         """
-        field = serializers.IntegerField(required=True)
+        field = serializers.IntegerField()
 
         with self.assertRaises(serializers.ValidationError):
             field.safe_deserialize(serializers.missing)
@@ -24,7 +25,7 @@ class TestFieldParameters(TestCase):
         """
         If `required=False` then a field may be omitted from the input.
         """
-        field = serializers.IntegerField()
+        field = serializers.IntegerField(required=False)
         self.assertEqual(field.safe_deserialize(serializers.missing), serializers.missing)
 
     def test_disallow_none(self):
@@ -123,6 +124,84 @@ class TestFieldParameters(TestCase):
         serializer = Serializer()
 
         self.assertEqual(serializer.dump(data), {'field_2': 456})
+
+
+class TestHTMLInput(TestCase):
+    def test_missing_html_integerfield(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.IntegerField
+
+        with self.assertRaises(serializers.ValidationError):
+            TestSerializer().load(MultiDict())
+
+    def test_missing_html_integerfield_with_default(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.IntegerField(default=123)
+
+        data = TestSerializer().load(MultiDict())
+
+        self.assertEqual(data, {'message': 123})
+
+    def test_empty_html_integerfield_allow_none(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.IntegerField(allow_none=True)
+
+        data = TestSerializer().load(MultiDict({'message': ''}))
+        self.assertEqual(data, {'message': None})
+
+    def test_missing_html_stringfield(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.StringField
+
+        with self.assertRaises(serializers.ValidationError):
+            TestSerializer().load(MultiDict())
+
+    def test_missing_html_stringfield_with_default(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.StringField(default='happy')
+
+        data = TestSerializer().load(MultiDict())
+
+        self.assertEqual(data, {'message': 'happy'})
+
+    def test_empty_html_stringfield_with_allow_blank(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.StringField(allow_blank=True)
+
+        data = TestSerializer().load(MultiDict({'message': ''}))
+        self.assertEqual(data, {'message': ''})
+
+    def test_empty_html_stringfield_allow_none(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.StringField(allow_none=True)
+
+        data = TestSerializer().load(MultiDict({'message': ''}))
+        self.assertEqual(data, {'message': None})
+
+    def test_empty_html_stringfield_allow_none_allow_blank(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.StringField(allow_none=True, allow_blank=True)
+
+        data = TestSerializer().load(MultiDict({'message': ''}))
+        self.assertEqual(data, {'message': ''})
+
+    def test_missing_html_listfield(self):
+        class TestSerializer(serializers.Serializer):
+            scores = serializers.ListField(serializers.IntegerField)
+
+        with self.assertRaises(serializers.ValidationError):
+            TestSerializer().load(MultiDict())
+
+    def test_html_listfield(self):
+        class TestSerializer(serializers.Serializer):
+            scores = serializers.ListField(serializers.IntegerField)
+
+        md = MultiDict()
+        md.add('scores', 1)
+        md.add('scores', 5)
+
+        data = TestSerializer().load(md)
+        self.assertEqual(data, {'scores': [1, 5]})
 
 
 class FieldValues(object):
@@ -342,6 +421,14 @@ class TestIntegerField(FieldValues, TestCase):
         None: None
     }
     field = serializers.IntegerField()
+
+    def test_empty_html_with_default(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.IntegerField(default=123)
+
+        data = TestSerializer().load(MultiDict({'message': ''}))
+
+        self.assertEqual(data, {'message': 123})
 
 
 class TestMinMaxIntegerField(FieldValues, TestCase):

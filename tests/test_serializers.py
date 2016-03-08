@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from flask import Flask, json
 from flask_webapi import WebAPI, serializers
 from flask_webapi.decorators import route, serializer
@@ -11,12 +10,9 @@ class TestSerializer(TestCase):
             field_1 = serializers.StringField
             field_2 = serializers.StringField
 
-        s = Serializer()
-
         input = {'field_1': 'value_1'}
-        output = s.load(input)
-
-        self.assertEqual(input, output)
+        with self.assertRaises(serializers.ValidationError):
+            Serializer().load(input)
 
     def test_missing_attribute_during_serialization(self):
         class Serializer(serializers.Serializer):
@@ -68,13 +64,10 @@ class TestSerializer(TestCase):
         class Serializer(serializers.Serializer):
             field_1 = serializers.IntegerField
 
-        s = Serializer()
-
         input = {'field_1': 'value_1'}
-        output, errors = s.load(input)
 
-        self.assertIsNone(output)
-        self.assertEqual(errors, OrderedDict({'field_1': ['A valid integer is required.']}))
+        with self.assertRaises(serializers.ValidationError):
+            Serializer().load(input)
 
 
 class TestView(TestCase):
