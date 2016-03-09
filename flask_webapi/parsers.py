@@ -11,25 +11,25 @@ from .utils.mimetypes import MimeType
 def build_locations():
     return {
         'header': lambda context: request.headers,
+        'form': lambda context: request.form,
         'query': lambda context: request.args,
         'body': parse_body
     }
 
 
 def parse_body(context):
-    if request.content_type == 'application/x-www-form-urlencoded':
-        return request.form
-
     negotiator = context.get_content_negotiator()
     parsers = context.get_parsers()
 
-    parser = negotiator.select_parser(parsers)
+    parser_pair = negotiator.select_parser(parsers)
 
-    if not parser:
+    if not parser_pair:
         raise UnsupportedMediaType(request.content_type)
 
+    parser, mimetype = parser_pair
+
     try:
-        return parser.parse(request.data, request.content_type)
+        return parser.parse(request.data, mimetype)
     except:
         raise ParseError()
 

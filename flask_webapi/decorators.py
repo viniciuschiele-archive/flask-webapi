@@ -48,9 +48,9 @@ def param(name, field, location=None):
         if params is None:
             func.params = params = {}
 
-        field_instance = field() if isinstance(field, type) else field
-        field_instance.bind(name, None)
-        params[name] = field_instance, location
+        instance = field() if isinstance(field, type) else field
+        instance.bind(name, None)
+        params[name] = instance, location
         return func
     return decorator
 

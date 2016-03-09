@@ -6,7 +6,7 @@ import inspect
 
 from werkzeug.utils import import_string
 from .negotiation import DefaultContentNegotiator
-from .parsers import build_locations
+from .parsers import build_locations, JSONParser
 from .renderers import JSONRenderer
 from .utils.routing import Route
 from .views import ViewBase, ViewContext
@@ -41,7 +41,7 @@ class WebAPI(object):
         self.permissions = []
         self.content_negotiator = DefaultContentNegotiator
         self.parser_locations = build_locations()
-        self.parsers = []
+        self.parsers = [JSONParser]
         self.renderers = [JSONRenderer]
         self.error_handler = None
 

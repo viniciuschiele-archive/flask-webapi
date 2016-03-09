@@ -89,12 +89,17 @@ class ViewBase(metaclass=ABCMeta):
         :return: The data parsed from the incoming request.
         """
         if location is None:
-            location = 'query' if request.method == 'GET' else 'body'
+            if request.method == 'GET':
+                location = 'query'
+            elif request.content_type == 'application/x-www-form-urlencoded':
+                location = 'form'
+            else:
+                location = 'body'
 
         func = self.context.api.parser_locations.get(location)
 
         if not func:
-            raise Exception('location %s not found' % location)
+            raise Exception('Parse location %s not found.' % location)
 
         return func(self.context)
 
@@ -103,12 +108,12 @@ class ViewBase(metaclass=ABCMeta):
         Parses the incoming request and turn it into parameters.
         :param kwargs: The output parameters.
         """
-        if not self.context.params:
+        params = self.context.get_params()
+
+        if not params:
             return
 
         errors = {}
-
-        params = self.context.get_params()
 
         for field_name, (field, location) in params.items():
             data = self._parse_data(location)
@@ -216,8 +221,9 @@ class ViewBase(metaclass=ABCMeta):
             code = exc.code
             message = [exc.description]
         else:
+            debug = self.context.app.config.get('DEBUG')
             code = APIException.status_code
-            message = [APIException.default_message]
+            message = [str(exc)] if debug else [APIException.default_message]
 
         errors = []
 
