@@ -113,4 +113,4 @@ class TestQueryString(TestCase):
         response = self.client.get('/view?param_1=123')
         self.assertEqual(response.status_code, 500)
         self.assertEqual(json.loads(response.data),
-                         {'errors': [{'message': 'parse location not_found not found.'}]})
+                         {'errors': [{'message': 'Parse location not_found not found.'}]})
