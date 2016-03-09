@@ -42,6 +42,9 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
         :return: The parser selected or none.
         """
 
+        if not len(parsers):
+            return None
+
         if not request.content_type:
             return parsers[0], parsers[0].mimetype
 
@@ -49,7 +52,7 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
 
         for parser in parsers:
             if mimetype.match(parser.mimetype):
-                return parser
+                return parser, mimetype
 
         return None
 
@@ -59,6 +62,9 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
         :param renderers: The lists of parsers.
         :return: The parser selected or none.
         """
+
+        if not len(renderers):
+            return None
 
         if not len(request.accept_mimetypes):
             return renderers[0], renderers[0].mimetype
