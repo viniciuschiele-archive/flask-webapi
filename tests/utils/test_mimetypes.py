@@ -4,73 +4,69 @@ from unittest import TestCase
 
 
 class TestMimeType(TestCase):
-    def test_full_type(self):
-        mimetype = MimeType('application/json')
+    def test_parse_valid_mimetype(self):
+        mimetype = MimeType.parse('application/json')
 
-        self.assertEqual('application/json', mimetype.full_type)
         self.assertEqual('application', mimetype.main_type)
         self.assertEqual('json', mimetype.sub_type)
         self.assertEqual({}, mimetype.params)
 
-    def test_empty_full_type(self):
-        mimetype = MimeType('')
+    def test_parse_empty_mimetype(self):
+        mimetype = MimeType.parse('')
 
-        self.assertEqual('', mimetype.full_type)
         self.assertEqual('', mimetype.main_type)
         self.assertEqual('', mimetype.sub_type)
 
-    def test_invalid_full_type(self):
-        mimetype = MimeType('application')
+    def test_parse_incomplete_mimetype(self):
+        mimetype = MimeType.parse('application')
 
-        self.assertEqual('application', mimetype.full_type)
         self.assertEqual('application', mimetype.main_type)
         self.assertEqual('', mimetype.sub_type)
 
-    def test_with_parameters(self):
-        mimetype = MimeType('application/json ; encoding = utf-8;indent=4')
+    def test_parse_mimetype_with_parameters(self):
+        mimetype = MimeType.parse('application/json ; encoding = utf-8;indent=4')
 
-        self.assertEqual('application/json', mimetype.full_type)
         self.assertEqual('application', mimetype.main_type)
         self.assertEqual('json', mimetype.sub_type)
         self.assertEqual('utf-8', mimetype.params['encoding'])
         self.assertEqual('4', mimetype.params['indent'])
 
-    def test_empty_parameter(self):
-        mimetype = MimeType('application/json;=utf-8;indent=')
+    def test_parse_mimetype_with_empty_parameter(self):
+        mimetype = MimeType.parse('application/json;=utf-8;indent=')
 
         self.assertEqual(missing, mimetype.params.get('encoding', missing))
         self.assertEqual(missing, mimetype.params.get('indent', missing))
 
-    def test_parameter_with_multiple_equals(self):
-        mimetype = MimeType('application/json;indent=1=2')
+    def test_parse_mimetype_with_parameter_multiple_equals(self):
+        mimetype = MimeType.parse('application/json;indent=1=2')
 
         self.assertEqual(missing, mimetype.params.get('indent', missing))
 
     def test_match_with_params(self):
-        mimetype = MimeType('application/json')
-        mimetype2 = MimeType('application/json;encoding=utf-8')
+        mimetype = MimeType.parse('application/json')
+        mimetype2 = MimeType.parse('application/json;encoding=utf-8')
         self.assertTrue(mimetype.match(mimetype2))
         self.assertTrue(mimetype2.match(mimetype))
 
     def test_match_with_different_main_types(self):
-        mimetype = MimeType('application/json')
-        mimetype2 = MimeType('otherthing/json')
+        mimetype = MimeType.parse('application/json')
+        mimetype2 = MimeType.parse('otherthing/json')
         self.assertFalse(mimetype.match(mimetype2))
         self.assertFalse(mimetype2.match(mimetype))
 
     def test_match_with_different_sub_types(self):
-        mimetype = MimeType('application/json')
-        mimetype2 = MimeType('application/xml')
+        mimetype = MimeType.parse('application/json')
+        mimetype2 = MimeType.parse('application/xml')
         self.assertFalse(mimetype.match(mimetype2))
         self.assertFalse(mimetype2.match(mimetype))
 
     def test_match_with_star(self):
-        mimetype = MimeType('application/json')
-        mimetype2 = MimeType('application/*')
+        mimetype = MimeType.parse('application/json')
+        mimetype2 = MimeType.parse('application/*')
         self.assertTrue(mimetype.match(mimetype2))
         self.assertTrue(mimetype2.match(mimetype))
 
-        mimetype = MimeType('application/json')
-        mimetype2 = MimeType('*/json')
+        mimetype = MimeType.parse('application/json')
+        mimetype2 = MimeType.parse('*/json')
         self.assertTrue(mimetype.match(mimetype2))
         self.assertTrue(mimetype2.match(mimetype))
