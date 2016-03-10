@@ -178,7 +178,7 @@ class ViewBase(metaclass=ABCMeta):
             else:
                 renderer, mimetype = self._select_renderer(force_renderer)
                 data_bytes = renderer.render(data, mimetype)
-                data = response_class(data_bytes, mimetype=mimetype.mimetype)
+                data = response_class(data_bytes, mimetype=str(mimetype))
 
         if status is not None:
             data.status_code = status

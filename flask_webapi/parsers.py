@@ -57,7 +57,7 @@ class JSONParser(ParserBase):
     Parses JSON data into Python object.
     """
 
-    mimetype = MimeType('application/json')
+    mimetype = MimeType.parse('application/json')
 
     def parse(self, data, mimetype):
         """

@@ -31,7 +31,7 @@ class JSONRenderer(RendererBase):
     Renderer which render into JSON.
     """
 
-    mimetype = MimeType('application/json')
+    mimetype = MimeType.parse('application/json')
 
     def render(self, data, mimetype):
         """
@@ -69,7 +69,7 @@ class PickleRenderer(RendererBase):
     Renderer which render into Pickle binary.
     """
 
-    mimetype = MimeType('application/pickle')
+    mimetype = MimeType.parse('application/pickle')
 
     def render(self, data, mimetype):
         """
