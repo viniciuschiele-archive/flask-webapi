@@ -2,7 +2,7 @@ import datetime
 import decimal
 import uuid
 
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict
 from .exceptions import ValidationError
 from .utils import dateparse, html, missing, timezone
 from .utils.caching import cached_property
@@ -14,13 +14,12 @@ MISSING_ERROR_MESSAGE = (
     'not exist in the `error_messages` dictionary.'
 )
 
-LoadResult = namedtuple('LoadResult', ['data', 'errors'])
-
 
 class Field(object):
     default_error_messages = {
         'required': 'This field is required.',
-        'null': 'This field may not be null.'
+        'null': 'This field may not be null.',
+        'validator_failed': 'Invalid value.'
     }
 
     def __init__(self, dump_only=False, load_only=False, required=None, default=missing, allow_none=None,
@@ -76,9 +75,14 @@ class Field(object):
 
     def get_attribute(self, instance):
         if isinstance(instance, dict):
-            return instance.get(self.field_name, missing)
+            value = instance.get(self.field_name, missing)
+        else:
+            value = getattr(instance, self.field_name, missing)
 
-        return getattr(instance, self.field_name, missing)
+        if value is missing:
+            return self.get_default()
+
+        return value
 
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
