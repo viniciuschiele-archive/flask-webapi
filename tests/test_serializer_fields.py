@@ -3,14 +3,14 @@ import uuid
 
 from decimal import Decimal
 from flask_webapi import serializers
-from flask_webapi.utils import timezone
-from werkzeug.datastructures import MultiDict
+from flask_webapi.utils import missing, timezone
 from unittest import TestCase
+from werkzeug.datastructures import MultiDict
 
 
-class TestFieldParameters(TestCase):
+class TestEmpty(TestCase):
     """
-    Tests for `required`, `allow_none`, `allow_blank`, `default`, `dump_to`, `load_from`
+    Tests for `required`, `allow_none`, `allow_blank`, `default`.
     """
     def test_required(self):
         """
@@ -81,23 +81,16 @@ class TestFieldParameters(TestCase):
         output = field.safe_deserialize(serializers.missing)
         self.assertEqual(output, 123)
 
+
+class TestDump(TestCase):
     def test_dump_to(self):
         """
         If `dump_to` is set, then output field name get the dump_to value.
         """
         class Serializer(serializers.Serializer):
             field = serializers.StringField(dump_to='other')
-        data = Serializer().load(data={'field': 'abc'})
+        data = Serializer().dump({'field': 'abc'})
         self.assertEqual(data, {'other': 'abc'})
-
-    def test_load_from(self):
-        """
-        If `load_from` is set, then field value is get from load_from.
-        """
-        class Serializer(serializers.Serializer):
-            field = serializers.StringField(load_from='other')
-        data = Serializer().load(data={'other': 'abc'})
-        self.assertEqual(data, {'field': 'abc'})
 
     def test_dump_only(self):
         """
@@ -111,6 +104,43 @@ class TestFieldParameters(TestCase):
         serializer = Serializer()
 
         self.assertEqual(serializer.load(data), {'field_2': 456})
+
+    def test_get_attribute_from_dict(self):
+        field = serializers.IntegerField()
+        field.bind('field', None)
+        self.assertEqual(field.get_attribute({'field': 123}), 123)
+
+    def test_get_attribute_from_model(self):
+        class Model(object):
+            field = 123
+
+        field = serializers.IntegerField()
+        field.bind('field', None)
+        self.assertEqual(field.get_attribute(Model()), 123)
+
+    def test_get_missing_attribute_from_dict(self):
+        field = serializers.IntegerField()
+        field.bind('field2', None)
+        self.assertEqual(field.get_attribute({'field': 123}), missing)
+
+    def test_get_missing_attribute_from_model(self):
+        class Model(object):
+            field = 123
+
+        field = serializers.IntegerField()
+        field.bind('field2', None)
+        self.assertEqual(field.get_attribute(Model()), missing)
+
+
+class TestLoad(TestCase):
+    def test_load_from(self):
+        """
+        If `load_from` is set, then field value is get from load_from.
+        """
+        class Serializer(serializers.Serializer):
+            field = serializers.StringField(load_from='other')
+        data = Serializer().load({'other': 'abc'})
+        self.assertEqual(data, {'field': 'abc'})
 
     def test_load_only(self):
         """
@@ -238,7 +268,7 @@ class FieldValues(object):
             self.assertEqual(self.field.serialize(output_value), expected_output)
 
 
-class TestBooleanField(FieldValues, TestCase):
+class TestBooleanField(TestCase, FieldValues):
     """
     Valid and invalid values for `BooleanField`.
     """
@@ -282,7 +312,7 @@ class TestBooleanField(FieldValues, TestCase):
             assert exc_info.exception.message == expected
 
 
-class TestDateField(FieldValues, TestCase):
+class TestDateField(TestCase, FieldValues):
     """
     Valid and invalid values for `DateField`.
     """
@@ -302,7 +332,7 @@ class TestDateField(FieldValues, TestCase):
     field = serializers.DateField()
 
 
-class TestDateTimeField(FieldValues, TestCase):
+class TestDateTimeField(TestCase, FieldValues):
     """
     Valid and invalid values for `DateTimeField`.
     """
@@ -326,7 +356,7 @@ class TestDateTimeField(FieldValues, TestCase):
     field = serializers.DateTimeField(default_timezone=timezone.UTC())
 
 
-class TestNaiveDateTimeField(FieldValues, TestCase):
+class TestNaiveDateTimeField(TestCase, FieldValues):
     """
     Valid and invalid values for `DateTimeField` with naive datetimes.
     """
@@ -340,7 +370,7 @@ class TestNaiveDateTimeField(FieldValues, TestCase):
     field = serializers.DateTimeField(default_timezone=None)
 
 
-class TestDecimalField(FieldValues, TestCase):
+class TestDecimalField(TestCase, FieldValues):
     """
     Valid and invalid values for `DecimalField`.
     """
@@ -378,7 +408,7 @@ class TestDecimalField(FieldValues, TestCase):
     field = serializers.DecimalField(max_digits=3, decimal_places=1)
 
 
-class TestDictField(FieldValues, TestCase):
+class TestDictField(TestCase, FieldValues):
     """
     Values for `ListField` with StringField as child.
     """
@@ -395,7 +425,7 @@ class TestDictField(FieldValues, TestCase):
     field = serializers.DictField(child=serializers.StringField())
 
 
-class TestIntegerField(FieldValues, TestCase):
+class TestIntegerField(TestCase, FieldValues):
     """
     Valid and invalid values for `IntegerField`.
     """
@@ -431,7 +461,7 @@ class TestIntegerField(FieldValues, TestCase):
         self.assertEqual(data, {'message': 123})
 
 
-class TestMinMaxIntegerField(FieldValues, TestCase):
+class TestMinMaxIntegerField(TestCase, FieldValues):
     """
     Valid and invalid values for `IntegerField` with min and max limits.
     """
@@ -451,7 +481,7 @@ class TestMinMaxIntegerField(FieldValues, TestCase):
     field = serializers.IntegerField(min_value=1, max_value=3)
 
 
-class TestFloatField(FieldValues, TestCase):
+class TestFloatField(TestCase, FieldValues):
     """
     Valid and invalid values for `FloatField`.
     """
@@ -478,7 +508,7 @@ class TestFloatField(FieldValues, TestCase):
     field = serializers.FloatField()
 
 
-class TestMinMaxFloatField(FieldValues, TestCase):
+class TestMinMaxFloatField(TestCase, FieldValues):
     """
     Valid and invalid values for `FloatField` with min and max limits.
     """
@@ -500,7 +530,7 @@ class TestMinMaxFloatField(FieldValues, TestCase):
     field = serializers.FloatField(min_value=1, max_value=3)
 
 
-class TestListField(FieldValues, TestCase):
+class TestListField(TestCase, FieldValues):
     """
     Values for `ListField` with IntegerField as child.
     """
@@ -526,7 +556,7 @@ class TestListField(FieldValues, TestCase):
             field.safe_deserialize([])
 
 
-class TestStringField(FieldValues, TestCase):
+class TestStringField(TestCase, FieldValues):
     """
     Valid and invalid values for `StringField`.
     """
@@ -560,7 +590,7 @@ class TestStringField(FieldValues, TestCase):
         self.assertEqual(exc_info.exception.message, ['This field may not be blank.'])
 
 
-class TestMinMaxStringField(FieldValues, TestCase):
+class TestMinMaxStringField(TestCase, FieldValues):
     """
     Valid and invalid values for `StringField` with min and max limits.
     """
@@ -579,7 +609,7 @@ class TestMinMaxStringField(FieldValues, TestCase):
     field = serializers.StringField(min_length=2, max_length=4)
 
 
-class TestUUIDField(FieldValues, TestCase):
+class TestUUIDField(TestCase, FieldValues):
     """
     Valid and invalid values for `UUIDField`.
     """

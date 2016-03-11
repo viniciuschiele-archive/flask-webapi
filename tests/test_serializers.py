@@ -10,9 +10,9 @@ class TestSerializer(TestCase):
             field_1 = serializers.StringField
             field_2 = serializers.StringField
 
-        input = {'field_1': 'value_1'}
+        data = {'field_1': 'value_1'}
         with self.assertRaises(serializers.ValidationError):
-            Serializer().load(input)
+            Serializer().load(data)
 
     def test_missing_attribute_during_serialization(self):
         class Serializer(serializers.Serializer):
@@ -21,10 +21,10 @@ class TestSerializer(TestCase):
 
         s = Serializer()
 
-        input = {'field_1': 'value_1'}
-        output = s.dump(input)
+        data = {'field_1': 'value_1'}
+        output = s.dump(data)
 
-        self.assertEqual(input, output)
+        self.assertEqual(data, output)
 
     def test_partial(self):
         class Serializer(serializers.Serializer):
@@ -37,6 +37,17 @@ class TestSerializer(TestCase):
         output = s.load(input)
 
         self.assertEqual(input, output)
+
+    def test_dump_with_model(self):
+        class Model(object):
+            field_1 = 123
+
+        class Serializer(serializers.Serializer):
+            field_1 = serializers.IntegerField
+
+        output = Serializer().dump(Model())
+
+        self.assertEqual(output, {'field_1': 123})
 
     def test_dump_with_errors(self):
         class Serializer(serializers.Serializer):

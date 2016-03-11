@@ -103,6 +103,42 @@ class TestQueryString(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(response.data), dict(name='myname', age=20))
 
+    def test_param_with_body_location_and_unsupported_content_type(self):
+        class Serializer(serializers.Serializer):
+            name = serializers.StringField
+            age = serializers.IntegerField
+
+        @route('/view', methods=['POST'])
+        @param('param_1', Serializer, location='body')
+        def view(param_1):
+            return param_1
+        self.api.add_view(view)
+
+        data = json.dumps(dict(name='myname', age=20))
+
+        response = self.client.post('/view', data=data, content_type='application/data')
+        self.assertEqual(response.status_code, 415)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(json.loads(response.data),
+                         {'errors': [{'message': 'Unsupported media type "application/data" in request.'}]})
+
+    def test_param_with_body_location_and_malformed_data(self):
+        class Serializer(serializers.Serializer):
+            name = serializers.StringField
+            age = serializers.IntegerField
+
+        @route('/view', methods=['POST'])
+        @param('param_1', Serializer, location='body')
+        def view(param_1):
+            return param_1
+        self.api.add_view(view)
+
+        response = self.client.post('/view', data='invalid data', content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(json.loads(response.data),
+                         {'errors': [{'message': 'Malformed request.'}]})
+
     def test_param_with_invalid_location(self):
         @route('/view')
         @param('param_1', serializers.StringField, location='not_found')

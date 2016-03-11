@@ -38,6 +38,16 @@ class TestView(TestCase):
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 403)
 
+    def test_unauthenticated(self):
+        @route('/view')
+        @permissions(IsAuthenticated)
+        def view():
+            pass
+
+        self.api.add_view(view)
+        response = self.client.get('/view')
+        self.assertEqual(response.status_code, 401)
+
 
 class Authenticator(AuthenticatorBase):
     def authenticate(self):

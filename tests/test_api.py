@@ -35,11 +35,16 @@ class TestWebAPI(TestCase):
         self.assertEqual(response.status_code, 204)
 
     def test_add_invalid_view(self):
+        attr_view = None
+
         def invalid_view():
             pass
 
         class InvalidView(object):
             pass
+
+        with self.assertRaises(TypeError):
+            self.api.add_view(attr_view)
 
         with self.assertRaises(TypeError):
             self.api.add_view(invalid_view)
