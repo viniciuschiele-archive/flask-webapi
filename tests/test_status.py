@@ -17,7 +17,7 @@ class TestStatus(TestCase):
         for i in range(200, 299):
             self.assertTrue(status.is_success(i))
 
-    def is_redirect(self):
+    def test_is_redirect(self):
         self.assertFalse(status.is_redirect(299))
         self.assertFalse(status.is_redirect(400))
 
