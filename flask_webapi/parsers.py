@@ -49,7 +49,6 @@ class ParserBase(metaclass=ABCMeta):
         :param mimetype: The mimetype to parse the data.
         :return: A Python object
         """
-        pass
 
 
 class JSONParser(ParserBase):

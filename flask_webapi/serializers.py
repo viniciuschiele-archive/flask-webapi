@@ -76,9 +76,9 @@ class Field(object):
 
     def get_attribute(self, instance):
         if isinstance(instance, dict):
-            return instance.get(self.field_name, self.default)
+            return instance.get(self.field_name, missing)
 
-        return getattr(instance, self.field_name, self.default)
+        return getattr(instance, self.field_name, missing)
 
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
@@ -632,17 +632,47 @@ class Serializer(Field, metaclass=SerializerMetaclass):
             ret[field_name] = field
         return ret
 
+    @cached_property
+    def load_fields(self):
+        lst = []
+
+        for field in self.fields.values():
+            if self.only and field.field_name not in self.only:
+                continue
+
+            if field.dump_only:
+                continue
+
+            lst.append(field)
+
+        return lst
+
+    @cached_property
+    def dump_fields(self):
+        lst = []
+
+        for field in self.fields.values():
+            if self.only and field.field_name not in self.only:
+                continue
+
+            if field.load_only:
+                continue
+
+            lst.append(field)
+
+        return lst
+
     def load(self, data):
         if self.many:
             return [self.safe_deserialize(value) for value in data]
 
         return self.safe_deserialize(data)
 
-    def dump(self, obj):
+    def dump(self, instance):
         if self.many:
-            data = [self.serialize(value) for value in obj]
+            data = [self.serialize(value) for value in instance]
         else:
-            data = self.serialize(obj)
+            data = self.serialize(instance)
 
         if self.envelope:
             data = {self.envelope: data}
@@ -656,14 +686,13 @@ class Serializer(Field, metaclass=SerializerMetaclass):
 
         result = dict()
         errors = OrderedDict()
-        fields = self._deserializable_fields
 
-        for field in fields:
+        for field in self.load_fields:
             try:
                 value = field.get_value(data)
                 value = field.safe_deserialize(value)
                 if value is not missing:
-                    result[field.dump_to] = value
+                    result[field.field_name] = value
             except ValidationError as err:
                 errors[field.field_name] = err.message
 
@@ -674,42 +703,11 @@ class Serializer(Field, metaclass=SerializerMetaclass):
 
     def serialize(self, instance):
         result = dict()
-        fields = self._serializable_fields
 
-        for field in fields:
+        for field in self.dump_fields:
             value = field.get_attribute(instance)
 
             if value is not missing:
-                result[field.field_name] = field.serialize(value)
+                result[field.dump_to] = field.serialize(value)
 
         return result
-
-    @cached_property
-    def _deserializable_fields(self):
-        dump_fields = []
-
-        for field in self.fields.values():
-            if self.only and field.field_name not in self.only:
-                continue
-
-            if field.dump_only:
-                continue
-
-            dump_fields.append(field)
-
-        return dump_fields
-
-    @cached_property
-    def _serializable_fields(self):
-        load_fields = []
-
-        for field in self.fields.values():
-            if self.only and field.field_name not in self.only:
-                continue
-
-            if field.load_only:
-                continue
-
-            load_fields.append(field)
-
-        return load_fields

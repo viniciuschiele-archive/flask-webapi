@@ -244,7 +244,7 @@ class ViewContext(object):
 
         self.authenticators = get_attr((func, view), 'authenticators', api.authenticators)
         self.permissions = get_attr((func, view), 'permissions', api.permissions)
-        self.content_negotiator = get_attr((func, view), 'content_negotiator', api.content_negotiator)
+        self.content_negotiator = api.content_negotiator
         self.parsers = get_attr((func, view), 'parsers', api.parsers)
         self.renderers = get_attr((func, view), 'renderers', api.renderers)
         self.params = getattr(func, 'params', None)

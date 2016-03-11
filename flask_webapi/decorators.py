@@ -29,19 +29,6 @@ def permissions(*args):
     return decorator
 
 
-def content_negotiator(negotiator):
-    """
-    A decorator that apply a content negotiator to the view or action.
-    :param ContentNegotiatorBase negotiator: A class of content negotiator.
-    :return: A function.
-    """
-
-    def decorator(func):
-        func.content_negotiator = negotiator
-        return func
-    return decorator
-
-
 def param(name, field, location=None):
     def decorator(func):
         params = getattr(func, 'params', None)
