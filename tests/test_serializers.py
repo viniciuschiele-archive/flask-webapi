@@ -635,7 +635,7 @@ class TestDecimalField(TestCase, FieldValues):
     field = serializers.DecimalField(max_digits=3, decimal_places=1)
 
 
-class TestMinMaxDecimalField(FieldValues):
+class TestMinMaxDecimalField(TestCase, FieldValues):
     """
     Valid and invalid values for `DecimalField` with min and max limits.
     """
