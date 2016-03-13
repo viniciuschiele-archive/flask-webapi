@@ -194,6 +194,28 @@ class TestPartial(TestCase):
         self.assertEqual(s.load(data), data)
 
 
+class TestInvalidErrorKey(TestCase):
+    class FailField(serializers.Field):
+        def decode(self, value):
+            self._fail('incorrect')
+
+    def test_invalid_error_key(self):
+        """
+        If a field raises a validation error, but does not have a corresponding
+        error message, then raise an appropriate assertion error.
+        """
+
+        class Serializer(serializers.Serializer):
+            field = self.FailField()
+
+        with self.assertRaises(AssertionError) as exc_info:
+            Serializer().load({'field': 'value'})
+
+        self.assertEqual(str(exc_info.exception),
+                         'ValidationError raised by `FailField`, but error key '
+                         '`incorrect` does not exist in the `error_messages` dictionary.')
+
+
 class TestValidators(TestCase):
 
     def test_validator_without_return(self):
@@ -249,6 +271,54 @@ class TestValidators(TestCase):
         self.assertEqual(exc_info.exception.message, {'field': ['Invalid value: 123']})
 
 
+class TestPost(TestCase):
+
+    def test_post_dump(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+            def post_dump(self, data, original_data):
+                data['field'] = 1
+                return data
+
+        self.assertEqual(Serializer().dump({'field': 123}), {'field': 1})
+
+    def test_post_dumps(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+            def post_dumps(self, data, original_data):
+                return {'result': data}
+
+        data = [{'field': 123}]
+        result = {'result': [{'field': 123}]}
+
+        self.assertEqual(Serializer().dumps(data), result)
+
+    def test_post_load(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+            def post_load(self, data, original_data):
+                data['field'] = 1
+                return data
+
+        self.assertEqual(Serializer().load({'field': 123}), {'field': 1})
+
+    def test_post_loads(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+            def post_loads(self, data, original_data):
+                data[0]['field'] = 1
+                return data
+
+        data = [{'field': 123}]
+        result = [{'field': 1}]
+
+        self.assertEqual(Serializer().loads(data), result)
+
+
 class TestModel(TestCase):
     def test_dump_with_model(self):
         class Model(object):
@@ -271,28 +341,6 @@ class TestModel(TestCase):
         with self.assertRaises(serializers.ValidationError) as exc_info:
             Serializer().load(Model())
         self.assertEqual(exc_info.exception.message, ['Invalid data. Expected a dictionary, but got Model.'])
-
-
-class TestInvalidErrorKey(TestCase):
-    class FailField(serializers.Field):
-        def deserialize(self, data):
-            self._fail('incorrect')
-
-    def test_invalid_error_key(self):
-        """
-        If a field raises a validation error, but does not have a corresponding
-        error message, then raise an appropriate assertion error.
-        """
-
-        class Serializer(serializers.Serializer):
-            field = self.FailField()
-
-        with self.assertRaises(AssertionError) as exc_info:
-            Serializer().load({'field': 'value'})
-
-        self.assertEqual(str(exc_info.exception),
-                         'ValidationError raised by `FailField`, but error key '
-                         '`incorrect` does not exist in the `error_messages` dictionary.')
 
 
 class TestError(TestCase):
@@ -475,7 +523,7 @@ class FieldValues(object):
         Ensure that valid values return the expected validated data.
         """
         for input_value, expected_output in self.get_items(self.valid_inputs):
-            self.assertEqual(self.field.safe_deserialize(input_value), expected_output)
+            self.assertEqual(self.field.safe_decode(input_value), expected_output)
 
     def test_invalid_inputs(self):
         """
@@ -483,12 +531,12 @@ class FieldValues(object):
         """
         for input_value, expected_failure in self.get_items(self.invalid_inputs):
             with self.assertRaises(serializers.ValidationError) as exc_info:
-                self.field.safe_deserialize(input_value)
+                self.field.safe_decode(input_value)
             self.assertEqual(exc_info.exception.message, expected_failure)
 
     def test_outputs(self):
         for output_value, expected_output in self.get_items(self.outputs):
-            self.assertEqual(self.field.serialize(output_value), expected_output)
+            self.assertEqual(self.field.encode(output_value), expected_output)
 
 
 class TestBooleanField(TestCase, FieldValues):
@@ -530,7 +578,7 @@ class TestBooleanField(TestCase, FieldValues):
         field = serializers.BooleanField()
         for input_value in inputs:
             with self.assertRaises(serializers.ValidationError) as exc_info:
-                field.safe_deserialize(input_value)
+                field.safe_decode(input_value)
             expected = ['"{0}" is not a valid boolean.'.format(input_value)]
             assert exc_info.exception.message == expected
 
@@ -799,7 +847,7 @@ class TestListField(TestCase, FieldValues):
     def test_disallow_empty(self):
         field = serializers.ListField(serializers.IntegerField(), allow_empty=False)
         with self.assertRaises(serializers.ValidationError):
-            field.safe_deserialize([])
+            field.decode([])
 
 
 class TestStringField(TestCase, FieldValues):
@@ -822,17 +870,17 @@ class TestStringField(TestCase, FieldValues):
 
     def test_trim_whitespace_default(self):
         field = serializers.StringField()
-        self.assertEqual(field.deserialize(' abc '), 'abc')
+        self.assertEqual(field.decode(' abc '), 'abc')
 
     def test_trim_whitespace_disabled(self):
         field = serializers.StringField(trim_whitespace=False)
-        self.assertEqual(field.deserialize(' abc '), ' abc ')
+        self.assertEqual(field.decode(' abc '), ' abc ')
 
     def test_disallow_blank_with_trim_whitespace(self):
         field = serializers.StringField(allow_blank=False, trim_whitespace=True)
 
         with self.assertRaises(serializers.ValidationError) as exc_info:
-            field.safe_deserialize('   ')
+            field.decode('   ')
         self.assertEqual(exc_info.exception.message, ['This field may not be blank.'])
 
 
