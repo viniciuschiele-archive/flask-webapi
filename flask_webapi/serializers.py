@@ -103,13 +103,13 @@ class Field(object):
             return self.default()
         return self.default
 
-    def serialize(self, value):
+    def encode(self, value):
         raise NotImplementedError()
 
-    def deserialize(self, data):
+    def decode(self, value):
         raise NotImplementedError()
 
-    def safe_deserialize(self, data):
+    def safe_decode(self, data):
         if data is missing:
             if getattr(self.root, 'partial', False):
                 return missing
@@ -124,7 +124,7 @@ class Field(object):
                 self._fail('null')
             return None
 
-        validated_data = self.deserialize(data)
+        validated_data = self.decode(data)
         self._validate(validated_data)
         return validated_data
 
@@ -161,17 +161,17 @@ class BooleanField(Field):
     TRUE_VALUES = {'t', 'T', 'true', 'True', 'TRUE', '1', 1, True}
     FALSE_VALUES = {'f', 'F', 'false', 'False', 'FALSE', '0', 0, 0.0, False}
 
-    def deserialize(self, data):
+    def decode(self, value):
         try:
-            if data in self.TRUE_VALUES:
+            if value in self.TRUE_VALUES:
                 return True
-            if data in self.FALSE_VALUES:
+            if value in self.FALSE_VALUES:
                 return False
         except TypeError:
             pass
-        self._fail('invalid', input=data)
+        self._fail('invalid', input=value)
 
-    def serialize(self, value):
+    def encode(self, value):
         if value is None:
             return None
         if value in self.TRUE_VALUES:
@@ -187,15 +187,15 @@ class DateField(Field):
         'datetime': 'Expected a date but got a datetime.',
     }
 
-    def deserialize(self, data):
-        if isinstance(data, datetime.datetime):
+    def decode(self, value):
+        if isinstance(value, datetime.datetime):
             self._fail('datetime')
 
-        if isinstance(data, datetime.date):
-            return data
+        if isinstance(value, datetime.date):
+            return value
 
         try:
-            parsed = dateparse.parse_date(data)
+            parsed = dateparse.parse_date(value)
             if parsed is not None:
                 return parsed
         except (ValueError, TypeError):
@@ -203,7 +203,7 @@ class DateField(Field):
 
         self._fail('invalid')
 
-    def serialize(self, value):
+    def encode(self, value):
         if value is None:
             return None
 
@@ -223,15 +223,15 @@ class DateTimeField(Field):
         if default_timezone is not None:
             self.default_timezone = default_timezone
 
-    def deserialize(self, data):
-        if isinstance(data, datetime.datetime):
-            return self._enforce_timezone(data)
+    def decode(self, value):
+        if isinstance(value, datetime.datetime):
+            return self._enforce_timezone(value)
 
-        if isinstance(data, datetime.date):
+        if isinstance(value, datetime.date):
             self._fail('date')
 
         try:
-            parsed = dateparse.parse_datetime(data)
+            parsed = dateparse.parse_datetime(value)
             if parsed is not None:
                 return self._enforce_timezone(parsed)
         except (ValueError, TypeError):
@@ -239,7 +239,7 @@ class DateTimeField(Field):
 
         self._fail('invalid')
 
-    def serialize(self, value):
+    def encode(self, value):
         if value is None:
             return None
 
@@ -291,17 +291,18 @@ class DecimalField(Field):
             message = self.error_messages['min_value'].format(min_value=self.min_value)
             self.validators.append(MinValueValidator(self.min_value, message=message))
 
-    def deserialize(self, data):
+    def decode(self, value):
         """
         Validate that the input is a decimal number and return a Decimal
         instance.
+        :param value: The value to be decoded.
         """
-        data = str(data)
-        if len(data) > self.MAX_STRING_LENGTH:
+        value = str(value)
+        if len(value) > self.MAX_STRING_LENGTH:
             self._fail('max_string_length')
 
         try:
-            value = decimal.Decimal(data)
+            value = decimal.Decimal(value)
 
             # Check for NaN and for infinity and negative infinity.
             if value.is_nan() or value.is_infinite():
@@ -311,7 +312,7 @@ class DecimalField(Field):
         except decimal.DecimalException:
             self._fail('invalid')
 
-    def serialize(self, value):
+    def encode(self, value):
         if not isinstance(value, decimal.Decimal):
             value = decimal.Decimal(str(value))
 
@@ -373,23 +374,23 @@ class DictField(Field):
         super(DictField, self).__init__(*args, **kwargs)
         self.child = child() if isinstance(child, type) else child
 
-    def deserialize(self, data):
+    def decode(self, value):
         """
         Dicts of native values <- Dicts of primitive datatypes.
         """
-        if not isinstance(data, dict):
-            self._fail('not_a_dict', input_type=type(data).__name__)
+        if not isinstance(value, dict):
+            self._fail('not_a_dict', input_type=type(value).__name__)
 
         return {
-            str(key): self.child.safe_deserialize(value) for key, value in data.items()
+            str(key): self.child.safe_decode(val) for key, val in value.items()
         }
 
-    def serialize(self, value):
+    def encode(self, value):
         """
         List of object instances -> List of dicts of primitive datatypes.
         """
         return {
-            str(key): self.child.serialize(val) for key, val in value.items()
+            str(key): self.child.encode(val) for key, val in value.items()
         }
 
 
@@ -416,7 +417,7 @@ class IntegerField(Field):
             message = self.error_messages['max_value'].format(max_value=self.max_value)
             self.validators.append(MaxValueValidator(self.max_value, message=message))
 
-    def deserialize(self, value):
+    def decode(self, value):
         if isinstance(value, str) and len(value) > self.MAX_STRING_LENGTH:
             self._fail('max_string_length')
 
@@ -425,7 +426,7 @@ class IntegerField(Field):
         except (ValueError, TypeError):
             self._fail('invalid')
 
-    def serialize(self, value):
+    def encode(self, value):
         if value is None:
             return None
         return int(value)
@@ -454,16 +455,16 @@ class FloatField(Field):
             message = self.error_messages['min_value'].format(min_value=self.min_value)
             self.validators.append(MinValueValidator(self.min_value, message=message))
 
-    def deserialize(self, data):
-        if isinstance(data, str) and len(data) > self.MAX_STRING_LENGTH:
+    def decode(self, value):
+        if isinstance(value, str) and len(value) > self.MAX_STRING_LENGTH:
             self._fail('max_string_length')
 
         try:
-            return float(data)
+            return float(value)
         except (TypeError, ValueError):
             self._fail('invalid')
 
-    def serialize(self, value):
+    def encode(self, value):
         if value is None:
             return None
         return float(value)
@@ -492,23 +493,23 @@ class ListField(Field):
 
         return value
 
-    def deserialize(self, data):
+    def decode(self, value):
         """
         List of dicts of native values <- List of dicts of primitive datatypes.
         """
-        if not isinstance(data, list):
-            self._fail('not_a_list', input_type=type(data).__name__)
+        if not isinstance(value, list):
+            self._fail('not_a_list', input_type=type(value).__name__)
 
-        if not self.allow_empty and len(data) == 0:
+        if not self.allow_empty and len(value) == 0:
             self._fail('empty')
 
-        return [self.child.safe_deserialize(item) for item in data]
+        return [self.child.safe_decode(item) for item in value]
 
-    def serialize(self, data):
+    def encode(self, value):
         """
         List of object instances -> List of dicts of primitive datatypes.
         """
-        return [self.child.serialize(item) for item in data]
+        return [self.child.encode(item) for item in value]
 
 
 class StringField(Field):
@@ -550,8 +551,8 @@ class StringField(Field):
 
         return missing
 
-    def deserialize(self, data):
-        value = str(data)
+    def decode(self, value):
+        value = str(value)
 
         if self.trim_whitespace:
             value = value.strip()
@@ -563,7 +564,7 @@ class StringField(Field):
 
         return value
 
-    def serialize(self, value):
+    def encode(self, value):
         if value is None:
             return None
         return str(value)
@@ -574,16 +575,16 @@ class UUIDField(Field):
         'invalid': '"{value}" is not a valid UUID.',
     }
 
-    def deserialize(self, data):
-        if isinstance(data, uuid.UUID):
-            return data
+    def decode(self, value):
+        if isinstance(value, uuid.UUID):
+            return value
 
         try:
-            return uuid.UUID(hex=data)
+            return uuid.UUID(hex=value)
         except (AttributeError, ValueError):
-            self._fail('invalid', value=data)
+            self._fail('invalid', value=value)
 
-    def serialize(self, value):
+    def encode(self, value):
         return str(value)
 
 
@@ -614,13 +615,11 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         'invalid': 'Invalid data. Expected a dictionary, but got {datatype}.'
     }
 
-    def __init__(self, only=None, many=False, partial=False, envelope=None, *args, **kwargs):
+    def __init__(self, only=None, partial=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.only = only or ()
-        self.many = many
         self.partial = partial
-        self.envelope = envelope
 
     @cached_property
     def fields(self):
@@ -666,24 +665,7 @@ class Serializer(Field, metaclass=SerializerMetaclass):
 
         return lst
 
-    def load(self, data):
-        if self.many:
-            return [self.safe_deserialize(value) for value in data]
-
-        return self.safe_deserialize(data)
-
-    def dump(self, instance):
-        if self.many:
-            data = [self.serialize(value) for value in instance]
-        else:
-            data = self.serialize(instance)
-
-        if self.envelope:
-            data = {self.envelope: data}
-
-        return data
-
-    def deserialize(self, data):
+    def decode(self, data):
         if not isinstance(data, dict):
             message = self.error_messages['invalid'].format(datatype=type(data).__name__)
             raise ValidationError(message)
@@ -694,7 +676,7 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         for field in self.load_fields:
             try:
                 value = field.get_value(data)
-                value = field.safe_deserialize(value)
+                value = field.safe_decode(value)
                 if value is not missing:
                     result[field.field_name] = value
             except ValidationError as err:
@@ -705,13 +687,53 @@ class Serializer(Field, metaclass=SerializerMetaclass):
 
         return result
 
-    def serialize(self, instance):
+    def encode(self, instance):
         result = dict()
 
         for field in self.dump_fields:
             value = field.get_attribute(instance)
 
             if value is not missing:
-                result[field.dump_to] = field.serialize(value)
+                result[field.dump_to] = field.encode(value)
 
         return result
+
+    def load(self, data):
+        # if self.many:
+        #     instance = [self.post_load(self.safe_deserialize(value), value) for value in data]
+        #     return self.post_loads(instance, data)
+
+        return self.post_load(self.safe_decode(data), data)
+
+    def loads(self, data):
+        instance = [self.post_load(self.safe_decode(value), value) for value in data]
+        return self.post_loads(instance, data)
+
+    def dump(self, instance):
+        # if self.many:
+        #     data = [self.post_dump(self.serialize(value), value) for value in instance]
+        #     data = self.post_dumps(data, instance)
+        # else:
+        data = self.post_dump(self.encode(instance), instance)
+
+        # if self.envelope:
+        #     data = {self.envelope: data}
+
+        return data
+
+    def dumps(self, instances):
+        data = [self.post_dump(self.encode(instance), instance) for instance in instances]
+        data = self.post_dumps(data, instances)
+        return data
+
+    def post_load(self, data, original_data):
+        return data
+
+    def post_loads(self, data, original_data):
+        return data
+
+    def post_dump(self, data, original_data):
+        return data
+
+    def post_dumps(self, data, original_data):
+        return data

@@ -123,7 +123,7 @@ class ViewBase(metaclass=ABCMeta):
                     kwargs[field_name] = field.load(data)
                 else:
                     value = field.get_value(data)
-                    value = field.safe_deserialize(value)
+                    value = field.safe_decode(value)
                     if value is not missing:
                         kwargs[field_name] = value
             except ValidationError as e:
@@ -149,9 +149,19 @@ class ViewBase(metaclass=ABCMeta):
         if data is None:
             return None
 
-        serializer = self.context.get_serializer(**self.context.serializer_kwargs)
+        serializer = self.context.get_serializer()
 
-        return serializer.dump(data)
+        if self.context.serializer_args.get('many'):
+            data = serializer.dumps(data)
+        else:
+            data = serializer.dump(data)
+
+        envelope = self.context.serializer_args.get('envelope')
+
+        if envelope:
+            data = {envelope: data}
+
+        return data
 
     def _make_response(self, data, use_serializer=False, force_renderer=False):
         """
@@ -249,7 +259,7 @@ class ViewContext(object):
         self.renderers = get_attr((func, view), 'renderers', api.renderers)
         self.params = getattr(func, 'params', None)
         self.serializer = get_attr((func, view), 'serializer', None)
-        self.serializer_kwargs = getattr(func, 'serializer_kwargs', None)
+        self.serializer_args = getattr(func, 'serializer_args', None)
         self.error_handler = get_attr((func, view), 'error_handler', api.error_handler)
 
     def get_authenticators(self):
@@ -288,8 +298,8 @@ class ViewContext(object):
         """
         return self.params
 
-    def get_serializer(self, **kwargs):
+    def get_serializer(self):
         """
         Instantiates and returns the serializer that this action can use.
         """
-        return self.serializer(**kwargs)
+        return self.serializer()
