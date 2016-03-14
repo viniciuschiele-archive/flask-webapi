@@ -125,20 +125,10 @@ class Field(object):
             return None
 
         validated_data = self.decode(data)
-        self._validate(validated_data)
+        self.validate(validated_data)
         return validated_data
 
-    def _fail(self, key, **kwargs):
-        try:
-            msg = self.error_messages[key]
-            message_string = msg.format(**kwargs)
-            raise ValidationError(message_string)
-        except KeyError:
-            class_name = self.__class__.__name__
-            msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
-            raise AssertionError(msg)
-
-    def _validate(self, data):
+    def validate(self, data):
         errors = []
         for validator in self.validators:
             try:
@@ -151,6 +141,16 @@ class Field(object):
                     errors.extend(err.message)
         if errors:
             raise ValidationError(errors)
+
+    def _fail(self, key, **kwargs):
+        try:
+            msg = self.error_messages[key]
+            message_string = msg.format(**kwargs)
+            raise ValidationError(message_string)
+        except KeyError:
+            class_name = self.__class__.__name__
+            msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
+            raise AssertionError(msg)
 
 
 class BooleanField(Field):
@@ -726,6 +726,25 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         data = self.post_dumps(data, instances)
         return data
 
+    def validate(self, data):
+        errors = {}
+
+        try:
+            super().validate(data)
+        except ValidationError as err:
+            errors = err.message
+
+        try:
+            self.post_validate(data)
+        except ValidationError as err:
+            if isinstance(err.message, dict):
+                errors.update(err.message)
+            else:
+                errors['Serializer'] = err.message
+
+        if errors:
+            raise ValidationError(errors, has_fields=True)
+
     def post_load(self, data, original_data):
         return data
 
@@ -737,3 +756,6 @@ class Serializer(Field, metaclass=SerializerMetaclass):
 
     def post_dumps(self, data, original_data):
         return data
+
+    def post_validate(self, data):
+        pass

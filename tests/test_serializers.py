@@ -318,6 +318,17 @@ class TestPost(TestCase):
 
         self.assertEqual(Serializer().loads(data), result)
 
+    def test_post_validate(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+            def post_validate(self, data):
+                raise serializers.ValidationError({'field': ['Invalid value']}, has_fields=True)
+
+        with self.assertRaises(serializers.ValidationError) as exc_info:
+            Serializer().load({'field': 1})
+        self.assertEqual(exc_info.exception.message, {'field': ['Invalid value']})
+
 
 class TestModel(TestCase):
     def test_dump_with_model(self):
