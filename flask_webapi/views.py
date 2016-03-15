@@ -123,7 +123,7 @@ class ViewBase(metaclass=ABCMeta):
                     kwargs[field_name] = field.load(data)
                 else:
                     value = field.get_value(data)
-                    value = field.safe_decode(value)
+                    value = field.load(value)
                     if value is not missing:
                         kwargs[field_name] = value
             except ValidationError as e:

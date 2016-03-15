@@ -67,26 +67,26 @@ class ModelSchema(Schema):
 if __name__ == '__main__':
     model = Model()
 
-    serializer = ModelSerializer()
-    schema = ModelSchema()
-
-    s = time.time()
-    for i in range(500):
-        data = ModelSerializer().dump(model)
-    print('Serializer - dump: ' + str(time.time() - s))
-
-    s = time.time()
-    for i in range(500):
-        data2 = schema.dump(model).data
-    print('Marshmallow - dump: ' + str(time.time() - s))
+    # serializer = ModelSerializer()
+    # schema = ModelSchema()
+    #
+    # s = time.time()
+    # for i in range(500):
+    #     data = ModelSerializer().dump(model)
+    # print('Serializer - dump: ' + str(time.time() - s))
+    #
+    # s = time.time()
+    # for i in range(500):
+    #     data2 = schema.dump(model).data
+    # print('Marshmallow - dump: ' + str(time.time() - s))
 
     models = [Model() for i in range(500)]
 
-    serializer = ModelSerializer(many=True)
+    serializer = ModelSerializer()
     schema = ModelSchema(many=True)
 
     s = time.time()
-    data = serializer.dump(models)
+    data = serializer.dumps(models)
     print('Serializer - dump: ' + str(time.time() - s))
 
     s = time.time()
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     print('Marshmallow - dump: ' + str(time.time() - s))
 
     s = time.time()
-    serializer.load(data)
+    serializer.loads(data)
     print('Serializer - load: ' + str(time.time() - s))
 
     s = time.time()

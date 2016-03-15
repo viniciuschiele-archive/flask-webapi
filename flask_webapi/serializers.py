@@ -75,14 +75,9 @@ class Field(object):
 
     def get_attribute(self, instance):
         if isinstance(instance, dict):
-            value = instance.get(self.field_name, missing)
+            return instance.get(self.field_name, missing)
         else:
-            value = getattr(instance, self.field_name, missing)
-
-        if value is missing:
-            return self.get_default()
-
-        return value
+            return getattr(instance, self.field_name, missing)
 
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
@@ -103,13 +98,13 @@ class Field(object):
             return self.default()
         return self.default
 
-    def encode(self, value):
-        raise NotImplementedError()
+    def dump(self, value):
+        if value is missing:
+            return self.get_default()
 
-    def decode(self, value):
-        raise NotImplementedError()
+        return self._dump(value)
 
-    def safe_decode(self, data):
+    def load(self, data):
         if data is missing:
             if getattr(self.root, 'partial', False):
                 return missing
@@ -124,11 +119,27 @@ class Field(object):
                 self._fail('null')
             return None
 
-        validated_data = self.decode(data)
-        self.validate(validated_data)
+        validated_data = self._load(data)
+        self._validate(validated_data)
         return validated_data
 
-    def validate(self, data):
+    def _dump(self, value):
+        raise NotImplementedError()
+
+    def _load(self, value):
+        raise NotImplementedError()
+
+    def _fail(self, key, **kwargs):
+        try:
+            msg = self.error_messages[key]
+            message_string = msg.format(**kwargs)
+            raise ValidationError(message_string)
+        except KeyError:
+            class_name = self.__class__.__name__
+            msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
+            raise AssertionError(msg)
+
+    def _validate(self, data):
         errors = []
         for validator in self.validators:
             try:
@@ -142,16 +153,6 @@ class Field(object):
         if errors:
             raise ValidationError(errors)
 
-    def _fail(self, key, **kwargs):
-        try:
-            msg = self.error_messages[key]
-            message_string = msg.format(**kwargs)
-            raise ValidationError(message_string)
-        except KeyError:
-            class_name = self.__class__.__name__
-            msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
-            raise AssertionError(msg)
-
 
 class BooleanField(Field):
     default_error_messages = {
@@ -161,7 +162,7 @@ class BooleanField(Field):
     TRUE_VALUES = {'t', 'T', 'true', 'True', 'TRUE', '1', 1, True}
     FALSE_VALUES = {'f', 'F', 'false', 'False', 'FALSE', '0', 0, 0.0, False}
 
-    def decode(self, value):
+    def _load(self, value):
         try:
             if value in self.TRUE_VALUES:
                 return True
@@ -171,7 +172,7 @@ class BooleanField(Field):
             pass
         self._fail('invalid', input=value)
 
-    def encode(self, value):
+    def _dump(self, value):
         if value is None:
             return None
         if value in self.TRUE_VALUES:
@@ -187,7 +188,7 @@ class DateField(Field):
         'datetime': 'Expected a date but got a datetime.',
     }
 
-    def decode(self, value):
+    def _load(self, value):
         if isinstance(value, datetime.datetime):
             self._fail('datetime')
 
@@ -203,7 +204,7 @@ class DateField(Field):
 
         self._fail('invalid')
 
-    def encode(self, value):
+    def _dump(self, value):
         if value is None:
             return None
 
@@ -223,7 +224,7 @@ class DateTimeField(Field):
         if default_timezone is not None:
             self.default_timezone = default_timezone
 
-    def decode(self, value):
+    def _load(self, value):
         if isinstance(value, datetime.datetime):
             return self._enforce_timezone(value)
 
@@ -239,7 +240,7 @@ class DateTimeField(Field):
 
         self._fail('invalid')
 
-    def encode(self, value):
+    def _dump(self, value):
         if value is None:
             return None
 
@@ -268,6 +269,7 @@ class DecimalField(Field):
         'max_whole_digits': 'Ensure that there are no more than {max_whole_digits} digits before the decimal point.',
         'max_string_length': 'String value too large.'
     }
+
     MAX_STRING_LENGTH = 1000  # Guard against malicious string inputs.
 
     def __init__(self, max_digits, decimal_places, max_value=None, min_value=None, **kwargs):
@@ -291,7 +293,7 @@ class DecimalField(Field):
             message = self.error_messages['min_value'].format(min_value=self.min_value)
             self.validators.append(MinValueValidator(self.min_value, message=message))
 
-    def decode(self, value):
+    def _load(self, value):
         """
         Validate that the input is a decimal number and return a Decimal
         instance.
@@ -312,7 +314,7 @@ class DecimalField(Field):
         except decimal.DecimalException:
             self._fail('invalid')
 
-    def encode(self, value):
+    def _dump(self, value):
         if not isinstance(value, decimal.Decimal):
             value = decimal.Decimal(str(value))
 
@@ -374,7 +376,7 @@ class DictField(Field):
         super(DictField, self).__init__(*args, **kwargs)
         self.child = child() if isinstance(child, type) else child
 
-    def decode(self, value):
+    def _load(self, value):
         """
         Dicts of native values <- Dicts of primitive datatypes.
         """
@@ -382,15 +384,15 @@ class DictField(Field):
             self._fail('not_a_dict', input_type=type(value).__name__)
 
         return {
-            str(key): self.child.safe_decode(val) for key, val in value.items()
+            str(key): self.child.load(val) for key, val in value.items()
         }
 
-    def encode(self, value):
+    def _dump(self, value):
         """
         List of object instances -> List of dicts of primitive datatypes.
         """
         return {
-            str(key): self.child.encode(val) for key, val in value.items()
+            str(key): self.child.dump(val) for key, val in value.items()
         }
 
 
@@ -417,7 +419,7 @@ class IntegerField(Field):
             message = self.error_messages['max_value'].format(max_value=self.max_value)
             self.validators.append(MaxValueValidator(self.max_value, message=message))
 
-    def decode(self, value):
+    def _load(self, value):
         if isinstance(value, str) and len(value) > self.MAX_STRING_LENGTH:
             self._fail('max_string_length')
 
@@ -426,7 +428,7 @@ class IntegerField(Field):
         except (ValueError, TypeError):
             self._fail('invalid')
 
-    def encode(self, value):
+    def _dump(self, value):
         if value is None:
             return None
         return int(value)
@@ -455,7 +457,7 @@ class FloatField(Field):
             message = self.error_messages['min_value'].format(min_value=self.min_value)
             self.validators.append(MinValueValidator(self.min_value, message=message))
 
-    def decode(self, value):
+    def _load(self, value):
         if isinstance(value, str) and len(value) > self.MAX_STRING_LENGTH:
             self._fail('max_string_length')
 
@@ -464,7 +466,7 @@ class FloatField(Field):
         except (TypeError, ValueError):
             self._fail('invalid')
 
-    def encode(self, value):
+    def _dump(self, value):
         if value is None:
             return None
         return float(value)
@@ -493,7 +495,7 @@ class ListField(Field):
 
         return value
 
-    def decode(self, value):
+    def _load(self, value):
         """
         List of dicts of native values <- List of dicts of primitive datatypes.
         """
@@ -503,13 +505,13 @@ class ListField(Field):
         if not self.allow_empty and len(value) == 0:
             self._fail('empty')
 
-        return [self.child.safe_decode(item) for item in value]
+        return [self.child.load(item) for item in value]
 
-    def encode(self, value):
+    def _dump(self, value):
         """
         List of object instances -> List of dicts of primitive datatypes.
         """
-        return [self.child.encode(item) for item in value]
+        return [self.child.dump(item) for item in value]
 
 
 class StringField(Field):
@@ -551,7 +553,7 @@ class StringField(Field):
 
         return missing
 
-    def decode(self, value):
+    def _load(self, value):
         value = str(value)
 
         if self.trim_whitespace:
@@ -564,7 +566,7 @@ class StringField(Field):
 
         return value
 
-    def encode(self, value):
+    def _dump(self, value):
         if value is None:
             return None
         return str(value)
@@ -575,7 +577,7 @@ class UUIDField(Field):
         'invalid': '"{value}" is not a valid UUID.',
     }
 
-    def decode(self, value):
+    def _load(self, value):
         if isinstance(value, uuid.UUID):
             return value
 
@@ -584,7 +586,7 @@ class UUIDField(Field):
         except (AttributeError, ValueError):
             self._fail('invalid', value=value)
 
-    def encode(self, value):
+    def _dump(self, value):
         return str(value)
 
 
@@ -635,115 +637,14 @@ class Serializer(Field, metaclass=SerializerMetaclass):
             ret[field_name] = field
         return ret
 
-    @cached_property
-    def load_fields(self):
-        lst = []
-
-        for field in self.fields.values():
-            if self.only and field.field_name not in self.only:
-                continue
-
-            if field.dump_only:
-                continue
-
-            lst.append(field)
-
-        return lst
-
-    @cached_property
-    def dump_fields(self):
-        lst = []
-
-        for field in self.fields.values():
-            if self.only and field.field_name not in self.only:
-                continue
-
-            if field.load_only:
-                continue
-
-            lst.append(field)
-
-        return lst
-
-    def decode(self, data):
-        if not isinstance(data, dict):
-            message = self.error_messages['invalid'].format(datatype=type(data).__name__)
-            raise ValidationError(message)
-
-        result = dict()
-        errors = OrderedDict()
-
-        for field in self.load_fields:
-            try:
-                value = field.get_value(data)
-                value = field.safe_decode(value)
-                if value is not missing:
-                    result[field.field_name] = value
-            except ValidationError as err:
-                errors[field.field_name] = err.message
-
-        if errors:
-            raise ValidationError(errors, has_fields=True)
-
-        return result
-
-    def encode(self, instance):
-        result = dict()
-
-        for field in self.dump_fields:
-            value = field.get_attribute(instance)
-
-            if value is not missing:
-                result[field.dump_to] = field.encode(value)
-
-        return result
-
-    def load(self, data):
-        # if self.many:
-        #     instance = [self.post_load(self.safe_deserialize(value), value) for value in data]
-        #     return self.post_loads(instance, data)
-
-        return self.post_load(self.safe_decode(data), data)
-
     def loads(self, data):
-        instance = [self.post_load(self.safe_decode(value), value) for value in data]
+        instance = [self.load(value) for value in data]
         return self.post_loads(instance, data)
 
-    def dump(self, instance):
-        # if self.many:
-        #     data = [self.post_dump(self.serialize(value), value) for value in instance]
-        #     data = self.post_dumps(data, instance)
-        # else:
-        data = self.post_dump(self.encode(instance), instance)
-
-        # if self.envelope:
-        #     data = {self.envelope: data}
-
-        return data
-
     def dumps(self, instances):
-        data = [self.post_dump(self.encode(instance), instance) for instance in instances]
+        data = [self.dump(instance) for instance in instances]
         data = self.post_dumps(data, instances)
         return data
-
-    def validate(self, data):
-        errors = {}
-
-        try:
-            super().validate(data)
-        except ValidationError as err:
-            errors = err.message
-
-        try:
-            self.post_validate(data)
-        except ValidationError as err:
-            if isinstance(err.message, dict):
-                errors.update(err.message)
-            else:
-                errors['Serializer'] = err.message
-
-        if errors:
-            raise ValidationError(errors, has_fields=True)
 
     def post_load(self, data, original_data):
         return data
@@ -759,3 +660,86 @@ class Serializer(Field, metaclass=SerializerMetaclass):
 
     def post_validate(self, data):
         pass
+
+    @cached_property
+    def _load_fields(self):
+        lst = []
+
+        for field in self.fields.values():
+            if self.only and field.field_name not in self.only:
+                continue
+
+            if field.dump_only:
+                continue
+
+            lst.append(field)
+
+        return lst
+
+    @cached_property
+    def _dump_fields(self):
+        lst = []
+
+        for field in self.fields.values():
+            if self.only and field.field_name not in self.only:
+                continue
+
+            if field.load_only:
+                continue
+
+            lst.append(field)
+
+        return lst
+
+    def _load(self, data):
+        if not isinstance(data, dict):
+            message = self.error_messages['invalid'].format(datatype=type(data).__name__)
+            raise ValidationError(message)
+
+        result = dict()
+        errors = OrderedDict()
+
+        for field in self._load_fields:
+            try:
+                value = field.get_value(data)
+                value = field.load(value)
+                if value is not missing:
+                    result[field.field_name] = value
+            except ValidationError as err:
+                errors[field.field_name] = err.message
+
+        if errors:
+            raise ValidationError(errors, has_fields=True)
+
+        return self.post_load(result, data)
+
+    def _dump(self, instance):
+        result = dict()
+
+        for field in self._dump_fields:
+            value = field.get_attribute(instance)
+            value = field.dump(value)
+
+            if value is not missing:
+                result[field.dump_to] = value
+
+        return self.post_dump(result, instance)
+
+    def _validate(self, data):
+        errors = {}
+
+        try:
+            super()._validate(data)
+        except ValidationError as err:
+            errors = err.message
+
+        try:
+            self.post_validate(data)
+        except ValidationError as err:
+            if isinstance(err.message, dict):
+                errors.update(err.message)
+            else:
+                errors['Serializer'] = err.message
+
+        if errors:
+            raise ValidationError(errors, has_fields=True)
