@@ -23,6 +23,11 @@ class APIException(Exception):
         return str(self.message)
 
 
+class BadRequest(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_message = 'Bad request.'
+
+
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
 
