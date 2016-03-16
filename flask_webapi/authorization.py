@@ -18,6 +18,18 @@ class PermissionBase(metaclass=ABCMeta):
         """
 
 
+class AllowAny(PermissionBase):
+    """
+    Allow any access.
+    This isn't strictly required, since you could use an empty
+    permission_classes list, but it's useful because it makes the intention
+    more explicit.
+    """
+
+    def has_permission(self):
+        return True
+
+
 class IsAuthenticated(PermissionBase):
     """
     Allows access only to authenticated users.

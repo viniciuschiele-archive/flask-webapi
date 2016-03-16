@@ -5,6 +5,7 @@ Provides the main class for Flask WebAPI.
 import inspect
 
 from werkzeug.utils import import_string
+from .authorization import AllowAny
 from .negotiation import DefaultContentNegotiator
 from .parsers import build_locations, JSONParser
 from .renderers import JSONRenderer
@@ -38,12 +39,12 @@ class WebAPI(object):
 
         self.app = None
         self.authenticators = []
-        self.permissions = []
-        self.content_negotiator = DefaultContentNegotiator
+        self.permissions = [AllowAny]
+        self.content_negotiator = DefaultContentNegotiator()
+        self.parsers = [JSONParser()]
+        self.renderers = [JSONRenderer()]
+        self.exception_handler = None
         self.parser_locations = build_locations()
-        self.parsers = [JSONParser]
-        self.renderers = [JSONRenderer]
-        self.error_handler = None
 
         if app:
             self.init_app(app)

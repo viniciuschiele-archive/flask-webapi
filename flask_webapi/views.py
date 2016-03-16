@@ -22,7 +22,7 @@ class ViewBase(metaclass=ABCMeta):
     def dispatch(self, *args, **kwargs):
         try:
             self._authenticate()
-            self._check_permissions()
+            self._check_permission()
             self._parse_arguments(kwargs)
 
             if self.context.has_self:
@@ -32,7 +32,7 @@ class ViewBase(metaclass=ABCMeta):
 
             return self._make_response(response, use_serializer=True)
         except Exception as e:
-            return self._handle_error(e)
+            return self._handle_exception(e)
 
     def _authenticate(self):
         """
@@ -41,7 +41,7 @@ class ViewBase(metaclass=ABCMeta):
         request.user = None
         request.auth = None
 
-        for auth in self.context.get_authenticators():
+        for auth in self.context.authenticators:
             auth_tuple = auth.authenticate()
 
             if auth_tuple:
@@ -49,13 +49,13 @@ class ViewBase(metaclass=ABCMeta):
                 request.auth = auth_tuple[1]
                 break
 
-    def _check_permissions(self):
+    def _check_permission(self):
         """
         Check if the request should be permitted.
         Raises an appropriate exception if the request is not permitted.
         """
 
-        for permission in self.context.get_permissions():
+        for permission in self.context.permissions:
             if not permission.has_permission():
                 if request.user:
                     raise PermissionDenied()
@@ -69,8 +69,8 @@ class ViewBase(metaclass=ABCMeta):
 
         :param force: True to select the first parser/renderer when the appropriated is not found.
         """
-        negotiator = self.context.get_content_negotiator()
-        renderers = self.context.get_renderers()
+        negotiator = self.context.content_negotiator
+        renderers = self.context.renderers
 
         renderer_pair = negotiator.select_renderer(renderers)
 
@@ -108,7 +108,7 @@ class ViewBase(metaclass=ABCMeta):
         Parses the incoming request and turn it into parameters.
         :param kwargs: The output parameters.
         """
-        params = self.context.get_params()
+        params = self.context.params
 
         if not params:
             return
@@ -149,7 +149,7 @@ class ViewBase(metaclass=ABCMeta):
         if data is None:
             return None
 
-        serializer = self.context.get_serializer()
+        serializer = self.context.serializer
 
         if self.context.serializer_args.get('many'):
             data = serializer.dumps(data)
@@ -198,42 +198,42 @@ class ViewBase(metaclass=ABCMeta):
 
         return data
 
-    def _handle_error(self, error):
+    def _handle_exception(self, e):
         """
         Handles any error that occurs, giving the opportunity for
         custom error handling by user code.
-        :param Exception error: The exception.
+        :param Exception e: The exception.
         :return: A response.
         """
         response = None
 
-        if self.context.error_handler is not None:
-            response = self.context.error_handler(error)
+        if self.context.exception_handler is not None:
+            response = self.context.exception_handler(e)
 
         if response is None:
-            response = self._error_handler(error)
+            response = self._exception_handler(e)
 
         return response
 
-    def _error_handler(self, exc):
+    def _exception_handler(self, e):
         """
         Handles a specific error, by returning an appropriate response.
-        :param Exception exc: The exception.
+        :param Exception e: The exception.
         :return: A response
         """
-        if isinstance(exc, ValidationError):
-            code = exc.status_code
-            message = exc.message
-        elif isinstance(exc, APIException):
-            code = exc.status_code
-            message = [exc.message] if not isinstance(exc.message, list) else exc.message
-        elif isinstance(exc, HTTPException):
-            code = exc.code
-            message = [exc.description]
+        if isinstance(e, ValidationError):
+            code = e.status_code
+            message = e.message
+        elif isinstance(e, APIException):
+            code = e.status_code
+            message = [e.message] if not isinstance(e.message, list) else e.message
+        elif isinstance(e, HTTPException):
+            code = e.code
+            message = [e.description]
         else:
             debug = self.context.app.config.get('DEBUG')
             code = APIException.status_code
-            message = [str(exc)] if debug else [APIException.default_message]
+            message = [str(e)] if debug else [APIException.default_message]
 
         errors = []
 
@@ -254,52 +254,10 @@ class ViewContext(object):
 
         self.authenticators = get_attr((func, view), 'authenticators', api.authenticators)
         self.permissions = get_attr((func, view), 'permissions', api.permissions)
-        self.content_negotiator = api.content_negotiator
+        self.content_negotiator = get_attr((func, view), 'content_negotiator', api.content_negotiator)
         self.parsers = get_attr((func, view), 'parsers', api.parsers)
         self.renderers = get_attr((func, view), 'renderers', api.renderers)
         self.params = getattr(func, 'params', None)
-        self.serializer = get_attr((func, view), 'serializer', None)
+        self.serializer = getattr(func, 'serializer', None)
         self.serializer_args = getattr(func, 'serializer_args', None)
-        self.error_handler = get_attr((func, view), 'error_handler', api.error_handler)
-
-    def get_authenticators(self):
-        """
-        Instantiates and returns the list of authenticators that this view can use.
-        """
-        return [authenticator() for authenticator in self.authenticators]
-
-    def get_permissions(self):
-        """
-        Instantiates and returns the list of permissions that this view requires.
-        """
-        return [permission() for permission in self.permissions]
-
-    def get_content_negotiator(self):
-        """
-        Instantiates and returns the content negotiator that this action can use.
-        """
-        return self.content_negotiator()
-
-    def get_parsers(self):
-        """
-        Instantiates and returns the list of parsers that this view can use.
-        """
-        return [parser() for parser in self.parsers]
-
-    def get_renderers(self):
-        """
-        Instantiates and returns the list of renderers that this view can use.
-        """
-        return [renderer() for renderer in self.renderers]
-
-    def get_params(self):
-        """
-        Instantiates and returns the serializer that this action can use.
-        """
-        return self.params
-
-    def get_serializer(self):
-        """
-        Instantiates and returns the serializer that this action can use.
-        """
-        return self.serializer()
+        self.exception_handler = api.exception_handler

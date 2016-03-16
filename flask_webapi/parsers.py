@@ -18,8 +18,8 @@ def build_locations():
 
 
 def parse_body(context):
-    negotiator = context.get_content_negotiator()
-    parsers = context.get_parsers()
+    negotiator = context.content_negotiator
+    parsers = context.parsers
 
     parser_pair = negotiator.select_parser(parsers)
 

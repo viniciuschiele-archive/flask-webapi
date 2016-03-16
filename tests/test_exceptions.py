@@ -1,6 +1,6 @@
 from flask import Flask, json, Response
 from flask_webapi import WebAPI
-from flask_webapi.decorators import exception_handler, route
+from flask_webapi.decorators import route
 from flask_webapi.exceptions import APIException, UnsupportedMediaType, ValidationError
 from unittest import TestCase
 from werkzeug.exceptions import BadRequest
@@ -100,10 +100,10 @@ class TestView(TestCase):
             return Response(error.message[0], status=400)
 
         @route('/view')
-        @exception_handler(custom_exception_handler)
         def view():
             raise ValidationError('user error.')
 
+        self.api.exception_handler = custom_exception_handler
         self.api.add_view(view)
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 400)
