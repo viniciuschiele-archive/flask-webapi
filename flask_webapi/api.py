@@ -39,7 +39,7 @@ class WebAPI(object):
 
         self.app = None
         self.authenticators = []
-        self.permissions = [AllowAny]
+        self.permissions = [AllowAny()]
         self.content_negotiator = DefaultContentNegotiator()
         self.parsers = [JSONParser()]
         self.renderers = [JSONRenderer()]
