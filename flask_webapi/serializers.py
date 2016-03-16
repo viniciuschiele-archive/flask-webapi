@@ -6,7 +6,7 @@ from collections import OrderedDict
 from .exceptions import ValidationError
 from .utils import dateparse, html, missing, timezone
 from .utils.caching import cached_property
-from .validators import MaxValueValidator, MinValueValidator, MaxLengthValidator, MinLengthValidator
+from .validators import LengthValidator, RangeValidator
 
 
 MISSING_ERROR_MESSAGE = (
@@ -286,12 +286,8 @@ class DecimalField(Field):
         else:
             self.max_whole_digits = None
 
-        if self.max_value is not None:
-            message = self.error_messages['max_value'].format(max_value=self.max_value)
-            self.validators.append(MaxValueValidator(self.max_value, message=message))
-        if self.min_value is not None:
-            message = self.error_messages['min_value'].format(min_value=self.min_value)
-            self.validators.append(MinValueValidator(self.min_value, message=message))
+        if self.min_value is not None or self.max_value is not None:
+            self.validators.append(RangeValidator(min_value, max_value, self.error_messages))
 
     def _load(self, value):
         """
@@ -385,7 +381,7 @@ class DictField(Field):
 
         return {
             str(key): self.child.load(val) for key, val in value.items()
-        }
+            }
 
     def _dump(self, value):
         """
@@ -393,7 +389,7 @@ class DictField(Field):
         """
         return {
             str(key): self.child.dump(val) for key, val in value.items()
-        }
+            }
 
 
 class IntegerField(Field):
@@ -411,13 +407,8 @@ class IntegerField(Field):
         self.min_value = min_value
         self.max_value = max_value
 
-        if self.min_value is not None:
-            message = self.error_messages['min_value'].format(min_value=self.min_value)
-            self.validators.append(MinValueValidator(self.min_value, message=message))
-
-        if self.max_value is not None:
-            message = self.error_messages['max_value'].format(max_value=self.max_value)
-            self.validators.append(MaxValueValidator(self.max_value, message=message))
+        if self.min_value is not None or self.max_value is not None:
+            self.validators.append(RangeValidator(min_value, max_value, self.error_messages))
 
     def _load(self, value):
         if isinstance(value, str) and len(value) > self.MAX_STRING_LENGTH:
@@ -449,13 +440,8 @@ class FloatField(Field):
         self.min_value = min_value
         self.max_value = max_value
 
-        if self.max_value is not None:
-            message = self.error_messages['max_value'].format(max_value=self.max_value)
-            self.validators.append(MaxValueValidator(self.max_value, message=message))
-
-        if self.min_value is not None:
-            message = self.error_messages['min_value'].format(min_value=self.min_value)
-            self.validators.append(MinValueValidator(self.min_value, message=message))
+        if self.min_value is not None or self.max_value is not None:
+            self.validators.append(RangeValidator(min_value, max_value, self.error_messages))
 
     def _load(self, value):
         if isinstance(value, str) and len(value) > self.MAX_STRING_LENGTH:
@@ -528,13 +514,9 @@ class StringField(Field):
         self.min_length = min_length
         self.max_length = max_length
 
-        if self.min_length is not None:
-            message = self.error_messages['min_length'].format(min_length=self.min_length)
-            self.validators.append(MinLengthValidator(self.min_length, message=message))
-
-        if self.max_length is not None:
-            message = self.error_messages['max_length'].format(max_length=self.max_length)
-            self.validators.append(MaxLengthValidator(self.max_length, message=message))
+        if self.min_length is not None or self.max_length is not None:
+            self.validators.append(
+                LengthValidator(self.min_length, self.max_length, error_messages=self.error_messages))
 
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
