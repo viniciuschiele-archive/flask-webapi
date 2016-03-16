@@ -7,7 +7,7 @@ from . import status
 
 class APIException(Exception):
     """
-    Base class for REST framework exceptions.
+    Base class for Flask WebAPI exceptions.
     Subclasses should provide `.status_code` and `.default_message` properties.
     """
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR

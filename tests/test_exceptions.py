@@ -96,8 +96,8 @@ class TestView(TestCase):
                          dict(errors=[dict(message='A server error occurred.')]))
 
     def test_exception_handler(self):
-        def custom_exception_handler(error):
-            return Response(error.message[0], status=400)
+        def custom_exception_handler(view, e):
+            return Response(e.message[0], status=400)
 
         @route('/view')
         def view():
@@ -105,6 +105,7 @@ class TestView(TestCase):
 
         self.api.exception_handler = custom_exception_handler
         self.api.add_view(view)
+
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 400)
         self.assertEqual('user error.', response.get_data(as_text=True))

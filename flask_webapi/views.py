@@ -5,22 +5,58 @@ Provides a ViewBase class that is the base of all views in Flask WebAPI.
 import inspect
 
 from abc import ABCMeta
-from flask import request
+from flask import request, current_app
 from werkzeug.exceptions import HTTPException
 from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
 from .serializers import Serializer
-from .utils import get_attr, missing, unpack
+from .utils import missing, unpack
 from .utils.formatting import prepare_error_message_for_response
+
+
+def exception_handler(view, e):
+    """
+    Handles a specific error, by returning an appropriate response.
+    :param ViewBase view: The view which raised the exception.
+    :param Exception e: The exception.
+    :return: A response
+    """
+    if isinstance(e, ValidationError):
+        code = e.status_code
+        message = e.message
+    elif isinstance(e, APIException):
+        code = e.status_code
+        message = [e.message] if not isinstance(e.message, list) else e.message
+    elif isinstance(e, HTTPException):
+        code = e.code
+        message = [e.description]
+    else:
+        debug = current_app.config.get('DEBUG')
+        code = APIException.status_code
+        message = [str(e)] if debug else [APIException.default_message]
+
+    errors = []
+
+    prepare_error_message_for_response(errors, message)
+
+    return {'errors': errors}, code
 
 
 class ViewBase(metaclass=ABCMeta):
     """
     A base class from which all view classes should inherit.
     """
-    context = None
+    _context = None
 
-    def dispatch(self, *args, **kwargs):
+    @property
+    def context(self):
+        if not self._context:
+            raise Exception()
+        return self._context
+
+    def dispatch(self, context, *args, **kwargs):
         try:
+            self._context = context
+
             self._authenticate()
             self._check_permission()
             self._parse_arguments(kwargs)
@@ -135,7 +171,7 @@ class ViewBase(metaclass=ABCMeta):
         if errors:
             raise ValidationError(errors, has_fields=True)
 
-    def _serialize_for_response(self, data):
+    def _serialize_data(self, data):
         """
         Serializes the given data into a Python dict.
 
@@ -181,7 +217,7 @@ class ViewBase(metaclass=ABCMeta):
 
         if not isinstance(data, response_class):
             if use_serializer:
-                data = self._serialize_for_response(data)
+                data = self._serialize_data(data)
 
             if data is None:
                 data = response_class(status=204)
@@ -205,41 +241,9 @@ class ViewBase(metaclass=ABCMeta):
         :param Exception e: The exception.
         :return: A response.
         """
-        response = None
+        response = self.context.exception_handler(self, e)
 
-        if self.context.exception_handler is not None:
-            response = self.context.exception_handler(e)
-
-        if response is None:
-            response = self._exception_handler(e)
-
-        return response
-
-    def _exception_handler(self, e):
-        """
-        Handles a specific error, by returning an appropriate response.
-        :param Exception e: The exception.
-        :return: A response
-        """
-        if isinstance(e, ValidationError):
-            code = e.status_code
-            message = e.message
-        elif isinstance(e, APIException):
-            code = e.status_code
-            message = [e.message] if not isinstance(e.message, list) else e.message
-        elif isinstance(e, HTTPException):
-            code = e.code
-            message = [e.description]
-        else:
-            debug = self.context.app.config.get('DEBUG')
-            code = APIException.status_code
-            message = [str(e)] if debug else [APIException.default_message]
-
-        errors = []
-
-        prepare_error_message_for_response(errors, message)
-
-        return self._make_response((dict(errors=errors), code), force_renderer=True)
+        return self._make_response(response, force_renderer=True)
 
 
 class ViewContext(object):
@@ -252,12 +256,27 @@ class ViewContext(object):
         args = inspect.getargspec(func).args
         self.has_self = len(args) > 0 and args[0] == 'self'
 
-        self.authenticators = get_attr((func, view), 'authenticators', api.authenticators)
-        self.permissions = get_attr((func, view), 'permissions', api.permissions)
-        self.content_negotiator = get_attr((func, view), 'content_negotiator', api.content_negotiator)
-        self.parsers = get_attr((func, view), 'parsers', api.parsers)
-        self.renderers = get_attr((func, view), 'renderers', api.renderers)
+        self.authenticators = self.__get_value('authenticators')
+        self.permissions = self.__get_value('permissions')
+        self.content_negotiator = self.__get_value('content_negotiator')
+        self.parsers = self.__get_value('parsers')
+        self.renderers = self.__get_value('renderers')
         self.params = getattr(func, 'params', None)
         self.serializer = getattr(func, 'serializer', None)
         self.serializer_args = getattr(func, 'serializer_args', None)
         self.exception_handler = api.exception_handler
+
+    def __get_value(self, attribute_name):
+        value = getattr(self.api, attribute_name, None)
+        override_name = attribute_name + '_override'
+
+        for obj in (self.view, self.func):
+            obj_value = getattr(obj, attribute_name, missing)
+            if obj_value is not missing:
+                override = getattr(obj, override_name, True)
+                if override:
+                    value = obj_value
+                else:
+                    value.extend(obj_value)
+
+        return value

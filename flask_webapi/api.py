@@ -10,7 +10,7 @@ from .negotiation import DefaultContentNegotiator
 from .parsers import build_locations, JSONParser
 from .renderers import JSONRenderer
 from .utils.routing import Route
-from .views import ViewBase, ViewContext
+from .views import exception_handler, ViewBase, ViewContext
 
 
 class WebAPI(object):
@@ -43,7 +43,7 @@ class WebAPI(object):
         self.content_negotiator = DefaultContentNegotiator()
         self.parsers = [JSONParser()]
         self.renderers = [JSONRenderer()]
-        self.exception_handler = None
+        self.exception_handler = exception_handler
         self.parser_locations = build_locations()
 
         if app:
@@ -60,7 +60,7 @@ class WebAPI(object):
         elif inspect.isfunction(view):
             if not hasattr(view, 'routes'):
                 raise TypeError('View has not routes.')
-            view = type('WrappedViewBase', (ViewBase,), {view.__name__: view})
+            view = type('WrappedView', (ViewBase,), {view.__name__: view})
         else:
             raise TypeError('Invalid view type.')
 
@@ -149,8 +149,7 @@ class WebAPI(object):
         """
         def view(*args, **kwargs):
             instance = context.view()
-            instance.context = context
-            return instance.dispatch(*args, **kwargs)
+            return instance.dispatch(context, *args, **kwargs)
         return view
 
     def _register_routes(self, routes):
