@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_webapi.exceptions import NotAcceptable
 from flask_webapi.negotiation import DefaultContentNegotiator
 from flask_webapi.parsers import JSONParser
 from flask_webapi.renderers import JSONRenderer
@@ -43,9 +44,9 @@ class TestSelectRenderer(TestCase):
         self.negotiation = DefaultContentNegotiator()
 
     def test_empty_renderers(self):
-        renderers = []
-        renderer_pair = self.negotiation.select_renderer(renderers)
-        self.assertIsNone(renderer_pair)
+        with self.app.test_request_context():
+            with self.assertRaises(NotAcceptable):
+                self.negotiation.select_renderer([])
 
     def test_empty_accept_header(self):
         with self.app.test_request_context():
@@ -63,9 +64,8 @@ class TestSelectRenderer(TestCase):
 
     def test_invalid_accept_header(self):
         with self.app.test_request_context(headers=dict(accept='application/data')):
-            renderers = [JSONParser()]
-            renderer_pair = self.negotiation.select_renderer(renderers)
-            self.assertIsNone(renderer_pair)
+            with self.assertRaises(NotAcceptable):
+                self.negotiation.select_renderer([JSONParser()])
 
     def test_multiple_accept_header(self):
         with self.app.test_request_context(headers=dict(accept='application/xml,application/json;')):
@@ -74,7 +74,7 @@ class TestSelectRenderer(TestCase):
             self.assertEqual(renderer, renderers[0])
             self.assertEqual(str(mimetype), 'application/json')
 
-    def test_stars_in_accept_header(self):
+    def test_any_in_accept_header(self):
         with self.app.test_request_context(headers=dict(accept='*/*')):
             renderers = [JSONRenderer()]
             renderer, mimetype = self.negotiation.select_renderer(renderers)

@@ -4,6 +4,8 @@ Content negotiation selects a appropriated parser and renderer for a HTTP reques
 
 from abc import ABCMeta, abstractmethod
 from flask import request
+from werkzeug.datastructures import MIMEAccept
+from .exceptions import NotAcceptable
 from .utils.mimetypes import MimeType
 
 
@@ -35,6 +37,8 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
     renderer by request accept.
     """
 
+    any_mimetype = MIMEAccept([('*/*', 1)])
+
     def select_parser(self, parsers):
         """
         Selects the appropriated parser which matches to the request's content type.
@@ -60,19 +64,12 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
         """
         Selects the appropriated parser which matches to the request's accept.
         :param renderers: The lists of parsers.
-        :return: The parser selected or none.
+        :return: The parser selected or raise an exception.
         """
-
-        if not len(renderers):
-            return None
-
-        if not len(request.accept_mimetypes):
-            return renderers[0], renderers[0].mimetype
-
-        for mimetype, quality in request.accept_mimetypes:
+        for mimetype, quality in request.accept_mimetypes or self.any_mimetype:
             accept_mimetype = MimeType.parse(mimetype)
             for renderer in renderers:
                 if accept_mimetype.match(renderer.mimetype):
                     return renderer, renderer.mimetype.replace(params=accept_mimetype.params)
 
-        return None
+        raise NotAcceptable()

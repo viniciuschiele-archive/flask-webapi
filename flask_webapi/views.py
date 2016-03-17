@@ -108,15 +108,12 @@ class ViewBase(metaclass=ABCMeta):
         negotiator = self.context.content_negotiator
         renderers = self.context.renderers
 
-        renderer_pair = negotiator.select_renderer(renderers)
-
-        if renderer_pair is None:
-            if not force:
-                raise NotAcceptable()
-
-            renderer_pair = renderers[0], renderers[0].mimetype
-
-        return renderer_pair
+        try:
+            return negotiator.select_renderer(renderers)
+        except NotAcceptable:
+            if force:
+                return renderers[0], renderers[0].mimetype
+            raise
 
     def _parse_data(self, location):
         """
