@@ -135,9 +135,6 @@ class TestQueryString(TestCase):
 
         response = self.client.post('/view', data='invalid data', content_type='application/json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(json.loads(response.data),
-                         {'errors': [{'message': 'Malformed request.'}]})
 
     def test_param_with_invalid_location(self):
         @route('/view')

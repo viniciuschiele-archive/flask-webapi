@@ -14,7 +14,7 @@ class PermissionBase(metaclass=ABCMeta):
     @abstractmethod
     def has_permission(self):
         """
-        Return `True` if permission is granted, `False` otherwise.
+        Returns `True` if permission is granted, `False` otherwise.
         """
 
 

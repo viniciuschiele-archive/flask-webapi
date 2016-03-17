@@ -6,7 +6,8 @@ import inspect
 
 from werkzeug.utils import import_string
 from .negotiation import DefaultContentNegotiator
-from .parsers import build_locations, JSONParser
+from .parameters import get_argument_providers
+from .parsers import JSONParser, FormDataParser
 from .permissions import AllowAny
 from .renderers import JSONRenderer
 from .utils.routing import Route
@@ -41,10 +42,10 @@ class WebAPI(object):
         self.authenticators = []
         self.permissions = [AllowAny()]
         self.content_negotiator = DefaultContentNegotiator()
-        self.parsers = [JSONParser()]
+        self.parsers = [JSONParser(), FormDataParser()]
         self.renderers = [JSONRenderer()]
         self.exception_handler = exception_handler
-        self.parser_locations = build_locations()
+        self.argument_providers = get_argument_providers()
 
         if app:
             self.init_app(app)

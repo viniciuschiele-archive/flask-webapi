@@ -115,26 +115,21 @@ class ViewBase(metaclass=ABCMeta):
                 return renderers[0], renderers[0].mimetype
             raise
 
-    def _parse_data(self, location):
+    def _get_arguments(self, location):
         """
         Parses the data from the incoming request for a specified field.
         :param str location: The location to retrieve the data.
         :return: The data parsed from the incoming request.
         """
+
         if location is None:
-            if request.method == 'GET':
-                location = 'query'
-            elif request.content_type == 'application/x-www-form-urlencoded':
-                location = 'form'
-            else:
-                location = 'body'
+            location = 'query' if request.method == 'GET' else 'body'
 
-        func = self.context.api.parser_locations.get(location)
+        for provider in self.context.argument_providers:
+            if provider.location == location:
+                return provider.get_data(self.context)
 
-        if not func:
-            raise Exception('Parse location %s not found.' % location)
-
-        return func(self.context)
+        raise Exception('Parse location %s not found.' % location)
 
     def _parse_arguments(self, kwargs):
         """
@@ -146,10 +141,14 @@ class ViewBase(metaclass=ABCMeta):
         if not params:
             return
 
+        # to avoid problems related to the input stream
+        # we call get_data to cache the input data.
+        request.get_data()
+
         errors = {}
 
         for field_name, (field, location) in params.items():
-            data = self._parse_data(location)
+            data = self._get_arguments(location)
 
             try:
                 if isinstance(field, Serializer):
@@ -262,6 +261,7 @@ class ViewContext(object):
         self.serializer = getattr(func, 'serializer', None)
         self.serializer_args = getattr(func, 'serializer_args', None)
         self.exception_handler = api.exception_handler
+        self.argument_providers = api.argument_providers
 
     def __get_value(self, attribute_name):
         value = getattr(self.api, attribute_name, None)
