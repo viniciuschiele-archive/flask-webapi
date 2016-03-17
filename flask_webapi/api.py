@@ -5,9 +5,9 @@ Provides the main class for Flask WebAPI.
 import inspect
 
 from werkzeug.utils import import_string
-from .authorization import AllowAny
 from .negotiation import DefaultContentNegotiator
 from .parsers import build_locations, JSONParser
+from .permissions import AllowAny
 from .renderers import JSONRenderer
 from .utils.routing import Route
 from .views import exception_handler, ViewBase, ViewContext

@@ -18,7 +18,7 @@ class ContentNegotiatorBase(metaclass=ABCMeta):
         """
         Selects the appropriated parser for the given request.
         :param parsers: The lists of parsers.
-        :return: The parser selected or none.
+        :return: The parser selected or raise an exception.
         """
 
     @abstractmethod
@@ -26,7 +26,7 @@ class ContentNegotiatorBase(metaclass=ABCMeta):
         """
         Selects the appropriated renderer for the given request.
         :param renderers: The lists of renderers.
-        :return: The renderer selected or none.
+        :return: The renderer selected or raise an exception.
         """
 
 
@@ -40,7 +40,7 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
         """
         Selects the appropriated parser which matches to the request's content type.
         :param parsers: The lists of parsers.
-        :return: The parser selected or none.
+        :return: The parser selected or raise an exception.
         """
         mimetype = MimeType.parse(request.content_type)
 

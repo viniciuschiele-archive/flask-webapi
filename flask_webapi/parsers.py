@@ -4,7 +4,7 @@ Parsers used to parse a byte array into Python object.
 
 from abc import ABCMeta, abstractmethod
 from flask import json, request
-from .exceptions import ParseError, UnsupportedMediaType
+from .exceptions import ParseError
 from .utils.mimetypes import MimeType
 
 
@@ -21,12 +21,7 @@ def parse_body(context):
     negotiator = context.content_negotiator
     parsers = context.parsers
 
-    parser_pair = negotiator.select_parser(parsers)
-
-    if not parser_pair:
-        raise UnsupportedMediaType(request.content_type)
-
-    parser, mimetype = parser_pair
+    parser, mimetype = negotiator.select_parser(parsers)
 
     try:
         return parser.parse(request.data, mimetype)
