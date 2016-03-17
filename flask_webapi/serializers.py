@@ -5,7 +5,7 @@ import uuid
 from collections import OrderedDict
 from .exceptions import ValidationError
 from .utils import dateparse, html, missing, timezone
-from .utils.caching import cached_property
+from werkzeug.utils import cached_property
 from .validators import LengthValidator, RangeValidator
 
 
