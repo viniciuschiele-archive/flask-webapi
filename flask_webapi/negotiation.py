@@ -4,8 +4,7 @@ Content negotiation selects a appropriated parser and renderer for a HTTP reques
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from werkzeug.datastructures import MIMEAccept
-from .exceptions import NotAcceptable
+from .exceptions import NotAcceptable, UnsupportedMediaType
 from .utils.mimetypes import MimeType
 
 
@@ -37,28 +36,19 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
     renderer by request accept.
     """
 
-    any_mimetype = MIMEAccept([('*/*', 1)])
-
     def select_parser(self, parsers):
         """
         Selects the appropriated parser which matches to the request's content type.
         :param parsers: The lists of parsers.
         :return: The parser selected or none.
         """
-
-        if not len(parsers):
-            return None
-
-        if not request.content_type:
-            return parsers[0], parsers[0].mimetype
-
         mimetype = MimeType.parse(request.content_type)
 
         for parser in parsers:
             if mimetype.match(parser.mimetype):
                 return parser, mimetype
 
-        return None
+        raise UnsupportedMediaType(request.content_type)
 
     def select_renderer(self, renderers):
         """
@@ -66,10 +56,17 @@ class DefaultContentNegotiator(ContentNegotiatorBase):
         :param renderers: The lists of parsers.
         :return: The parser selected or raise an exception.
         """
-        for mimetype, quality in request.accept_mimetypes or self.any_mimetype:
+        for mimetype in self._get_accept_list():
             accept_mimetype = MimeType.parse(mimetype)
             for renderer in renderers:
                 if accept_mimetype.match(renderer.mimetype):
                     return renderer, renderer.mimetype.replace(params=accept_mimetype.params)
 
         raise NotAcceptable()
+
+    def _get_accept_list(self):
+        """
+        Given the incoming request, return a list of accepted media type strings.
+        """
+        header = request.environ.get('HTTP_ACCEPT') or '*/*'
+        return [token.strip() for token in header.split(',')]

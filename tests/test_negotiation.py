@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_webapi.exceptions import NotAcceptable
+from flask_webapi.exceptions import NotAcceptable, UnsupportedMediaType
 from flask_webapi.negotiation import DefaultContentNegotiator
 from flask_webapi.parsers import JSONParser
 from flask_webapi.renderers import JSONRenderer
@@ -13,16 +13,14 @@ class TestSelectParser(TestCase):
         self.negotiation = DefaultContentNegotiator()
 
     def test_empty_parsers(self):
-        parsers = []
-        parser_pair = self.negotiation.select_parser(parsers)
-        self.assertIsNone(parser_pair)
+        with self.app.test_request_context():
+            with self.assertRaises(UnsupportedMediaType):
+                self.negotiation.select_parser([])
 
     def test_empty_content_type(self):
         with self.app.test_request_context():
-            parsers = [JSONParser(), JSONParser()]
-            parser, mimetype = self.negotiation.select_parser(parsers)
-            self.assertEqual(parser, parsers[0])
-            self.assertEqual(mimetype, parsers[0].mimetype)
+            with self.assertRaises(UnsupportedMediaType):
+                self.negotiation.select_parser([JSONParser()])
 
     def test_valid_content_type(self):
         with self.app.test_request_context(content_type='application/json;charset=utf-8'):
@@ -33,9 +31,8 @@ class TestSelectParser(TestCase):
 
     def test_invalid_content_type(self):
         with self.app.test_request_context(content_type='application/data'):
-            parsers = [JSONParser()]
-            parser_pair = self.negotiation.select_parser(parsers)
-            self.assertIsNone(parser_pair)
+            with self.assertRaises(UnsupportedMediaType):
+                self.negotiation.select_parser([JSONParser()])
 
 
 class TestSelectRenderer(TestCase):
@@ -56,26 +53,26 @@ class TestSelectRenderer(TestCase):
             self.assertEqual(mimetype, renderers[0].mimetype)
 
     def test_valid_accept_header(self):
-        with self.app.test_request_context(headers=dict(accept='application/json; indent=6')):
+        with self.app.test_request_context(headers={'accept': 'application/json; indent=6'}):
             renderers = [JSONRenderer()]
             renderer, mimetype = self.negotiation.select_renderer(renderers)
             self.assertEqual(renderer, renderers[0])
             self.assertEqual(mimetype, MimeType.parse(request.headers['accept']))
 
     def test_invalid_accept_header(self):
-        with self.app.test_request_context(headers=dict(accept='application/data')):
+        with self.app.test_request_context(headers={'accept': 'application/data'}):
             with self.assertRaises(NotAcceptable):
                 self.negotiation.select_renderer([JSONParser()])
 
     def test_multiple_accept_header(self):
-        with self.app.test_request_context(headers=dict(accept='application/xml,application/json;')):
+        with self.app.test_request_context(headers={'accept': 'application/xml,application/json;'}):
             renderers = [JSONRenderer()]
             renderer, mimetype = self.negotiation.select_renderer(renderers)
             self.assertEqual(renderer, renderers[0])
             self.assertEqual(str(mimetype), 'application/json')
 
     def test_any_in_accept_header(self):
-        with self.app.test_request_context(headers=dict(accept='*/*')):
+        with self.app.test_request_context(headers={'accept': '*/*'}):
             renderers = [JSONRenderer()]
             renderer, mimetype = self.negotiation.select_renderer(renderers)
             self.assertEqual(renderer, renderers[0])
