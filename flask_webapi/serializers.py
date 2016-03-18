@@ -131,9 +131,9 @@ class Field(object):
 
     def _fail(self, key, **kwargs):
         try:
-            msg = self.error_messages[key]
-            message_string = msg.format(**kwargs)
-            raise ValidationError(message_string)
+            message = self.error_messages[key]
+            message = message.format(**kwargs)
+            raise ValidationError(message)
         except KeyError:
             class_name = self.__class__.__name__
             msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
@@ -721,7 +721,7 @@ class Serializer(Field, metaclass=SerializerMetaclass):
             if isinstance(err.message, dict):
                 errors.update(err.message)
             else:
-                errors['Serializer'] = err.message
+                errors['_Serializer'] = err.message
 
         if errors:
             raise ValidationError(errors, has_fields=True)

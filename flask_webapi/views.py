@@ -98,23 +98,6 @@ class ViewBase(metaclass=ABCMeta):
                 else:
                     raise NotAuthenticated()
 
-    def _select_renderer(self, force=False):
-        """
-        Determine which parser and renderer to be used to parse the incoming request
-        and to render the outgoing response.
-
-        :param force: True to select the first parser/renderer when the appropriated is not found.
-        """
-        negotiator = self.context.content_negotiator
-        renderers = self.context.renderers
-
-        try:
-            return negotiator.select_renderer(renderers)
-        except NotAcceptable:
-            if force:
-                return renderers[0], renderers[0].mimetype
-            raise
-
     def _get_arguments(self, location):
         """
         Parses the data from the incoming request for a specified field.
@@ -125,11 +108,12 @@ class ViewBase(metaclass=ABCMeta):
         if location is None:
             location = 'query' if request.method == 'GET' else 'body'
 
-        for provider in self.context.argument_providers:
-            if provider.location == location:
-                return provider.get_data(self.context)
+        provider = self.context.argument_providers.get(location)
 
-        raise Exception('Parse location %s not found.' % location)
+        if provider:
+            return provider.get_data(self.context)
+
+        raise Exception('Argument provider for location "%s" not found.' % location)
 
     def _parse_arguments(self, kwargs):
         """
@@ -166,6 +150,23 @@ class ViewBase(metaclass=ABCMeta):
 
         if errors:
             raise ValidationError(errors, has_fields=True)
+
+    def _select_renderer(self, force=False):
+        """
+        Determine which parser and renderer to be used to parse the incoming request
+        and to render the outgoing response.
+
+        :param force: True to select the first parser/renderer when the appropriated is not found.
+        """
+        negotiator = self.context.content_negotiator
+        renderers = self.context.renderers
+
+        try:
+            return negotiator.select_renderer(renderers)
+        except NotAcceptable:
+            if force:
+                return renderers[0], renderers[0].mimetype
+            raise
 
     def _serialize_data(self, data):
         """
