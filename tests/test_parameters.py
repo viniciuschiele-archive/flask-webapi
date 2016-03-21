@@ -51,6 +51,18 @@ class TestQueryString(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(response.data), dict(name='myname', age=20))
 
+    def test_param_with_cookie_location(self):
+        @route('/view')
+        @param('param_1', serializers.StringField, location='cookie')
+        def view(param_1):
+            return {'param_1': param_1}
+        self.api.add_view(view)
+
+        self.client.set_cookie('localhost', 'param_1', '123')
+        response = self.client.get('/view')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.data), dict(param_1='123'))
+
     def test_param_with_header_location(self):
         @route('/view')
         @param('param_1', serializers.StringField, location='header')

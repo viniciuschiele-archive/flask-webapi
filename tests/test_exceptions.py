@@ -16,6 +16,12 @@ class TestAPIException(TestCase):
     def test_str(self):
         self.assertEqual(str(APIException('error message.')), 'error message.')
 
+    def test_eq(self):
+        self.assertEqual(APIException('error message.'), APIException('error message.'))
+
+    def test_ne(self):
+        self.assertNotEqual(APIException('error message.'), APIException('error message 2.'))
+
 
 class TestValidationError(TestCase):
     def test_string_message(self):

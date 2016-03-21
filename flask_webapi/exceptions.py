@@ -23,8 +23,14 @@ class APIException(Exception):
 
         self.kwargs = kwargs
 
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __str__(self):
-        return self.message
+        return str(self.message)
 
     def denormalize(self, message_key_name='message', field_key_name='field'):
         """
@@ -111,18 +117,6 @@ class ValidationError(APIException):
         else:
             self.message = str(message)
             self.kwargs = kwargs
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __str__(self):
-        return repr(self.message)
-
-    def __repr__(self):
-        return 'ValidationError(%s)' % self
 
 
 class ParseError(APIException):

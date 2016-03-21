@@ -3,9 +3,9 @@ import decimal
 import uuid
 
 from collections import OrderedDict
+from werkzeug.utils import cached_property
 from .exceptions import ValidationError
 from .utils import dateparse, formatting, html, missing, timezone
-from werkzeug.utils import cached_property
 from .validators import LengthValidator, RangeValidator
 
 
@@ -82,16 +82,12 @@ class Field(object):
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
 
-        if not html.is_html_input(dictionary):
-            return value
-
-        if value != '':
-            return value
-
-        if self.allow_none:
-            return None
-
-        return missing
+        if html.is_html_input(dictionary):
+            if value == '' and self.allow_none:
+                return None
+            elif value == '' and not self.required:
+                return missing
+        return value
 
     def get_default(self):
         if callable(self.default):
@@ -275,7 +271,7 @@ class DecimalField(Field):
 
     MAX_STRING_LENGTH = 1000  # Guard against malicious string inputs.
 
-    def __init__(self, max_digits, decimal_places, max_value=None, min_value=None, **kwargs):
+    def __init__(self, max_digits=None, decimal_places=None, max_value=None, min_value=None, **kwargs):
         super(DecimalField, self).__init__(**kwargs)
 
         self.max_digits = max_digits
@@ -524,19 +520,12 @@ class StringField(Field):
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
 
-        if not html.is_html_input(dictionary):
-            return value
-
-        if value != '':
-            return value
-
-        if self.allow_blank:
-            return ''
-
-        if self.allow_none:
-            return None
-
-        return missing
+        if html.is_html_input(dictionary):
+            if value == '' and self.allow_none:
+                return '' if self.allow_blank else None
+            elif value == '' and not self.required:
+                return '' if self.allow_blank else missing
+        return value
 
     def _load(self, value):
         value = str(value)

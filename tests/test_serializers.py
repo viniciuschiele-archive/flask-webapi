@@ -195,19 +195,19 @@ class TestPartial(TestCase):
         self.assertEqual(s.load(data), data)
 
 
-class TestInvalidErrorKey(TestCase):
-    class FailField(serializers.Field):
-        def _load(self, value):
-            self._fail('incorrect')
-
+class TestErrorMessages(TestCase):
     def test_invalid_error_key(self):
         """
         If a field raises a validation error, but does not have a corresponding
         error message, then raise an appropriate assertion error.
         """
 
+        class FailField(serializers.Field):
+            def _load(self, value):
+                self._fail('incorrect')
+
         class Serializer(serializers.Serializer):
-            field = self.FailField()
+            field = FailField()
 
         with self.assertRaises(AssertionError) as exc_info:
             Serializer().load({'field': 'value'})
@@ -216,9 +216,17 @@ class TestInvalidErrorKey(TestCase):
                          'ValidationError raised by `FailField`, but error key '
                          '`incorrect` does not exist in the `error_messages` dictionary.')
 
+    def test_dict_error_message(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField(error_messages={'invalid': {'message': 'error message', 'code': 123}})
+
+        with self.assertRaises(ValidationError) as exc_info:
+            Serializer().load({'field': 'value'})
+
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('error message', code=123)]})
+
 
 class TestValidators(TestCase):
-
     def test_validator_without_return(self):
         def validate(value):
             pass
@@ -250,7 +258,7 @@ class TestValidators(TestCase):
 
     def test_validator_throwing_exception(self):
         class Serializer(serializers.Serializer):
-            field = serializers.IntegerField(validators=[lambda x: 1/0])
+            field = serializers.IntegerField(validators=[lambda x: 1 / 0])
 
         data = {'field': 123}
 
@@ -297,6 +305,23 @@ class TestValidators(TestCase):
             Serializer(validators=[validate]).load(data)
         self.assertEqual(exc_info.exception.message, {'_serializer': [ValidationError('Invalid value: 123')]})
 
+    def test_multi_validator_throwing_validation_error(self):
+        def validate1(value):
+            raise serializers.ValidationError('Invalid value.')
+
+        def validate2(value):
+            raise serializers.ValidationError('Invalid value 2.')
+
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField(validators=[validate1, validate2])
+
+        data = {'field': 123}
+
+        with self.assertRaises(serializers.ValidationError) as exc_info:
+            Serializer().load(data)
+        self.assertEqual(exc_info.exception.message,
+                         {'field': [ValidationError('Invalid value.'), ValidationError('Invalid value 2.')]})
+
     def test_multi_validator_on_serializer_throwing_validation_error(self):
         def validate1(value):
             raise serializers.ValidationError({'field': 'Invalid value.'})
@@ -315,7 +340,6 @@ class TestValidators(TestCase):
 
 
 class TestPost(TestCase):
-
     def test_post_dump(self):
         class Serializer(serializers.Serializer):
             field = serializers.IntegerField()
@@ -518,6 +542,20 @@ class TestHTMLInput(TestCase):
         data = TestSerializer().load(MultiDict())
 
         self.assertEqual(data, {'message': 'happy'})
+
+    def test_empty_html_stringfield(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.StringField()
+
+        with self.assertRaises(serializers.ValidationError):
+            TestSerializer().load(MultiDict({'message': ''}))
+
+    def test_empty_html_stringfield_required_false(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.StringField(required=False)
+
+        data = TestSerializer().load(MultiDict({'message': ''}))
+        self.assertEqual(data, {})
 
     def test_empty_html_stringfield_with_allow_blank(self):
         class TestSerializer(serializers.Serializer):
@@ -735,6 +773,15 @@ class TestDecimalField(TestCase, FieldValues):
         Decimal('0.04'): '0.0'
     }
     field = serializers.DecimalField(max_digits=3, decimal_places=1)
+
+    def test_no_limits(self):
+        input_value = 200000000000.12
+        expected_value = Decimal('200000000000.12')
+
+        field = serializers.DecimalField()
+        data = field.load(input_value)
+
+        self.assertEqual(data, expected_value)
 
 
 class TestMinMaxDecimalField(TestCase, FieldValues):
