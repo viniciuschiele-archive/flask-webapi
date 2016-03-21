@@ -5,6 +5,7 @@ from decimal import Decimal
 from flask import Flask, json
 from flask_webapi import WebAPI, serializers
 from flask_webapi.decorators import route, serializer
+from flask_webapi.exceptions import ValidationError
 from flask_webapi.utils import timezone
 from unittest import TestCase
 from werkzeug.datastructures import MultiDict
@@ -26,7 +27,7 @@ class TestAllowBlank(TestCase):
             data = {'field': ''}
             self.assertEqual(Serializer().load(data), data)
 
-        self.assertEqual(exc_info.exception.message, {'field': ['This field may not be blank.']})
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('This field may not be blank.')]})
 
     def test_disallow_blank_and_allow_none(self):
         class Serializer(serializers.Serializer):
@@ -52,7 +53,7 @@ class TestAllowNone(TestCase):
             data = {'field': None}
             self.assertEqual(Serializer().load(data), data)
 
-        self.assertEqual(exc_info.exception.message, {'field': ['This field may not be null.']})
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('This field may not be null.')]})
 
 
 class TestDefault(TestCase):
@@ -245,7 +246,7 @@ class TestValidators(TestCase):
 
         with self.assertRaises(serializers.ValidationError) as exc_info:
             Serializer().load(data)
-        self.assertEqual(exc_info.exception.message, {'field': ['Invalid value.']})
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('Invalid value.')]})
 
     def test_validator_throwing_exception(self):
         class Serializer(serializers.Serializer):
@@ -268,7 +269,49 @@ class TestValidators(TestCase):
 
         with self.assertRaises(serializers.ValidationError) as exc_info:
             Serializer().load(data)
-        self.assertEqual(exc_info.exception.message, {'field': ['Invalid value: 123']})
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('Invalid value: 123')]})
+
+    def test_validator_on_serializer_throwing_validation_error(self):
+        def validate(value):
+            raise serializers.ValidationError({'field': 'Invalid value: ' + str(value.get('field'))})
+
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+        data = {'field': 123}
+
+        with self.assertRaises(serializers.ValidationError) as exc_info:
+            Serializer(validators=[validate]).load(data)
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('Invalid value: 123')]})
+
+    def test_validator_on_serializer_throwing_validation_error_without_field_name(self):
+        def validate(value):
+            raise serializers.ValidationError('Invalid value: ' + str(value.get('field')))
+
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+        data = {'field': 123}
+
+        with self.assertRaises(serializers.ValidationError) as exc_info:
+            Serializer(validators=[validate]).load(data)
+        self.assertEqual(exc_info.exception.message, {'_serializer': [ValidationError('Invalid value: 123')]})
+
+    def test_multi_validator_on_serializer_throwing_validation_error(self):
+        def validate1(value):
+            raise serializers.ValidationError({'field': 'Invalid value.'})
+
+        def validate2(value):
+            raise serializers.ValidationError({'field': 'Invalid value 2.'})
+
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+        data = {'field': 123}
+
+        with self.assertRaises(serializers.ValidationError) as exc_info:
+            Serializer(validators=[validate1, validate2]).load(data)
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('Invalid value.')]})
 
 
 class TestPost(TestCase):
@@ -323,11 +366,11 @@ class TestPost(TestCase):
             field = serializers.IntegerField()
 
             def post_validate(self, data):
-                raise serializers.ValidationError({'field': ['Invalid value']}, has_fields=True)
+                raise serializers.ValidationError({'field': ['Invalid value']})
 
         with self.assertRaises(serializers.ValidationError) as exc_info:
             Serializer().load({'field': 1})
-        self.assertEqual(exc_info.exception.message, {'field': ['Invalid value']})
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('Invalid value')]})
 
 
 class TestModel(TestCase):
@@ -351,7 +394,7 @@ class TestModel(TestCase):
 
         with self.assertRaises(serializers.ValidationError) as exc_info:
             Serializer().load(Model())
-        self.assertEqual(exc_info.exception.message, ['Invalid data. Expected a dictionary, but got Model.'])
+        self.assertEqual(exc_info.exception.message, 'Invalid data. Expected a dictionary, but got Model.')
 
 
 class TestError(TestCase):
@@ -372,7 +415,7 @@ class TestError(TestCase):
 
         with self.assertRaises(serializers.ValidationError) as exc_info:
             Serializer().load(data)
-        self.assertEqual(exc_info.exception.message, {'field': ['A valid integer is required.']})
+        self.assertEqual(exc_info.exception.message, {'field': [ValidationError('A valid integer is required.')]})
 
 
 class TestView(TestCase):
@@ -565,7 +608,7 @@ class TestBooleanField(TestCase, FieldValues):
         False: False,
     }
     invalid_inputs = {
-        'foo': ['"foo" is not a valid boolean.'],
+        'foo': '"foo" is not a valid boolean.',
     }
     outputs = {
         'true': True,
@@ -590,8 +633,8 @@ class TestBooleanField(TestCase, FieldValues):
         for input_value in inputs:
             with self.assertRaises(serializers.ValidationError) as exc_info:
                 field.load(input_value)
-            expected = ['"{0}" is not a valid boolean.'.format(input_value)]
-            assert exc_info.exception.message == expected
+            expected = '"{0}" is not a valid boolean.'.format(input_value)
+            self.assertEqual(exc_info.exception.message, expected)
 
 
 class TestDateField(TestCase, FieldValues):
@@ -603,9 +646,9 @@ class TestDateField(TestCase, FieldValues):
         datetime.date(2001, 1, 1): datetime.date(2001, 1, 1),
     }
     invalid_inputs = {
-        'abc': ['Date has wrong format.'],
-        '2001-99-99': ['Date has wrong format.'],
-        datetime.datetime(2001, 1, 1, 12, 00): ['Expected a date but got a datetime.'],
+        'abc': 'Date has wrong format.',
+        '2001-99-99': 'Date has wrong format.',
+        datetime.datetime(2001, 1, 1, 12, 00): 'Expected a date but got a datetime.',
     }
     outputs = {
         datetime.date(2001, 1, 1): '2001-01-01',
@@ -627,9 +670,9 @@ class TestDateTimeField(TestCase, FieldValues):
                                                                                         tzinfo=timezone.UTC()),
     }
     invalid_inputs = {
-        'abc': ['Datetime has wrong format.'],
-        '2001-99-99T99:00': ['Datetime has wrong format.'],
-        datetime.date(2001, 1, 1): ['Expected a datetime but got a date.'],
+        'abc': 'Datetime has wrong format.',
+        '2001-99-99T99:00': 'Datetime has wrong format.',
+        datetime.date(2001, 1, 1): 'Expected a datetime but got a date.',
     }
     outputs = {
         datetime.datetime(2001, 1, 1, 13, 00): '2001-01-01T13:00:00',
@@ -668,15 +711,15 @@ class TestDecimalField(TestCase, FieldValues):
         '2E+1': Decimal('20'),
     }
     invalid_inputs = {
-        'abc': ['A valid number is required.'],
-        Decimal('Nan'): ['A valid number is required.'],
-        Decimal('Inf'): ['A valid number is required.'],
-        '12.345': ['Ensure that there are no more than 3 digits in total.'],
-        200000000000.0: ['Ensure that there are no more than 3 digits in total.'],
-        '0.01': ['Ensure that there are no more than 1 decimal places.'],
-        123: ['Ensure that there are no more than 2 digits before the decimal point.'],
-        '2E+2': ['Ensure that there are no more than 2 digits before the decimal point.'],
-        ''.join('a' for i in range(1001)): ['String value too large.']
+        'abc': 'A valid number is required.',
+        Decimal('Nan'): 'A valid number is required.',
+        Decimal('Inf'): 'A valid number is required.',
+        '12.345': 'Ensure that there are no more than 3 digits in total.',
+        200000000000.0: 'Ensure that there are no more than 3 digits in total.',
+        '0.01': 'Ensure that there are no more than 1 decimal places.',
+        123: 'Ensure that there are no more than 2 digits before the decimal point.',
+        '2E+2': 'Ensure that there are no more than 2 digits before the decimal point.',
+        ''.join('a' for i in range(1001)): 'String value too large.'
 
     }
     outputs = {
@@ -703,8 +746,8 @@ class TestMinMaxDecimalField(TestCase, FieldValues):
         '20.0': Decimal('20.0'),
     }
     invalid_inputs = {
-        '9.9': ['Ensure this value is greater than or equal to 10.'],
-        '20.1': ['Ensure this value is less than or equal to 20.'],
+        '9.9': 'Ensure this value is greater than or equal to 10.',
+        '20.1': 'Ensure this value is less than or equal to 20.',
     }
     outputs = {}
     field = serializers.DecimalField(max_digits=3, decimal_places=1, min_value=10, max_value=20)
@@ -718,8 +761,8 @@ class TestDictField(TestCase, FieldValues):
         ({'a': 1, 'b': '2', 3: 3}, {'a': '1', 'b': '2', '3': '3'}),
     ]
     invalid_inputs = [
-        ({'a': 1, 'b': None}, ['This field may not be null.']),
-        ('not a dict', ['Expected a dictionary of items but got type "str".']),
+        ({'a': 1, 'b': None}, 'This field may not be null.'),
+        ('not a dict', 'Expected a dictionary of items but got type "str".'),
     ]
     outputs = [
         ({'a': 1, 'b': '2', 3: 3}, {'a': '1', 'b': '2', '3': '3'}),
@@ -740,9 +783,9 @@ class TestIntegerField(TestCase, FieldValues):
         0.0: 0,
     }
     invalid_inputs = {
-        'abc': ['A valid integer is required.'],
-        '1.0': ['A valid integer is required.'],
-        ''.join('a' for i in range(1001)): ['String value too large.']
+        'abc': 'A valid integer is required.',
+        '1.0': 'A valid integer is required.',
+        ''.join('a' for i in range(1001)): 'String value too large.'
     }
     outputs = {
         '1': 1,
@@ -775,10 +818,10 @@ class TestMinMaxIntegerField(TestCase, FieldValues):
         3: 3,
     }
     invalid_inputs = {
-        0: ['Must be at least 1.'],
-        4: ['Must be at most 3.'],
-        '0': ['Must be at least 1.'],
-        '4': ['Must be at most 3.'],
+        0: 'Must be at least 1.',
+        4: 'Must be at most 3.',
+        '0': 'Must be at least 1.',
+        '4': 'Must be at most 3.',
     }
     outputs = {}
     field = serializers.IntegerField(min_value=1, max_value=3)
@@ -797,8 +840,8 @@ class TestFloatField(TestCase, FieldValues):
         0.0: 0.0,
     }
     invalid_inputs = {
-        'abc': ['A valid number is required.'],
-        ''.join('a' for i in range(1001)): ['String value too large.']
+        'abc': 'A valid number is required.',
+        ''.join('a' for i in range(1001)): 'String value too large.'
 
     }
     outputs = {
@@ -826,10 +869,10 @@ class TestMinMaxFloatField(TestCase, FieldValues):
         3.0: 3.0,
     }
     invalid_inputs = {
-        0.9: ['Ensure this value is greater than or equal to 1.'],
-        3.1: ['Ensure this value is less than or equal to 3.'],
-        '0.0': ['Ensure this value is greater than or equal to 1.'],
-        '3.1': ['Ensure this value is less than or equal to 3.'],
+        0.9: 'Ensure this value is greater than or equal to 1.',
+        3.1: 'Ensure this value is less than or equal to 3.',
+        '0.0': 'Ensure this value is greater than or equal to 1.',
+        '3.1': 'Ensure this value is less than or equal to 3.',
     }
     outputs = {}
     field = serializers.FloatField(min_value=1, max_value=3)
@@ -845,9 +888,9 @@ class TestListField(TestCase, FieldValues):
         ([], [])
     ]
     invalid_inputs = [
-        ('not a list', ['Expected a list of items but got type "str".']),
-        ([1, 2, 'error'], ['A valid integer is required.']),
-        ({'one': 'two'}, ['Expected a list of items but got type "dict".'])
+        ('not a list', 'Expected a list of items but got type "str".'),
+        ([1, 2, 'error'], 'A valid integer is required.'),
+        ({'one': 'two'}, 'Expected a list of items but got type "dict".')
     ]
     outputs = [
         ([1, 2, 3], [1, 2, 3]),
@@ -870,7 +913,7 @@ class TestStringField(TestCase, FieldValues):
         'abc': 'abc'
     }
     invalid_inputs = {
-        '': ['This field may not be blank.']
+        '': 'This field may not be blank.'
     }
     outputs = {
         1: '1',
@@ -892,7 +935,7 @@ class TestStringField(TestCase, FieldValues):
 
         with self.assertRaises(serializers.ValidationError) as exc_info:
             field.load('   ')
-        self.assertEqual(exc_info.exception.message, ['This field may not be blank.'])
+        self.assertEqual(exc_info.exception.message, 'This field may not be blank.')
 
 
 class TestMinMaxStringField(TestCase, FieldValues):
@@ -905,10 +948,10 @@ class TestMinMaxStringField(TestCase, FieldValues):
         'abcd': 'abcd',
     }
     invalid_inputs = {
-        '1': ['Shorter than minimum length 2.'],
-        1: ['Shorter than minimum length 2.'],
-        'abcde': ['Longer than maximum length 4.'],
-        12345: ['Longer than maximum length 4.'],
+        '1': 'Shorter than minimum length 2.',
+        1: 'Shorter than minimum length 2.',
+        'abcde': 'Longer than maximum length 4.',
+        12345: 'Longer than maximum length 4.',
     }
     outputs = {}
     field = serializers.StringField(min_length=2, max_length=4)
@@ -923,9 +966,9 @@ class TestUUIDField(TestCase, FieldValues):
         '825d7aeb05a945b5a5b705df87923cda': uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'),
     }
     invalid_inputs = {
-        '825d7aeb-05a9-45b5-a5b7': ['"825d7aeb-05a9-45b5-a5b7" is not a valid UUID.'],
-        (1, 2, 3): ['"(1, 2, 3)" is not a valid UUID.'],
-        123: ['"123" is not a valid UUID.'],
+        '825d7aeb-05a9-45b5-a5b7': '"825d7aeb-05a9-45b5-a5b7" is not a valid UUID.',
+        (1, 2, 3): '"(1, 2, 3)" is not a valid UUID.',
+        123: '"123" is not a valid UUID.',
     }
     outputs = {
         uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'): '825d7aeb-05a9-45b5-a5b7-05df87923cda'

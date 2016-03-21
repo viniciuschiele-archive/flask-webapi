@@ -19,19 +19,37 @@ class TestAPIException(TestCase):
 
 class TestValidationError(TestCase):
     def test_string_message(self):
-        self.assertEqual(ValidationError('error message').message, ['error message'])
+        error = ValidationError('error message')
+        self.assertEqual(error.message, 'error message')
 
-    def test_list_message(self):
-        message = ['error message 1', 'error message 2']
-        self.assertEqual(ValidationError(message).message, message)
+    def test_list_message_with_one_item(self):
+        input_message = ['error message']
+        error = ValidationError(input_message)
+        self.assertEqual(error.message, 'error message')
 
-    def test_dict_message(self):
-        message = dict(message='error message', code='error code')
-        self.assertEqual(ValidationError(message).message, [message])
+    def test_list_message_with_dict(self):
+        input_message = [{'message': 'error message', 'code': 123}]
+        error = ValidationError(input_message)
+        self.assertEqual(error.message, 'error message')
+        self.assertEqual(error.kwargs, {'code': 123})
 
-    def test_has_fields(self):
-        message = {'user_id': [{'message': 'error message', 'code': 'error code'}]}
-        self.assertEqual(ValidationError(message, has_fields=True).message, message)
+    def test_list_message_with_multi_items(self):
+        input_message = ['error message 1', 'error message 2']
+        expected_message = [ValidationError('error message 1'), ValidationError('error message 2')]
+        error = ValidationError(input_message)
+        self.assertEqual(error.message, expected_message)
+
+    def test_dict_with_str(self):
+        input_message = {'user_id': 'error message'}
+        expected_message = {'user_id': [ValidationError('error message')]}
+        error = ValidationError(input_message)
+        self.assertEqual(error.message, expected_message)
+
+    def test_dict_with_list(self):
+        input_message = {'user_id': [{'message': 'error message', 'code': 'error code'}]}
+        expected_message = {'user_id': [ValidationError('error message', code='error code')]}
+        error = ValidationError(input_message)
+        self.assertEqual(error.message, expected_message)
 
 
 class TestUnsupportedMediaType(TestCase):
@@ -65,7 +83,7 @@ class TestView(TestCase):
     def test_validation_exception(self):
         @route('/view')
         def view():
-            raise ValidationError(dict(message='User not found.', field='user_id'))
+            raise ValidationError('User not found.', field='user_id')
 
         self.api.add_view(view)
         response = self.client.get('/view')
@@ -97,7 +115,7 @@ class TestView(TestCase):
 
     def test_exception_handler(self):
         def custom_exception_handler(view, e):
-            return Response(e.message[0], status=400)
+            return Response(e.message, status=400)
 
         @route('/view')
         def view():

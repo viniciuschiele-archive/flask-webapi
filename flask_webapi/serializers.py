@@ -4,7 +4,7 @@ import uuid
 
 from collections import OrderedDict
 from .exceptions import ValidationError
-from .utils import dateparse, html, missing, timezone
+from .utils import dateparse, formatting, html, missing, timezone
 from werkzeug.utils import cached_property
 from .validators import LengthValidator, RangeValidator
 
@@ -132,12 +132,14 @@ class Field(object):
     def _fail(self, key, **kwargs):
         try:
             message = self.error_messages[key]
-            message = message.format(**kwargs)
+            message = formatting.format_error_message(message, **kwargs)
+            if isinstance(message, dict):
+                raise ValidationError(**message)
             raise ValidationError(message)
         except KeyError:
             class_name = self.__class__.__name__
-            msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
-            raise AssertionError(msg)
+            message = formatting.format_error_message(MISSING_ERROR_MESSAGE, class_name=class_name, key=key)
+            raise AssertionError(message)
 
     def _validate(self, data):
         errors = []
@@ -147,9 +149,10 @@ class Field(object):
                     self._fail('validator_failed')
             except ValidationError as err:
                 if isinstance(err.message, dict):
-                    errors.append(err.message)
-                else:
-                    errors.extend(err.message)
+                    raise
+
+                errors.append(err)
+
         if errors:
             raise ValidationError(errors)
 
@@ -675,11 +678,10 @@ class Serializer(Field, metaclass=SerializerMetaclass):
 
     def _load(self, data):
         if not isinstance(data, dict):
-            message = self.error_messages['invalid'].format(datatype=type(data).__name__)
-            raise ValidationError(message)
+            self._fail('invalid', datatype=type(data).__name__)
 
         result = dict()
-        errors = OrderedDict()
+        errors = dict()
 
         for field in self._load_fields:
             try:
@@ -688,10 +690,10 @@ class Serializer(Field, metaclass=SerializerMetaclass):
                 if value is not missing:
                     result[field.field_name] = value
             except ValidationError as err:
-                errors[field.field_name] = err.message
+                errors[field.field_name] = err
 
         if errors:
-            raise ValidationError(errors, has_fields=True)
+            raise ValidationError(errors)
 
         return self.post_load(result, data)
 
@@ -708,20 +710,25 @@ class Serializer(Field, metaclass=SerializerMetaclass):
         return self.post_dump(result, instance)
 
     def _validate(self, data):
-        errors = {}
+        errors = []
 
         try:
             super()._validate(data)
         except ValidationError as err:
-            errors = err.message
+            errors.append(err)
 
         try:
             self.post_validate(data)
         except ValidationError as err:
-            if isinstance(err.message, dict):
-                errors.update(err.message)
-            else:
-                errors['_Serializer'] = err.message
+            errors.append(err)
 
-        if errors:
-            raise ValidationError(errors, has_fields=True)
+        d = {}
+
+        for error in errors:
+            if isinstance(error.message, dict):
+                d.update(error.message)
+            else:
+                d['_serializer'] = error
+
+        if d:
+            raise ValidationError(d)

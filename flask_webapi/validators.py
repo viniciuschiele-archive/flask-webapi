@@ -5,6 +5,7 @@ Provides various validators.
 import re
 
 from .exceptions import ValidationError
+from .utils.formatting import format_error_message
 
 
 MISSING_ERROR_MESSAGE = (
@@ -37,28 +38,12 @@ class ValidatorBase(object):
         :param kwargs: The kwargs used to replace the messages token.
         """
         try:
-            message = self.error_messages[key]
-            message = self._format_error(message, **kwargs)
+            message = format_error_message(self.error_messages[key], **kwargs)
             raise ValidationError(message)
         except KeyError:
             class_name = self.__class__.__name__
             msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
             raise AssertionError(msg)
-
-    def _format_error(self, message, **kwargs):
-        """
-        Replaces the tokens by `kwargs`.
-
-        :param message: The message that contains the tokens.
-        :param kwargs: The args used to replace the tokens.
-        :return: The message formatted.
-        """
-        if isinstance(message, str):
-            message = message.format(**kwargs)
-        elif message is dict:
-            for key, value in message.items():
-                message[key] = self._format_error(value, **kwargs)
-        return message
 
 
 class EmailValidator(ValidatorBase):

@@ -20,19 +20,16 @@ def exception_handler(view, e):
     :param Exception e: The exception.
     :return: A response
     """
-    if isinstance(e, ValidationError):
+    if isinstance(e, APIException):
         code = e.status_code
-        message = e.message
-    elif isinstance(e, APIException):
-        code = e.status_code
-        message = [e.message] if not isinstance(e.message, list) else e.message
+        message = e
     elif isinstance(e, HTTPException):
         code = e.code
-        message = [e.description]
+        message = e.description
     else:
         debug = current_app.config.get('DEBUG')
         code = APIException.status_code
-        message = [str(e)] if debug else [APIException.default_message]
+        message = str(e) if debug else APIException.default_message
 
     errors = []
 
@@ -143,13 +140,13 @@ class ViewBase(metaclass=ABCMeta):
                     if value is not missing:
                         kwargs[field_name] = value
             except ValidationError as e:
-                if e.has_fields:
+                if isinstance(e.message, dict):
                     errors.update(e.message)
                 else:
                     errors[field.load_from] = e.message
 
         if errors:
-            raise ValidationError(errors, has_fields=True)
+            raise ValidationError(errors)
 
     def _select_renderer(self, force=False):
         """

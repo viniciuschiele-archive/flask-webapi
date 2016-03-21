@@ -13,14 +13,16 @@ class APIException(Exception):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_message = 'A server error occurred.'
 
-    def __init__(self, message=None):
+    def __init__(self, message=None, **kwargs):
         if message is not None:
-            self.message = message
+            self.message = str(message)
         else:
-            self.message = self.default_message
+            self.message = str(self.default_message)
+
+        self.kwargs = kwargs
 
     def __str__(self):
-        return str(self.message)
+        return self.message
 
 
 class BadRequest(APIException):
@@ -31,12 +33,51 @@ class BadRequest(APIException):
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
 
-    def __init__(self, message, has_fields=False):
-        if not isinstance(message, list) and not has_fields:
-            message = [message]
+    def __init__(self, message, **kwargs):
+        if isinstance(message, dict):
+            result = {}
 
-        self.has_fields = has_fields
-        self.message = message
+            for field, messages in message.items():
+                if not isinstance(messages, ValidationError):
+                    messages = ValidationError(messages)
+
+                if isinstance(messages.message, str):
+                    result[field] = [messages]
+                else:
+                    result[field] = messages.message
+
+            self.message = result
+            self.kwargs = {}
+
+        elif isinstance(message, list):
+            result = []
+            for msg in message:
+                if not isinstance(msg, ValidationError):
+                    if isinstance(msg, dict):
+                        msg = ValidationError(**msg)
+                    else:
+                        msg = ValidationError(msg)
+
+                result.append(msg)
+
+            self.message = result[0].message if len(result) == 1 else result
+            self.kwargs = result[0].kwargs if len(result) == 1 else {}
+
+        else:
+            self.message = str(message)
+            self.kwargs = kwargs
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __str__(self):
+        return repr(self.message)
+
+    def __repr__(self):
+        return 'ValidationError(%s)' % self
 
 
 class ParseError(APIException):
@@ -74,7 +115,6 @@ class UnsupportedMediaType(APIException):
     default_message = 'Unsupported media type "{mimetype}" in request.'
 
     def __init__(self, mimetype, message=None):
-        if message is not None:
-            self.message = message
-        else:
-            self.message = self.default_message.format(mimetype=mimetype)
+        if message is None:
+            message = self.default_message.format(mimetype=mimetype)
+        super().__init__(message)
