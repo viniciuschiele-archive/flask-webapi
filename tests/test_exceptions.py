@@ -63,6 +63,40 @@ class TestUnsupportedMediaType(TestCase):
         self.assertEqual(UnsupportedMediaType(mimetype, 'error message').message, 'error message')
 
 
+class TestDenormalize(TestCase):
+    def test_string_message(self):
+        errors = APIException('Invalid value.', field='name').denormalize()
+        expected_errors = [{'message': 'Invalid value.', 'field': 'name'}]
+
+        self.assertEqual(errors, expected_errors)
+
+    def test_list_message(self):
+        errors = ValidationError(['Invalid value.', 'Min size.']).denormalize()
+        expected_errors = [{'message': 'Invalid value.'}, {'message': 'Min size.'}]
+
+        self.assertEqual(errors, expected_errors)
+
+    def test_dict_message(self):
+        message = ValidationError({'name': ['Invalid value.', 'Min size.']})
+        errors = message.denormalize()
+        expected_errors = [
+            {'message': 'Invalid value.', 'field': 'name'},
+            {'message': 'Min size.', 'field': 'name'}
+        ]
+
+        self.assertEqual(errors, expected_errors)
+
+    def test_dict_message_with_sub_dict(self):
+        message = ValidationError({'company': {'name': ['Invalid value.', 'Min size.']}})
+        errors = message.denormalize()
+        expected_errors = [
+            {'message': 'Invalid value.', 'field': 'company.name'},
+            {'message': 'Min size.', 'field': 'company.name'}
+        ]
+
+        self.assertEqual(errors, expected_errors)
+
+
 class TestView(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
@@ -73,45 +107,41 @@ class TestView(TestCase):
         @route('/view')
         def view():
             raise APIException('user error.')
-
         self.api.add_view(view)
+
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.data),
-                         dict(errors=[dict(message='user error.')]))
+        self.assertEqual(json.loads(response.data), {'errors': [{'message': 'user error.'}]})
 
     def test_validation_exception(self):
         @route('/view')
         def view():
             raise ValidationError('User not found.', field='user_id')
-
         self.api.add_view(view)
+
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.data),
-                         dict(errors=[dict(message='User not found.', field='user_id')]))
+        self.assertEqual(json.loads(response.data), {'errors': [{'message': 'User not found.', 'field': 'user_id'}]})
 
     def test_http_exception(self):
         @route('/view')
         def http_exception():
             raise BadRequest()
-
         self.api.add_view(http_exception)
+
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.data),
-                         dict(errors=[dict(message=BadRequest.description)]))
+        self.assertEqual(json.loads(response.data), {'errors': [{'message': BadRequest.description}]})
 
     def test_unhandled_exception(self):
         @route('/view')
         def view():
             raise Exception()
-
         self.api.add_view(view)
+
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.data),
-                         dict(errors=[dict(message='A server error occurred.')]))
+        self.assertEqual(json.loads(response.data), {'errors': [{'message': 'A server error occurred.'}]})
 
     def test_exception_handler(self):
         def custom_exception_handler(view, e):
