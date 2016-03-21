@@ -9,6 +9,8 @@ class APIException(Exception):
     """
     Base class for Flask WebAPI exceptions.
     Subclasses should provide `.status_code` and `.default_message` properties.
+    :param str message: The actual message.
+    :param kwargs: The extra attributes.
     """
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_message = 'A server error occurred.'
@@ -23,6 +25,49 @@ class APIException(Exception):
 
     def __str__(self):
         return self.message
+
+    def denormalize(self, message_key_name='message', field_key_name='field'):
+        """
+        Turns all `APIException` instances into `dict` and
+        returns a unique level of errors.
+        :param message_key_name: The key name used for the message item.
+        :param field_key_name: The key name used for the field item.
+        :return: A list of errors.
+        """
+        errors = []
+
+        self._denormalize(errors, self, message_key_name=message_key_name, field_key_name=field_key_name)
+
+        return errors
+
+    def _denormalize(self, errors, message, field=None, message_key_name='message', field_key_name='field'):
+        kwargs = None
+
+        if isinstance(message, APIException):
+            kwargs = message.kwargs
+            message = message.message
+
+        if isinstance(message, dict):
+            for f, messages in message.items():
+                f = field + '.' + f if field else f
+                self._denormalize(errors, messages, f, message_key_name, field_key_name)
+
+        elif isinstance(message, list):
+            for message in message:
+                self._denormalize(errors, message, field, message_key_name, field_key_name)
+
+        else:
+            data = {message_key_name: message}
+
+            if kwargs:
+                data.update(kwargs)
+
+            if field:
+                data.update({field_key_name: field})
+
+            errors.append(data)
+
+        return errors
 
 
 class BadRequest(APIException):

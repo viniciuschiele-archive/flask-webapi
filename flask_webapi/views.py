@@ -10,7 +10,6 @@ from werkzeug.exceptions import HTTPException
 from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
 from .serializers import Serializer
 from .utils import missing, unpack
-from .utils.formatting import prepare_error_message_for_response
 
 
 def exception_handler(view, e):
@@ -21,21 +20,15 @@ def exception_handler(view, e):
     :return: A response
     """
     if isinstance(e, APIException):
-        code = e.status_code
         message = e
     elif isinstance(e, HTTPException):
-        code = e.code
-        message = e.description
+        message = APIException(e.description)
+        message.status_code = e.code
     else:
         debug = current_app.config.get('DEBUG')
-        code = APIException.status_code
-        message = str(e) if debug else APIException.default_message
+        message = APIException(str(e)) if debug else APIException()
 
-    errors = []
-
-    prepare_error_message_for_response(errors, message)
-
-    return {'errors': errors}, code
+    return {'errors': message.denormalize()}, message.status_code
 
 
 class ViewBase(metaclass=ABCMeta):
