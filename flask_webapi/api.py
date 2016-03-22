@@ -61,7 +61,7 @@ class WebAPI(object):
         elif inspect.isfunction(view):
             if not hasattr(view, 'routes'):
                 raise TypeError('View has not routes.')
-            view = type('WrappedView', (ViewBase,), {view.__name__: view})
+            view = type('FunctionBasedView', (ViewBase,), {view.__name__: view})
         else:
             raise TypeError('Invalid view type.')
 
@@ -71,22 +71,6 @@ class WebAPI(object):
             self._register_routes(routes)
         else:
             self._routes.extend(routes)
-
-    def scan(self, module):
-        """
-        Tries to import modules and register its views.
-        :param module: The path of the module or the module itself.
-        """
-        if type(module) is str:
-            module = import_string(module)
-
-        members = inspect.getmembers(module)
-
-        for _, member in members:
-            if inspect.isfunction(member) and hasattr(member, 'routes'):
-                self.add_view(member)
-            elif inspect.isclass(member) and issubclass(member, ViewBase):
-                self.add_view(member)
 
     def init_app(self, app):
         """
@@ -110,6 +94,22 @@ class WebAPI(object):
         # register all views added before the initialization
         if self._routes:
             self._register_routes(self._routes)
+
+    def scan(self, module):
+        """
+        Tries to import modules and register its views.
+        :param module: The path of the module or the module itself.
+        """
+        if type(module) is str:
+            module = import_string(module)
+
+        members = inspect.getmembers(module)
+
+        for _, member in members:
+            if inspect.isfunction(member) and hasattr(member, 'routes'):
+                self.add_view(member)
+            elif inspect.isclass(member) and issubclass(member, ViewBase):
+                self.add_view(member)
 
     def _get_routes(self, view):
         view_routes = getattr(view, 'routes', [])

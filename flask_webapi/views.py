@@ -35,26 +35,17 @@ class ViewBase(metaclass=ABCMeta):
     """
     A base class from which all view classes should inherit.
     """
-    _context = None
-
-    @property
-    def context(self):
-        if not self._context:
-            raise Exception()
-        return self._context
+    context = None
 
     def dispatch(self, context, *args, **kwargs):
         try:
-            self._context = context
+            self.context = context
 
             self._authenticate()
             self._check_permission()
             self._parse_arguments(kwargs)
 
-            if self.context.has_self:
-                response = self.context.func(self, *args, **kwargs)
-            else:
-                response = self.context.func(*args, **kwargs)
+            response = self.context.func(self, *args, **kwargs)
 
             return self._make_response(response, use_serializer=True)
         except Exception as e:
@@ -240,9 +231,6 @@ class ViewContext(object):
         self.api = api
         self.app = api.app
 
-        args = inspect.getargspec(func).args
-        self.has_self = len(args) > 0 and args[0] == 'self'
-
         self.authenticators = self.__get_value('authenticators')
         self.permissions = self.__get_value('permissions')
         self.content_negotiator = self.__get_value('content_negotiator')
@@ -253,6 +241,11 @@ class ViewContext(object):
         self.serializer_args = getattr(func, 'serializer_args', None)
         self.exception_handler = api.exception_handler
         self.argument_providers = api.argument_providers
+
+        func_args = inspect.getargspec(func).args
+        if len(func_args) == 0 or func_args[0] != 'self':
+            f = self.func
+            self.func = lambda _, *args, **kwargs: f(*args, **kwargs)
 
     def __get_value(self, attribute_name):
         value = getattr(self.api, attribute_name, None)
