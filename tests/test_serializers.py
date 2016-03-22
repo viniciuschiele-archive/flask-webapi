@@ -11,6 +11,22 @@ from unittest import TestCase
 from werkzeug.datastructures import MultiDict
 
 
+class TestNotImplemented(TestCase):
+    def test_load(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.Field()
+
+        with self.assertRaises(NotImplementedError):
+            Serializer().load({'field': 123})
+
+    def test_dump(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.Field()
+
+        with self.assertRaises(NotImplementedError):
+            Serializer().dump({'field': 123})
+
+
 class TestAllowBlank(TestCase):
     def test_allow_blank(self):
         class Serializer(serializers.Serializer):
@@ -193,6 +209,30 @@ class TestPartial(TestCase):
         data = {'field_1': 123}
 
         self.assertEqual(s.load(data), data)
+
+
+class TestOnly(TestCase):
+    def test_dump_with_only_fields(self):
+        class Serializer(serializers.Serializer):
+            field_1 = serializers.IntegerField()
+            field_2 = serializers.IntegerField()
+
+        data = {'field_1': 123, 'field_2': 456}
+        expected = {'field_1': 123}
+
+        s = Serializer(only=['field_1'])
+        self.assertEqual(s.dump(data), expected)
+
+    def test_load_with_only_fields(self):
+        class Serializer(serializers.Serializer):
+            field_1 = serializers.IntegerField()
+            field_2 = serializers.IntegerField()
+
+        data = {'field_1': 123, 'field_2': 456}
+        expected = {'field_2': 456}
+
+        s = Serializer(only=['field_2'])
+        self.assertEqual(s.load(data), expected)
 
 
 class TestErrorMessages(TestCase):
@@ -397,41 +437,54 @@ class TestPost(TestCase):
         self.assertEqual(exc_info.exception.message, {'field': [ValidationError('Invalid value')]})
 
 
-class TestModel(TestCase):
-    def test_dump_with_model(self):
-        class Model(object):
-            field = 123
-
+class TestDump(TestCase):
+    def test_dump_with_dict(self):
         class Serializer(serializers.Serializer):
-            field = serializers.IntegerField
+            field = serializers.IntegerField()
 
-        output = Serializer().dump(Model())
+        data = {'field': 123}
+        expected = {'field': 123}
+        self.assertEqual(Serializer().dump(data), expected)
 
-        self.assertEqual(output, {'field': 123})
-
-    def test_load_with_model(self):
-        class Model(object):
-            field = 123
-
+    def test_dump_with_error(self):
         class Serializer(serializers.Serializer):
-            field = serializers.IntegerField
-
-        with self.assertRaises(serializers.ValidationError) as exc_info:
-            Serializer().load(Model())
-        self.assertEqual(exc_info.exception.message, 'Invalid data. Expected a dictionary, but got Model.')
-
-
-class TestError(TestCase):
-    def test_dump_with_errors(self):
-        class Serializer(serializers.Serializer):
-            field = serializers.IntegerField
+            field = serializers.IntegerField()
 
         data = {'field': 'value'}
 
         with self.assertRaises(ValueError):
             Serializer().dump(data)
 
-    def test_load_with_errors(self):
+    def test_dump_with_model(self):
+        class Model(object):
+            field = 123
+
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+        output = Serializer().dump(Model())
+
+        self.assertEqual(output, {'field': 123})
+
+    def test_dumps(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+        data = [{'field': 123}]
+        expected = [{'field': 123}]
+        self.assertEqual(Serializer().dumps(data), expected)
+
+
+class TestLoad(TestCase):
+    def test_load_with_dict(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+        data = {'field': 123}
+        expected = {'field': 123}
+        self.assertEqual(Serializer().load(data), expected)
+
+    def test_load_with_error(self):
         class Serializer(serializers.Serializer):
             field = serializers.IntegerField
 
@@ -440,6 +493,25 @@ class TestError(TestCase):
         with self.assertRaises(serializers.ValidationError) as exc_info:
             Serializer().load(data)
         self.assertEqual(exc_info.exception.message, {'field': [ValidationError('A valid integer is required.')]})
+
+    def test_load_with_model(self):
+        class Model(object):
+            field = 123
+
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+        with self.assertRaises(serializers.ValidationError) as exc_info:
+            Serializer().load(Model())
+        self.assertEqual(exc_info.exception.message, 'Invalid data. Expected a dictionary, but got Model.')
+
+    def test_loads(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.IntegerField()
+
+        data = [{'field': 123}]
+        expected = [{'field': 123}]
+        self.assertEqual(Serializer().loads(data), expected)
 
 
 class TestView(TestCase):
@@ -521,13 +593,6 @@ class TestHTMLInput(TestCase):
 
         self.assertEqual(data, {'message': 123})
 
-    def test_empty_html_integerfield_allow_none(self):
-        class TestSerializer(serializers.Serializer):
-            message = serializers.IntegerField(allow_none=True)
-
-        data = TestSerializer().load(MultiDict({'message': ''}))
-        self.assertEqual(data, {'message': None})
-
     def test_missing_html_stringfield(self):
         class TestSerializer(serializers.Serializer):
             message = serializers.StringField
@@ -542,6 +607,34 @@ class TestHTMLInput(TestCase):
         data = TestSerializer().load(MultiDict())
 
         self.assertEqual(data, {'message': 'happy'})
+
+    def test_missing_html_listfield(self):
+        class TestSerializer(serializers.Serializer):
+            scores = serializers.ListField(serializers.IntegerField)
+
+        with self.assertRaises(serializers.ValidationError):
+            TestSerializer().load(MultiDict())
+
+    def test_empty_html_integerfield(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.IntegerField()
+
+        with self.assertRaises(serializers.ValidationError):
+            TestSerializer().load(MultiDict({'message': ''}))
+
+    def test_empty_html_integerfield_allow_none(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.IntegerField(allow_none=True)
+
+        data = TestSerializer().load(MultiDict({'message': ''}))
+        self.assertEqual(data, {'message': None})
+
+    def test_empty_html_integerfield_required_false(self):
+        class TestSerializer(serializers.Serializer):
+            message = serializers.IntegerField(required=False)
+
+        data = TestSerializer().load(MultiDict({'message': ''}))
+        self.assertEqual(data, {})
 
     def test_empty_html_stringfield(self):
         class TestSerializer(serializers.Serializer):
@@ -577,13 +670,6 @@ class TestHTMLInput(TestCase):
 
         data = TestSerializer().load(MultiDict({'message': ''}))
         self.assertEqual(data, {'message': ''})
-
-    def test_missing_html_listfield(self):
-        class TestSerializer(serializers.Serializer):
-            scores = serializers.ListField(serializers.IntegerField)
-
-        with self.assertRaises(serializers.ValidationError):
-            TestSerializer().load(MultiDict())
 
     def test_html_listfield(self):
         class TestSerializer(serializers.Serializer):
@@ -1011,6 +1097,7 @@ class TestUUIDField(TestCase, FieldValues):
     valid_inputs = {
         '825d7aeb-05a9-45b5-a5b7-05df87923cda': uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'),
         '825d7aeb05a945b5a5b705df87923cda': uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'),
+        uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'): uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda')
     }
     invalid_inputs = {
         '825d7aeb-05a9-45b5-a5b7': '"825d7aeb-05a9-45b5-a5b7" is not a valid UUID.',

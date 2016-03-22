@@ -1,6 +1,36 @@
+from flask_webapi import validators
 from flask_webapi.exceptions import ValidationError
-from flask_webapi.validators import EmailValidator, LengthValidator, RangeValidator
 from unittest import TestCase
+
+
+class TestErrorMessages(TestCase):
+    def test_invalid_error_key(self):
+        """
+        If a field raises a validation error, but does not have a corresponding
+        error message, then raise an appropriate assertion error.
+        """
+
+        class FailValidator(validators.ValidatorBase):
+            def __call__(self):
+                self._fail('incorrect')
+
+        validator = FailValidator()
+
+        with self.assertRaises(AssertionError) as exc_info:
+            validator()
+        self.assertEqual(str(exc_info.exception),
+                         'ValidationError raised by `FailValidator`, but error key '
+                         '`incorrect` does not exist in the `error_messages` dictionary.')
+
+    def test_dict_error_message(self):
+        error_messages = {'min_length': {'message': 'min size.', 'code': 123}}
+
+        validator = validators.LengthValidator(min_length=2, error_messages=error_messages)
+
+        with self.assertRaises(ValidationError) as exc_info:
+            validator('a')
+
+        self.assertEqual(exc_info.exception, ValidationError('min size.', code=123))
 
 
 class ValidatorValues(object):
@@ -59,11 +89,12 @@ class TestEmailValidator(TestCase, ValidatorValues):
         '@nouser.com',
         'example.com',
         'user',
+        ''
         '',
         None,
     ]
 
-    validator = EmailValidator()
+    validator = validators.EmailValidator()
 
 
 class TestLengthValidator(TestCase, ValidatorValues):
@@ -82,20 +113,20 @@ class TestLengthValidator(TestCase, ValidatorValues):
         {'1': 1},
     ]
 
-    validator = LengthValidator(min_length=3, max_length=5)
+    validator = validators.LengthValidator(min_length=3, max_length=5)
 
     def test_equal_length(self):
-        self.assertEqual(LengthValidator(equal_length=3)('123'), None)
+        self.assertEqual(validators.LengthValidator(equal_length=3)('123'), None)
 
         with self.assertRaises(ValidationError):
-            LengthValidator(equal_length=3)('1')
+            validators.LengthValidator(equal_length=3)('1')
 
         with self.assertRaises(ValidationError):
-            LengthValidator(equal_length=3)('1234')
+            validators.LengthValidator(equal_length=3)('1234')
 
     def test_equal_length_with_min_length(self):
         with self.assertRaises(ValueError):
-            LengthValidator(min_length=1, equal_length=3)('foo')
+            validators.LengthValidator(min_length=1, equal_length=3)('foo')
 
 
 class TestRangeValidator(TestCase, ValidatorValues):
@@ -110,4 +141,4 @@ class TestRangeValidator(TestCase, ValidatorValues):
         6
     ]
 
-    validator = RangeValidator(min_value=3, max_value=5)
+    validator = validators.RangeValidator(min_value=3, max_value=5)
