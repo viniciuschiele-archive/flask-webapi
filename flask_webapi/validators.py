@@ -8,10 +8,8 @@ from .exceptions import ValidationError
 from .utils.formatting import format_error_message
 
 
-MISSING_ERROR_MESSAGE = (
-    'ValidationError raised by `{class_name}`, but error key `{key}` does '
-    'not exist in the `error_messages` dictionary.'
-)
+MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key `{key}` does ' \
+                        'not exist in the `error_messages` dictionary.'
 
 
 class ValidatorBase(object):
@@ -38,12 +36,15 @@ class ValidatorBase(object):
         :param kwargs: The kwargs used to replace the messages token.
         """
         try:
-            message = format_error_message(self.error_messages[key], **kwargs)
+            message = self.error_messages[key]
+            message = format_error_message(message, **kwargs)
+            if isinstance(message, dict):
+                raise ValidationError(**message)
             raise ValidationError(message)
         except KeyError:
             class_name = self.__class__.__name__
-            msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
-            raise AssertionError(msg)
+            message = format_error_message(MISSING_ERROR_MESSAGE, class_name=class_name, key=key)
+            raise AssertionError(message)
 
 
 class EmailValidator(ValidatorBase):
@@ -82,16 +83,17 @@ class EmailValidator(ValidatorBase):
         if not self.USER_REGEX.match(user_part):
             self._fail('invalid')
 
-        if domain_part not in self.DOMAIN_WHITELIST:
-            if not self.DOMAIN_REGEX.match(domain_part):
-                try:
-                    domain_part = domain_part.encode('idna').decode('ascii')
-                except UnicodeError:
-                    pass
-                else:
-                    if self.DOMAIN_REGEX.match(domain_part):
-                        return
-                self._fail('invalid')
+        if domain_part in self.DOMAIN_WHITELIST:
+            return
+
+        if self.DOMAIN_REGEX.match(domain_part):
+            return
+
+        domain_part = domain_part.encode('idna').decode('ascii')
+        if self.DOMAIN_REGEX.match(domain_part):
+            return
+
+        self._fail('invalid')
 
 
 class LengthValidator(ValidatorBase):
