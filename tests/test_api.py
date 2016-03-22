@@ -53,7 +53,7 @@ class TestWebAPI(TestCase):
             self.api.add_view(InvalidView)
 
     def test_scan_views_from_path(self):
-        self.api.scan('tests.test_api')
+        self.api.scan_views('tests.test_api')
         self.api.init_app(self.app)
 
         response = self.client.get('/view')
@@ -63,7 +63,7 @@ class TestWebAPI(TestCase):
         self.assertEqual(response.status_code, 204)
 
     def test_scan_views_from_module(self):
-        self.api.scan(inspect.getmodule(TestWebAPI))
+        self.api.scan_views(inspect.getmodule(TestWebAPI))
         self.api.init_app(self.app)
 
         response = self.client.get('/view')
@@ -73,7 +73,7 @@ class TestWebAPI(TestCase):
         self.assertEqual(response.status_code, 204)
 
     def test_scan_views_from_config(self):
-        self.app.config['WEBAPI_IMPORTS'] = ['tests.test_api']
+        self.app.config['WEBAPI_MODULES'] = ['tests.test_api']
         self.api.init_app(self.app)
 
         response = self.client.get('/view')

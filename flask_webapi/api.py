@@ -86,30 +86,33 @@ class WebAPI(object):
 
         # gets all the module paths from the config
         # and import them to register its views.
-        modules = self.app.config.get('WEBAPI_IMPORTS')
+        modules = self.app.config.get('WEBAPI_MODULES')
         if modules:
-            for module in modules:
-                self.scan(module)
+            self.scan_views(modules)
 
         # register all views added before the initialization
         if self._routes:
             self._register_routes(self._routes)
 
-    def scan(self, module):
+    def scan_views(self, modules):
         """
-        Tries to import modules and register its views.
-        :param module: The path of the module or the module itself.
+        Imports the given modules and register its views.
+        :param str|list modules: The path of the modules or the module itself.
         """
-        if type(module) is str:
-            module = import_string(module)
+        if not isinstance(modules, (list, tuple)):
+            modules = [modules]
 
-        members = inspect.getmembers(module)
+        for module in modules:
+            if isinstance(module, str):
+                module = import_string(module)
 
-        for _, member in members:
-            if inspect.isfunction(member) and hasattr(member, 'routes'):
-                self.add_view(member)
-            elif inspect.isclass(member) and issubclass(member, BaseView):
-                self.add_view(member)
+            members = inspect.getmembers(module)
+
+            for _, member in members:
+                if inspect.isfunction(member) and hasattr(member, 'routes'):
+                    self.add_view(member)
+                elif inspect.isclass(member) and issubclass(member, BaseView):
+                    self.add_view(member)
 
     def _get_routes(self, view):
         view_routes = getattr(view, 'routes', [])
@@ -136,7 +139,7 @@ class WebAPI(object):
     def _make_endpoint(self, view, func):
         """
         Returns a endpoint for the specified view and func.
-        :param ViewBase view: The class of your view
+        :param BaseView view: The class of your view
         :param func: The function of your view
         :return: The endpoint
         """
