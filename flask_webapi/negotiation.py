@@ -8,7 +8,7 @@ from .exceptions import NotAcceptable, UnsupportedMediaType
 from .utils.mimetypes import MimeType
 
 
-class ContentNegotiatorBase(metaclass=ABCMeta):
+class BaseContentNegotiator(metaclass=ABCMeta):
     """
     Base class for all content negotiations.
     """
@@ -30,7 +30,7 @@ class ContentNegotiatorBase(metaclass=ABCMeta):
         """
 
 
-class DefaultContentNegotiator(ContentNegotiatorBase):
+class DefaultContentNegotiator(BaseContentNegotiator):
     """
     Selects a parser by request content type and a
     renderer by request accept.

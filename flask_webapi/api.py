@@ -11,7 +11,7 @@ from .parsers import JSONParser, FormDataParser
 from .permissions import AllowAny
 from .renderers import JSONRenderer
 from .utils.routing import Route
-from .views import exception_handler, ViewBase, ViewContext
+from .views import exception_handler, BaseView, ViewContext
 
 
 class WebAPI(object):
@@ -56,12 +56,12 @@ class WebAPI(object):
         :param view: the class of your view
         """
         if inspect.isclass(view):
-            if not issubclass(view, ViewBase):
-                raise TypeError('View must inherit from %s.' % ViewBase.__name__)
+            if not issubclass(view, BaseView):
+                raise TypeError('View must inherit from %s.' % BaseView.__name__)
         elif inspect.isfunction(view):
             if not hasattr(view, 'routes'):
                 raise TypeError('View has not routes.')
-            view = type('FunctionBasedView', (ViewBase,), {view.__name__: view})
+            view = type('FunctionBasedView', (BaseView,), {view.__name__: view})
         else:
             raise TypeError('Invalid view type.')
 
@@ -108,7 +108,7 @@ class WebAPI(object):
         for _, member in members:
             if inspect.isfunction(member) and hasattr(member, 'routes'):
                 self.add_view(member)
-            elif inspect.isclass(member) and issubclass(member, ViewBase):
+            elif inspect.isclass(member) and issubclass(member, BaseView):
                 self.add_view(member)
 
     def _get_routes(self, view):

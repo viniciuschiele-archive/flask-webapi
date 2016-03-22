@@ -1,6 +1,6 @@
 from flask import Flask, request
 from flask_webapi import WebAPI
-from flask_webapi.authentication import AuthenticatorBase
+from flask_webapi.authentication import BaseAuthenticator
 from flask_webapi.decorators import route, authenticator
 from flask_webapi.exceptions import AuthenticationFailed
 from unittest import TestCase
@@ -46,7 +46,7 @@ class TestView(TestCase):
         self.assertEqual(response.status_code, 204)
 
 
-class Authenticator(AuthenticatorBase):
+class Authenticator(BaseAuthenticator):
     def authenticate(self):
         auth = request.headers.get('Authorization')
 

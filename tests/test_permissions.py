@@ -1,8 +1,8 @@
 from flask import Flask
 from flask_webapi import WebAPI
 from flask_webapi.decorators import route, authenticator, permission
-from flask_webapi.authentication import AuthenticatorBase
-from flask_webapi.permissions import PermissionBase, IsAuthenticated
+from flask_webapi.authentication import BaseAuthenticator
+from flask_webapi.permissions import BasePermission, IsAuthenticated
 from unittest import TestCase
 
 
@@ -24,7 +24,7 @@ class TestView(TestCase):
         self.assertEqual(response.status_code, 204)
 
     def test_permission_denied(self):
-        class Denied(PermissionBase):
+        class Denied(BasePermission):
             def has_permission(self):
                 return False
 
@@ -49,6 +49,6 @@ class TestView(TestCase):
         self.assertEqual(response.status_code, 401)
 
 
-class Authenticator(AuthenticatorBase):
+class Authenticator(BaseAuthenticator):
     def authenticate(self):
         return 'user1', '1234'

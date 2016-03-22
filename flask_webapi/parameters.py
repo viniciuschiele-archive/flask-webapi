@@ -18,7 +18,7 @@ def get_argument_providers():
             'body': BodyProvider()}
 
 
-class ArgumentProvider(metaclass=ABCMeta):
+class BaseArgumentProvider(metaclass=ABCMeta):
     """
     A base class from which all provider classes should inherit.
     """
@@ -31,7 +31,7 @@ class ArgumentProvider(metaclass=ABCMeta):
         """
 
 
-class QueryStringProvider(ArgumentProvider):
+class QueryStringProvider(BaseArgumentProvider):
     """
     Provides arguments from the request's query string.
     """
@@ -39,7 +39,7 @@ class QueryStringProvider(ArgumentProvider):
         return request.args
 
 
-class FormDataProvider(ArgumentProvider):
+class FormDataProvider(BaseArgumentProvider):
     """
     Provides arguments from the request's form.
     """
@@ -47,7 +47,7 @@ class FormDataProvider(ArgumentProvider):
         return request.form
 
 
-class HeaderProvider(ArgumentProvider):
+class HeaderProvider(BaseArgumentProvider):
     """
     Provides arguments from the request's headers.
     """
@@ -55,7 +55,7 @@ class HeaderProvider(ArgumentProvider):
         return request.headers
 
 
-class CookieProvider(ArgumentProvider):
+class CookieProvider(BaseArgumentProvider):
     """
     Provides arguments from the request's cookies.
     """
@@ -63,7 +63,7 @@ class CookieProvider(ArgumentProvider):
         return request.cookies
 
 
-class BodyProvider(ArgumentProvider):
+class BodyProvider(BaseArgumentProvider):
     """
     Provides arguments from the request's body.
     """

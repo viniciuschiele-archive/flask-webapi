@@ -31,7 +31,7 @@ def exception_handler(view, e):
     return {'errors': message.denormalize()}, message.status_code
 
 
-class ViewBase(metaclass=ABCMeta):
+class BaseView(metaclass=ABCMeta):
     """
     A base class from which all view classes should inherit.
     """
@@ -40,16 +40,29 @@ class ViewBase(metaclass=ABCMeta):
     def dispatch(self, context, *args, **kwargs):
         try:
             self.context = context
-
-            self._authenticate()
-            self._check_permission()
-            self._parse_arguments(kwargs)
-
-            response = self.context.func(self, *args, **kwargs)
-
-            return self._make_response(response, use_serializer=True)
+            return self._handle_request()
         except Exception as e:
             return self._handle_exception(e)
+
+    def _handle_request(self, *args, **kwargs):
+        self._authenticate()
+        self._check_permission()
+        self._parse_arguments(kwargs)
+
+        response = self.context.func(self, *args, **kwargs)
+
+        return self._make_response(response, use_serializer=True)
+
+    def _handle_exception(self, e):
+        """
+        Handles any error that occurs, giving the opportunity for
+        custom error handling by user code.
+        :param Exception e: The exception.
+        :return: A response.
+        """
+        response = self.context.exception_handler(self, e)
+
+        return self._make_response(response, force_renderer=True)
 
     def _authenticate(self):
         """
@@ -211,17 +224,6 @@ class ViewBase(metaclass=ABCMeta):
             data.headers.extend(headers)
 
         return data
-
-    def _handle_exception(self, e):
-        """
-        Handles any error that occurs, giving the opportunity for
-        custom error handling by user code.
-        :param Exception e: The exception.
-        :return: A response.
-        """
-        response = self.context.exception_handler(self, e)
-
-        return self._make_response(response, force_renderer=True)
 
 
 class ViewContext(object):

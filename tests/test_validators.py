@@ -10,7 +10,7 @@ class TestErrorMessages(TestCase):
         error message, then raise an appropriate assertion error.
         """
 
-        class FailValidator(validators.ValidatorBase):
+        class FailValidator(validators.BaseValidator):
             def __call__(self):
                 self._fail('incorrect')
 

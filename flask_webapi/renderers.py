@@ -9,7 +9,7 @@ from flask import json
 from .utils.mimetypes import MimeType
 
 
-class RendererBase(metaclass=ABCMeta):
+class BaseRenderer(metaclass=ABCMeta):
     """
     Base class for all renderers.
     """
@@ -26,7 +26,7 @@ class RendererBase(metaclass=ABCMeta):
         """
 
 
-class JSONRenderer(RendererBase):
+class JSONRenderer(BaseRenderer):
     """
     Renderer which render into JSON.
     """
@@ -64,7 +64,7 @@ class JSONRenderer(RendererBase):
             return None
 
 
-class PickleRenderer(RendererBase):
+class PickleRenderer(BaseRenderer):
     """
     Renderer which render into Pickle binary.
     """

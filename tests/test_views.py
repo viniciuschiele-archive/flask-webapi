@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_webapi import WebAPI, ViewBase
+from flask_webapi import WebAPI, BaseView
 from flask_webapi.decorators import route
 from unittest import TestCase
 
@@ -29,7 +29,7 @@ class TestView(TestCase):
 
     def test_view_with_prefix(self):
         @route('/prefix')
-        class View(ViewBase):
+        class View(BaseView):
             @route('/view')
             def get(self):
                 pass

@@ -12,7 +12,7 @@ MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key
                         'not exist in the `error_messages` dictionary.'
 
 
-class ValidatorBase(object):
+class BaseValidator(object):
     """
     A base class from which all validator should inherit.
 
@@ -47,7 +47,7 @@ class ValidatorBase(object):
             raise AssertionError(message)
 
 
-class EmailValidator(ValidatorBase):
+class EmailValidator(BaseValidator):
     """
     Validator which validates an email address.
 
@@ -96,7 +96,7 @@ class EmailValidator(ValidatorBase):
         self._fail('invalid')
 
 
-class LengthValidator(ValidatorBase):
+class LengthValidator(BaseValidator):
     """
     Validator which succeeds if the value passed to it has a length between a minimum and maximum.
 
@@ -138,7 +138,7 @@ class LengthValidator(ValidatorBase):
             self._fail('max_length', max_length=self.max_length)
 
 
-class RangeValidator(ValidatorBase):
+class RangeValidator(BaseValidator):
     """
     Validator which succeeds if the value it is passed is greater
     or equal to ``min_value`` and less than or equal to ``max_value``.

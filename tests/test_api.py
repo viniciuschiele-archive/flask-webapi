@@ -1,7 +1,7 @@
 import inspect
 
 from flask import Flask
-from flask_webapi import WebAPI, ViewBase
+from flask_webapi import WebAPI, BaseView
 from flask_webapi.decorators import route
 from unittest import TestCase
 
@@ -83,7 +83,7 @@ class TestWebAPI(TestCase):
         self.assertEqual(response.status_code, 204)
 
 
-class View(ViewBase):
+class View(BaseView):
     @route('/view')
     def view(self):
         pass

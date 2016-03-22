@@ -1,2 +1,2 @@
 from .api import WebAPI
-from .views import ViewBase
+from .views import BaseView

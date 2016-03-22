@@ -9,10 +9,8 @@ from .utils import dateparse, formatting, html, missing, timezone
 from .validators import LengthValidator, RangeValidator
 
 
-MISSING_ERROR_MESSAGE = (
-    'ValidationError raised by `{class_name}`, but error key `{key}` does '
-    'not exist in the `error_messages` dictionary.'
-)
+MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key `{key}` does ' \
+                        'not exist in the `error_messages` dictionary.'
 
 
 class Field(object):

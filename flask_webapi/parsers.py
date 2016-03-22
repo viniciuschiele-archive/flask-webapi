@@ -9,7 +9,7 @@ from .exceptions import ParseError
 from .utils.mimetypes import MimeType
 
 
-class ParserBase(metaclass=ABCMeta):
+class BaseParser(metaclass=ABCMeta):
     """
     Base class for all parsers.
     """
@@ -26,7 +26,7 @@ class ParserBase(metaclass=ABCMeta):
         """
 
 
-class JSONParser(ParserBase):
+class JSONParser(BaseParser):
     """
     Parses JSON data into Python object.
     """
@@ -48,7 +48,7 @@ class JSONParser(ParserBase):
             raise ParseError('JSON parse error: ' + str(e))
 
 
-class FormDataParser(ParserBase):
+class FormDataParser(BaseParser):
     """
     Parses JSON data into Python object.
     """

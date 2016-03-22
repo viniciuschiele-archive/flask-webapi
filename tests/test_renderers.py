@@ -3,7 +3,7 @@ import pickle
 from flask import Flask, json
 from flask_webapi import WebAPI
 from flask_webapi.decorators import route, renderer
-from flask_webapi.renderers import RendererBase, JSONRenderer, PickleRenderer
+from flask_webapi.renderers import BaseRenderer, JSONRenderer, PickleRenderer
 from flask_webapi.utils.mimetypes import MimeType
 from unittest import TestCase
 
@@ -14,13 +14,13 @@ class TestRenderer(TestCase):
         self.api = WebAPI(self.app)
         self.client = self.app.test_client()
 
-        class RendererA(RendererBase):
+        class RendererA(BaseRenderer):
             mimetype = MimeType.parse('application/renderera')
 
             def render(self, data, mimetype):
                 return 'RendererA'.encode()
 
-        class RendererB(RendererBase):
+        class RendererB(BaseRenderer):
             mimetype = MimeType.parse('application/rendererb')
 
             def render(self, data, mimetype):

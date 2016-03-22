@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from flask import request
 
 
-class PermissionBase(metaclass=ABCMeta):
+class BasePermission(metaclass=ABCMeta):
     """
     A base class from which all permission classes should inherit.
     """
@@ -18,7 +18,7 @@ class PermissionBase(metaclass=ABCMeta):
         """
 
 
-class AllowAny(PermissionBase):
+class AllowAny(BasePermission):
     """
     Allow any access.
     This isn't strictly required, since you could use an empty
@@ -30,7 +30,7 @@ class AllowAny(PermissionBase):
         return True
 
 
-class IsAuthenticated(PermissionBase):
+class IsAuthenticated(BasePermission):
     """
     Allows access only to authenticated users.
     """
