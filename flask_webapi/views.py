@@ -40,7 +40,7 @@ class BaseView(metaclass=ABCMeta):
     def dispatch(self, context, *args, **kwargs):
         try:
             self.context = context
-            return self._handle_request()
+            return self._handle_request(*args, **kwargs)
         except Exception as e:
             return self._handle_exception(e)
 
