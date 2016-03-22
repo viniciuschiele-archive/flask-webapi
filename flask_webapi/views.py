@@ -1,21 +1,20 @@
 """
-Provides a ViewBase class that is the base of all views in Flask WebAPI.
+Provides a BaseView class that is the base of all views in Flask WebAPI.
 """
 
-import inspect
 
 from abc import ABCMeta
 from flask import request, current_app
 from werkzeug.exceptions import HTTPException
 from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
 from .serializers import Serializer
-from .utils import missing, unpack
+from .utils import missing, unpack, reflect
 
 
 def exception_handler(view, e):
     """
     Handles a specific error, by returning an appropriate response.
-    :param ViewBase view: The view which raised the exception.
+    :param BaseView view: The view which raised the exception.
     :param Exception e: The exception.
     :return: A response
     """
@@ -244,10 +243,8 @@ class ViewContext(object):
         self.exception_handler = api.exception_handler
         self.argument_providers = api.argument_providers
 
-        func_args = inspect.getargspec(func).args
-        if len(func_args) == 0 or func_args[0] != 'self':
-            f = self.func
-            self.func = lambda _, *args, **kwargs: f(*args, **kwargs)
+        if not reflect.has_self_argument(func):
+            self.func = reflect.func_to_method(func)
 
     def __get_value(self, attribute_name):
         value = getattr(self.api, attribute_name, None)

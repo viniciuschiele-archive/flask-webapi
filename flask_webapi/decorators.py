@@ -7,7 +7,7 @@ import inspect
 
 def authenticator(*args, override=True):
     """
-    A decorator that apply a list of authenticators to the view or action.
+    A decorator that apply a list of authenticators to the view.
 
     :param args: A list of authenticators.
     :param bool override: True to override the authenticators inherited.
@@ -22,7 +22,7 @@ def authenticator(*args, override=True):
 
 def permission(*args, override=True):
     """
-    A decorator that apply a list of permissions to the view or action.
+    A decorator that apply a list of permissions to the view.
 
     :param args: A list of permissions.
     :param bool override: True to override the permissions inherited.
@@ -40,7 +40,7 @@ def content_negotiator(negotiator):
     """
     A decorator that apply a content negotiator to the view.
 
-    :param ContentNegotiatorBase negotiator: A class of content negotiator.
+    :param BaseContentNegotiator negotiator: A class of content negotiator.
     :return: A function.
     """
     def decorator(func):
@@ -67,7 +67,7 @@ def parser(*args, override=True):
 
 def renderer(*args, override=True):
     """
-    A decorator that apply a list of renderers to the view or action.
+    A decorator that apply a list of renderers to the view.
     :param args: A list of renderers.
     :param bool override: True to override the renderers inherited.
     :return: A function.
@@ -114,7 +114,7 @@ def serializer(cls_or_instance, many=False, envelope=None):
 
 def route(url, endpoint=None, methods=None):
     """
-    A decorator that apply a route to the view or action.
+    A decorator that apply a route to the view.
     :param str url: The url rule.
     :param str endpoint: The endpoint.
     :param list methods: A list of http methods.
@@ -132,7 +132,7 @@ def route(url, endpoint=None, methods=None):
 
 def exception_handler(handler):
     """
-    A decorator that apply error handling to the view or action.
+    A decorator that apply error handling to the view.
     :param handler: A callable object.
     :return: A function.
     """
