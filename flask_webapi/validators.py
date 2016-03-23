@@ -3,6 +3,7 @@ Provides various validators.
 """
 
 import re
+import uuid
 
 from abc import ABCMeta
 from .exceptions import ValidationError
@@ -162,3 +163,20 @@ class RangeValidator(BaseValidator):
 
         if self.max_value is not None and value > self.max_value:
             self._fail('max_value', max_value=self.max_value)
+
+
+class UUIDValidator(BaseValidator):
+    """
+    Validator which succeeds if the value is an UUID.
+    :param dict error_messages: The error messages for various kinds of errors.
+    """
+
+    default_error_messages = {
+        'invalid': 'Not a valid uuid.'
+    }
+
+    def __call__(self, value):
+        try:
+            uuid.UUID(hex=value)
+        except (AttributeError, ValueError):
+            self._fail('invalid', value=value)

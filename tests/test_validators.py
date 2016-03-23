@@ -142,3 +142,18 @@ class TestRangeValidator(TestCase, ValidatorValues):
     ]
 
     validator = validators.RangeValidator(min_value=3, max_value=5)
+
+
+class TestUUIDValidator(TestCase, ValidatorValues):
+    valid_inputs = [
+        '825d7aeb-05a9-45b5-a5b7-05df87923cda',
+        '825d7aeb05a945b5a5b705df87923cda',
+    ]
+
+    invalid_inputs = [
+        '825d7aeb-05a9-45b5-a5b7',
+        (1, 2, 3),
+        123,
+    ]
+
+    validator = validators.UUIDValidator()
