@@ -1,5 +1,5 @@
 """
-Provides various decorators to set up the views and actions.
+Provides various decorators to set up the views.
 """
 
 import inspect
@@ -7,10 +7,9 @@ import inspect
 
 def authenticator(*args, override=True):
     """
-    A decorator that apply a list of authenticators to the view.
-
+    A decorator that apply a list of authenticators to the view or action.
     :param args: A list of authenticators.
-    :param bool override: True to override the authenticators inherited.
+    :param bool override: If set to `True` the authenticators inherited are overridden.
     :return: A function.
     """
     def decorator(func):
@@ -22,10 +21,10 @@ def authenticator(*args, override=True):
 
 def permission(*args, override=True):
     """
-    A decorator that apply a list of permissions to the view.
+    A decorator that apply a list of permissions to the view or action.
 
     :param args: A list of permissions.
-    :param bool override: True to override the permissions inherited.
+    :param bool override: If set to `True` the permissions inherited are overridden.
     :return: A function.
     """
 
@@ -38,8 +37,7 @@ def permission(*args, override=True):
 
 def content_negotiator(negotiator):
     """
-    A decorator that apply a content negotiator to the view.
-
+    A decorator that apply a content negotiator to the view or action.
     :param BaseContentNegotiator negotiator: A class of content negotiator.
     :return: A function.
     """
@@ -51,13 +49,11 @@ def content_negotiator(negotiator):
 
 def parser(*args, override=True):
     """
-    A decorator that apply a list of parsers to the view.
-
+    A decorator that apply a list of parsers to the view or action.
     :param args: A list of parsers.
-    :param bool override: True to override the parsers inherited.
+    :param bool override: If set to `True` the parsers inherited are overridden.
     :return: A function.
     """
-
     def decorator(func):
         func.parsers = [item() if inspect.isclass(item) else item for item in args]
         func.parsers_override = override
@@ -67,12 +63,11 @@ def parser(*args, override=True):
 
 def renderer(*args, override=True):
     """
-    A decorator that apply a list of renderers to the view.
+    A decorator that apply a list of renderers to the view or action.
     :param args: A list of renderers.
-    :param bool override: True to override the renderers inherited.
+    :param bool override: If set to `True` the renderers inherited are overridden.
     :return: A function.
     """
-
     def decorator(func):
         func.renderers = [item() if inspect.isclass(item) else item for item in args]
         func.renderers_override = override
@@ -81,6 +76,13 @@ def renderer(*args, override=True):
 
 
 def param(name, field, location=None):
+    """
+    A decorator that apply a argument parser to the action.
+    :param str name: The name of the parameter.
+    :param Field field: The field used to fill the parameter.
+    :param str location: Where to retrieve the values.
+    :return: A function.
+    """
     def decorator(func):
         params = getattr(func, 'params', None)
         if params is None:
@@ -93,17 +95,16 @@ def param(name, field, location=None):
     return decorator
 
 
-def serializer(cls_or_instance, many=False, envelope=None):
+def serializer(ser, many=False, envelope=None):
     """
-    A decorator that apply marshalling to the return value from the action.
-    :param Serializer cls_or_instance: The serializer class used to serialize the values.
-    :param bool many: `True` if ``obj`` is a collection so that the object will be serialized to a list.
+    A decorator that apply a serializer to the action.
+    :param Serializer ser: The serializer used to serialize the data.
+    :param bool many: If set to `True` the object will be serialized to a list.
     :param str envelope: The key used to envelope the data.
     :return: A function.
     """
-
     def decorator(func):
-        func.serializer = cls_or_instance() if inspect.isclass(cls_or_instance) else cls_or_instance
+        func.serializer = ser() if inspect.isclass(ser) else ser
         func.serializer_args = {
             'many': many,
             'envelope': envelope
@@ -114,13 +115,12 @@ def serializer(cls_or_instance, many=False, envelope=None):
 
 def route(url, endpoint=None, methods=None):
     """
-    A decorator that apply a route to the view.
+    A decorator that apply a route to the view or action.
     :param str url: The url rule.
     :param str endpoint: The endpoint.
     :param list methods: A list of http methods.
     :return: A function.
     """
-
     def decorator(func):
         routes = getattr(func, 'routes', None)
         if not routes:
@@ -129,15 +129,3 @@ def route(url, endpoint=None, methods=None):
         return func
     return decorator
 
-
-def exception_handler(handler):
-    """
-    A decorator that apply error handling to the view.
-    :param handler: A callable object.
-    :return: A function.
-    """
-
-    def decorator(func):
-        func.exception_handler = handler
-        return func
-    return decorator

@@ -4,6 +4,7 @@ Provides various validators.
 
 import re
 
+from abc import ABCMeta
 from .exceptions import ValidationError
 from .utils.formatting import format_error_message
 
@@ -12,10 +13,9 @@ MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key
                         'not exist in the `error_messages` dictionary.'
 
 
-class BaseValidator(object):
+class BaseValidator(metaclass=ABCMeta):
     """
-    A base class from which all validator should inherit.
-
+    A base class from which all validator classes should inherit.
     :param dict error_messages: The error messages for various kinds of errors.
     """
 
@@ -31,7 +31,6 @@ class BaseValidator(object):
     def _fail(self, key, **kwargs):
         """
         Raises a `ValidationError`.
-
         :param key: The key message to be fetched.
         :param kwargs: The kwargs used to replace the messages token.
         """
@@ -50,7 +49,6 @@ class BaseValidator(object):
 class EmailValidator(BaseValidator):
     """
     Validator which validates an email address.
-
     :param dict error_messages: The error messages for various kinds of errors.
     """
 
@@ -141,8 +139,7 @@ class LengthValidator(BaseValidator):
 class RangeValidator(BaseValidator):
     """
     Validator which succeeds if the value it is passed is greater
-    or equal to ``min_value`` and less than or equal to ``max_value``.
-
+    or equal to `min_value` and less than or equal to `max_value`.
     :param min_value: The minimum value (lower bound). If not provided, minimum value will not be checked.
     :param max_value: The maximum value (upper bound). If not provided, maximum value will not be checked.
     :param dict error_messages: The error messages for various kinds of errors.

@@ -18,7 +18,7 @@ class BaseContentNegotiator(metaclass=ABCMeta):
         """
         Selects the appropriated parser for the given request.
         :param parsers: The lists of parsers.
-        :return: The parser selected or raise an exception.
+        :return: The parser selected or raise `UnsupportedMediaType`.
         """
 
     @abstractmethod
@@ -26,7 +26,7 @@ class BaseContentNegotiator(metaclass=ABCMeta):
         """
         Selects the appropriated renderer for the given request.
         :param renderers: The lists of renderers.
-        :return: The renderer selected or raise an exception.
+        :return: The renderer selected or raise `NotAcceptable`.
         """
 
 
@@ -38,9 +38,9 @@ class DefaultContentNegotiator(BaseContentNegotiator):
 
     def select_parser(self, parsers):
         """
-        Selects the appropriated parser which matches to the request's content type.
+        Selects the appropriated parser that matches to the request's content type.
         :param parsers: The lists of parsers.
-        :return: The parser selected or raise an exception.
+        :return: The parser selected or raise `UnsupportedMediaType`.
         """
         mimetype = MimeType.parse(request.content_type)
 
@@ -52,9 +52,9 @@ class DefaultContentNegotiator(BaseContentNegotiator):
 
     def select_renderer(self, renderers):
         """
-        Selects the appropriated parser which matches to the request's accept.
+        Selects the appropriated parser that matches to the request's accept header.
         :param renderers: The lists of parsers.
-        :return: The parser selected or raise an exception.
+        :return: The parser selected or raise `NotAcceptable`.
         """
         for mimetype in self._get_accept_list():
             accept_mimetype = MimeType.parse(mimetype)

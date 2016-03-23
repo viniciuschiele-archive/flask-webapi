@@ -1,5 +1,5 @@
 """
-Providers used to obtain the data for the parameters.
+Argument provider obtains the data for the parameters.
 """
 
 from abc import ABCMeta, abstractmethod
@@ -23,53 +23,54 @@ class BaseArgumentProvider(metaclass=ABCMeta):
     A base class from which all provider classes should inherit.
     """
     @abstractmethod
-    def get_data(self, context):
+    def get_data(self):
         """
-        Returns a `dict`.
-        :param ViewContext context:
-        :return dict:
+        Returns the arguments as `dict`.
+        :return dict: The `dict` containing the arguments.
         """
 
 
 class QueryStringProvider(BaseArgumentProvider):
     """
-    Provides arguments from the request's query string.
+    Provides arguments from the request query string.
     """
-    def get_data(self, context):
+    def get_data(self):
         return request.args
 
 
 class FormDataProvider(BaseArgumentProvider):
     """
-    Provides arguments from the request's form.
+    Provides arguments from the request form.
     """
-    def get_data(self, context):
+    def get_data(self):
         return request.form
 
 
 class HeaderProvider(BaseArgumentProvider):
     """
-    Provides arguments from the request's headers.
+    Provides arguments from the request headers.
     """
-    def get_data(self, context):
+    def get_data(self):
         return request.headers
 
 
 class CookieProvider(BaseArgumentProvider):
     """
-    Provides arguments from the request's cookies.
+    Provides arguments from the request cookies.
     """
-    def get_data(self, context):
+    def get_data(self):
         return request.cookies
 
 
 class BodyProvider(BaseArgumentProvider):
     """
-    Provides arguments from the request's body.
+    Provides arguments from the request body.
     """
-    def get_data(self, context):
-        negotiator = context.content_negotiator
-        parsers = context.parsers
+    def get_data(self):
+        action = request.action
+
+        negotiator = action.content_negotiator
+        parsers = action.parsers
 
         parser, mimetype = negotiator.select_parser(parsers)
 

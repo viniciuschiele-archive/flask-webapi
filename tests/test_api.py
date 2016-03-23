@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_webapi import WebAPI, BaseView
+from flask_webapi import WebAPI, View
 from flask_webapi.decorators import route
 from unittest import TestCase
 
@@ -12,7 +12,7 @@ class TestWebAPI(TestCase):
 
     def test_add_view_after_init_app(self):
         self.api.init_app(self.app)
-        self.api.add_view(View)
+        self.api.add_view(FakeView)
         self.api.add_view(view_func)
 
         response = self.client.get('/view')
@@ -22,7 +22,7 @@ class TestWebAPI(TestCase):
         self.assertEqual(response.status_code, 204)
 
     def test_add_view_before_init_app(self):
-        self.api.add_view(View)
+        self.api.add_view(FakeView)
         self.api.add_view(view_func)
         self.api.init_app(self.app)
 
@@ -41,14 +41,20 @@ class TestWebAPI(TestCase):
         class InvalidView(object):
             pass
 
+        self.api.add_view(invalid_view)
+
         with self.assertRaises(TypeError):
             self.api.add_view(attr_view)
 
         with self.assertRaises(TypeError):
-            self.api.add_view(invalid_view)
-
-        with self.assertRaises(TypeError):
             self.api.add_view(InvalidView)
+
+    def test_add_same_view_multiple_times(self):
+        self.api.add_view(FakeView)
+        self.api.add_view(FakeView)
+
+        with self.assertRaises(AssertionError):
+            self.api.init_app(self.app)
 
     def test_scan_views_with_string_package(self):
         self.api.scan_views('tests', 'test_api')
@@ -70,25 +76,12 @@ class TestWebAPI(TestCase):
         response = self.client.get('/view_func')
         self.assertEqual(response.status_code, 204)
 
-    def test_scan_views_with_recursive_true(self):
-        self.api.scan_views('tests', 'test_api', recursive=True)
-        self.api.init_app(self.app)
-
-        response = self.client.get('/view')
-        self.assertEqual(response.status_code, 204)
-
-        response = self.client.get('/view_func')
-        self.assertEqual(response.status_code, 204)
-
     def test_scan_views_with_invalid_module(self):
         with self.assertRaises(ImportError):
             self.api.scan_views('tests', 'module_not_found')
 
-    def test_scan_views_with_silent_true(self):
-        self.api.scan_views('tests', 'module_not_found', silent=True)
 
-
-class View(BaseView):
+class FakeView(View):
     @route('/view')
     def view(self):
         pass

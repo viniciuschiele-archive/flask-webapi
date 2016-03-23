@@ -11,7 +11,7 @@ from .utils.mimetypes import MimeType
 
 class BaseParser(metaclass=ABCMeta):
     """
-    Base class for all parsers.
+    A base class from which all parser classes should inherit.
     """
 
     mimetype = None
@@ -19,7 +19,7 @@ class BaseParser(metaclass=ABCMeta):
     @abstractmethod
     def parse(self, stream, mimetype):
         """
-        Parses the given data and returns a Python object.
+        Parses the given stream and returns a Python object.
         :param stream: The stream containing the data to be parsed.
         :param mimetype: The mimetype to parse the data.
         :return: A Python object

@@ -85,6 +85,9 @@ class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
 
     def __init__(self, message, **kwargs):
+        # if `message` is a dict the key is
+        # the name of the field and the value is
+        # actual message.
         if isinstance(message, dict):
             result = {}
 
@@ -111,8 +114,12 @@ class ValidationError(APIException):
 
                 result.append(msg)
 
-            self.message = result[0].message if len(result) == 1 else result
-            self.kwargs = result[0].kwargs if len(result) == 1 else {}
+            if len(result) == 1:
+                self.message = result[0].message
+                self.kwargs = result[0].kwargs
+            else:
+                self.message = result
+                self.kwargs = {}
 
         else:
             self.message = str(message)

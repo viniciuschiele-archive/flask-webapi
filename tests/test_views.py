@@ -1,5 +1,6 @@
 from flask import Flask
-from flask_webapi import WebAPI, BaseView
+from flask_webapi import WebAPI
+from flask_webapi.views import View
 from flask_webapi.decorators import route
 from unittest import TestCase
 
@@ -23,39 +24,40 @@ class TestView(TestCase):
         def view():
             pass
         self.api.add_view(view)
+
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data, b'')
 
-    def test_view_with_prefix(self):
-        @route('/prefix')
-        class View(BaseView):
-            @route('/view')
-            def get(self):
-                pass
-
-        self.api.add_view(View)
-        response = self.client.get('/prefix/view')
-        self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.data, b'')
-
-    def test_view_return_status_code(self):
+    def test_view_returning_status_code(self):
         @route('/view')
         def view():
             return None, 201
-
         self.api.add_view(view)
+
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, b'')
 
-    def test_view_return_headers(self):
+    def test_view_returning_headers(self):
         @route('/view')
         def view():
             return None, None, {'my_header': 'value1'}
-
         self.api.add_view(view)
+
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data, b'')
         self.assertEqual(response.headers['my_header'], 'value1')
+
+    def test_class_based_view_with_prefix(self):
+        @route('/prefix')
+        class FakeView(View):
+            @route('/view')
+            def get(self):
+                pass
+        self.api.add_view(FakeView)
+
+        response = self.client.get('/prefix/view')
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.data, b'')
