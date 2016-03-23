@@ -360,35 +360,6 @@ class DecimalField(Field):
         return value
 
 
-class DictField(Field):
-    default_error_messages = {
-        'not_a_dict': 'Expected a dictionary of items but got type "{input_type}".'
-    }
-
-    def __init__(self, child, *args, **kwargs):
-        super(DictField, self).__init__(*args, **kwargs)
-        self.child = child() if isinstance(child, type) else child
-
-    def _load(self, value):
-        """
-        Dicts of native values <- Dicts of primitive datatypes.
-        """
-        if not isinstance(value, dict):
-            self._fail('not_a_dict', input_type=type(value).__name__)
-
-        return {
-            str(key): self.child.load(val) for key, val in value.items()
-            }
-
-    def _dump(self, value):
-        """
-        List of object instances -> List of dicts of primitive datatypes.
-        """
-        return {
-            str(key): self.child.dump(val) for key, val in value.items()
-            }
-
-
 class EnumField(Field):
     """
     A field that provides a set of enumerated values which an attribute must be constrained to.

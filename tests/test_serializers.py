@@ -887,23 +887,6 @@ class TestMinMaxDecimalField(TestCase, FieldValues):
     field = serializers.DecimalField(max_digits=3, decimal_places=1, min_value=10, max_value=20)
 
 
-class TestDictField(TestCase, FieldValues):
-    """
-    Values for `ListField` with StringField as child.
-    """
-    valid_inputs = [
-        ({'a': 1, 'b': '2', 3: 3}, {'a': '1', 'b': '2', '3': '3'}),
-    ]
-    invalid_inputs = [
-        ({'a': 1, 'b': None}, 'This field may not be null.'),
-        ('not a dict', 'Expected a dictionary of items but got type "str".'),
-    ]
-    outputs = [
-        ({'a': 1, 'b': '2', 3: 3}, {'a': '1', 'b': '2', '3': '3'}),
-    ]
-    field = serializers.DictField(child=serializers.StringField())
-
-
 class TestIntegerField(TestCase, FieldValues):
     """
     Valid and invalid values for `IntegerField`.
