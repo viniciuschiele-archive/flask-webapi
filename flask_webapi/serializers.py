@@ -153,7 +153,7 @@ class Field(object):
 
 class BooleanField(Field):
     default_error_messages = {
-        'invalid': '"{input}" is not a valid boolean.'
+        'invalid': '"{value}" is not a valid boolean.'
     }
 
     TRUE_VALUES = {'t', 'T', 'true', 'True', 'TRUE', '1', 1, True}
@@ -167,7 +167,7 @@ class BooleanField(Field):
                 return False
         except TypeError:
             pass
-        self._fail('invalid', input=value)
+        self._fail('invalid', value=value)
 
     def _dump(self, value):
         if value is None:
@@ -389,6 +389,53 @@ class DictField(Field):
             }
 
 
+class EnumField(Field):
+    """
+    A field that provides a set of enumerated values which an attribute must be constrained to.
+    """
+
+    default_error_messages = {
+        'invalid': '"{value}" is not a valid choice.'
+    }
+
+    def __init__(self, enum_type, **kwargs):
+        super().__init__(**kwargs)
+        self.enum_type = enum_type
+
+        # we get the type of the first member
+        # to convert the input value to this format.
+        # if we don't convert it will raise an
+        # exception if the input value type is not the
+        # same as member type.
+        self.member_type = type(list(self.enum_type)[0].value)
+
+    def _load(self, value):
+        try:
+            if type(value) is self.enum_type:
+                return value
+
+            # converts the input value to make sure
+            # it is the same type as the member's type
+            member_value = self.member_type(value)
+
+            return self.enum_type(member_value)
+        except (ValueError, TypeError):
+            self._fail('invalid', value=value)
+
+    def _dump(self, value):
+        if value is None:
+            return None
+
+        if type(value) is self.enum_type:
+            return value.value
+
+        # converts the input value to make sure
+        # it is the same type as the member's type
+        value = self.member_type(value)
+
+        return self.enum_type(value).value
+
+
 class IntegerField(Field):
     default_error_messages = {
         'invalid': 'A valid integer is required.',
@@ -559,6 +606,8 @@ class UUIDField(Field):
             self._fail('invalid', value=value)
 
     def _dump(self, value):
+        if value is None:
+            return None
         return str(value)
 
 
