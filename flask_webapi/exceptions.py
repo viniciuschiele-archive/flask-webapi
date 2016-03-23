@@ -76,11 +76,6 @@ class APIException(Exception):
         return errors
 
 
-class BadRequest(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_message = 'Bad request.'
-
-
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
 

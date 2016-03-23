@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_webapi import WebAPI
-from flask_webapi.exceptions import BadRequest, NotFound
+from flask_webapi.exceptions import NotFound, ValidationError
 from flask_webapi.decorators import route, param, serializer
 from flask_webapi.serializers import Serializer, StringField, IntegerField
 
@@ -35,7 +35,7 @@ users = [
 @serializer(UserSerializer)
 def add_user(user):
     if any([db_user for db_user in users if db_user.username == user.username]):
-        raise BadRequest('User already exists: ' + user.username)
+        raise ValidationError('User already exists: ' + user.username)
 
     users.append(user)
     return user
