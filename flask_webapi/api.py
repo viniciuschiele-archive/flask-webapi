@@ -3,6 +3,8 @@ Provides the main class for Flask WebAPI.
 """
 
 import inspect
+import pkgutil
+import os
 
 from werkzeug.utils import import_string
 from .negotiation import DefaultContentNegotiator
@@ -84,28 +86,27 @@ class WebAPI(object):
         """
         self.app = app
 
-        # gets all the module paths from the config
-        # and import them to register its views.
-        modules = self.app.config.get('WEBAPI_MODULES')
-        if modules:
-            self.scan_views(modules)
-
         # register all views added before the initialization
         if self._routes:
             self._register_routes(self._routes)
 
-    def scan_views(self, modules):
+    def scan_views(self, packages, module_name='views', recursive=False, silent=False):
         """
-        Imports the given modules and register its views.
-        :param str|list modules: The path of the modules or the module itself.
+        Imports the given packages and register its views.
+        :param str|list packages: The package names.
+        :param str module_name: The name of the module which contains the views.
+        :param bool recursive: if set to `True` sub packages are scanned.
+        :param bool silent:  if set to `True` import errors are ignored.
         """
-        if not isinstance(modules, (list, tuple)):
-            modules = [modules]
+        if not isinstance(packages, (list, tuple)):
+            packages = [packages]
 
-        for module in modules:
-            if isinstance(module, str):
-                module = import_string(module)
+        for package in packages:
+            module = import_string(package + '.' + module_name, silent=silent)
+            if not module:
+                continue
 
+            # Go through all members to check which one is a view.
             members = inspect.getmembers(module)
 
             for _, member in members:
@@ -113,6 +114,21 @@ class WebAPI(object):
                     self.add_view(member)
                 elif inspect.isclass(member) and issubclass(member, BaseView):
                     self.add_view(member)
+
+            # if recursive False we just skip the sub packages.
+            if not recursive:
+                continue
+
+            # find out the package path
+            package_path = os.path.dirname(module.__file__)
+
+            # walk through all sub packages
+            items = pkgutil.walk_packages([package_path], prefix=package + '.', onerror=lambda x: None)
+
+            # obtain the name of all sub packages
+            sub_packages = [package_name for _, package_name, is_package in items if is_package]
+
+            self.scan_views(sub_packages, silent=True)
 
     def _get_routes(self, view):
         view_routes = getattr(view, 'routes', [])

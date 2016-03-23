@@ -1,5 +1,3 @@
-import inspect
-
 from flask import Flask
 from flask_webapi import WebAPI, BaseView
 from flask_webapi.decorators import route
@@ -52,8 +50,8 @@ class TestWebAPI(TestCase):
         with self.assertRaises(TypeError):
             self.api.add_view(InvalidView)
 
-    def test_scan_views_from_path(self):
-        self.api.scan_views('tests.test_api')
+    def test_scan_views_with_string_package(self):
+        self.api.scan_views('tests', 'test_api')
         self.api.init_app(self.app)
 
         response = self.client.get('/view')
@@ -62,8 +60,8 @@ class TestWebAPI(TestCase):
         response = self.client.get('/view_func')
         self.assertEqual(response.status_code, 204)
 
-    def test_scan_views_from_module(self):
-        self.api.scan_views(inspect.getmodule(TestWebAPI))
+    def test_scan_views_with_list_package(self):
+        self.api.scan_views(['tests'], 'test_api')
         self.api.init_app(self.app)
 
         response = self.client.get('/view')
@@ -72,8 +70,8 @@ class TestWebAPI(TestCase):
         response = self.client.get('/view_func')
         self.assertEqual(response.status_code, 204)
 
-    def test_scan_views_from_config(self):
-        self.app.config['WEBAPI_MODULES'] = ['tests.test_api']
+    def test_scan_views_with_recursive_true(self):
+        self.api.scan_views('tests', 'test_api', recursive=True)
         self.api.init_app(self.app)
 
         response = self.client.get('/view')
@@ -81,6 +79,13 @@ class TestWebAPI(TestCase):
 
         response = self.client.get('/view_func')
         self.assertEqual(response.status_code, 204)
+
+    def test_scan_views_with_invalid_module(self):
+        with self.assertRaises(ImportError):
+            self.api.scan_views('tests', 'module_not_found')
+
+    def test_scan_views_with_silent_true(self):
+        self.api.scan_views('tests', 'module_not_found', silent=True)
 
 
 class View(BaseView):
