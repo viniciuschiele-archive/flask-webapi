@@ -36,4 +36,4 @@ class IsAuthenticated(BasePermission):
     """
 
     def has_permission(self):
-        return hasattr(request, 'user') and request.user is not None
+        return getattr(request, 'user', None) is not None

@@ -1,6 +1,6 @@
 from flask import Flask, request
 from flask_webapi import WebAPI
-from flask_webapi.authentication import BaseAuthenticator
+from flask_webapi.authenticators import BaseAuthenticator
 from flask_webapi.decorators import route, authenticator
 from flask_webapi.exceptions import AuthenticationFailed
 from unittest import TestCase
