@@ -98,12 +98,12 @@ class TestEmailValidator(TestCase, ValidatorValues):
 
 
 class TestLengthValidator(TestCase, ValidatorValues):
-    valid_inputs = (
+    valid_inputs = [
         'abcd',
         (1, 2, 3, 4),
         [1, 2, 3, 4],
         {'1': 1, '2': 2, '3': 3, '4': 4}
-    )
+    ]
 
     invalid_inputs = [
         '1',
@@ -130,15 +130,15 @@ class TestLengthValidator(TestCase, ValidatorValues):
 
 
 class TestRangeValidator(TestCase, ValidatorValues):
-    valid_inputs = (
+    valid_inputs = [
         3,
         4,
-        5
-    )
+        5,
+    ]
 
     invalid_inputs = [
         2,
-        6
+        6,
     ]
 
     validator = validators.RangeValidator(min_value=3, max_value=5)
@@ -157,3 +157,19 @@ class TestUUIDValidator(TestCase, ValidatorValues):
     ]
 
     validator = validators.UUIDValidator()
+
+
+class TestChoiceValidator(TestCase, ValidatorValues):
+    valid_inputs = [
+        1,
+        2,
+        3,
+    ]
+
+    invalid_inputs = [
+        0,
+        4,
+        '1',
+    ]
+
+    validator = validators.ChoiceValidator([1, 2, 3])

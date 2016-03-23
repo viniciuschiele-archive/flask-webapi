@@ -180,3 +180,27 @@ class UUIDValidator(BaseValidator):
             uuid.UUID(hex=value)
         except (AttributeError, ValueError):
             self._fail('invalid', value=value)
+
+
+class ChoiceValidator(BaseValidator):
+    """
+    Validator which succeeds if the `value` is a member of the `choices`.
+
+    :param iterable choices: An array of valid values.
+    :param dict error_messages: The error messages for various kinds of errors.
+    """
+
+    default_error_messages = {
+        'invalid': 'Not a valid choice.'
+    }
+
+    def __init__(self, choices, error_messages=None):
+        super().__init__(error_messages)
+        self.choices = choices
+
+    def __call__(self, value):
+        try:
+            if value not in self.choices:
+                self._fail('invalid', input=value)
+        except TypeError:
+            self._fail('invalid', input=value)
