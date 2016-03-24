@@ -47,6 +47,30 @@ class BaseValidator(metaclass=ABCMeta):
             raise AssertionError(message)
 
 
+class ChoiceValidator(BaseValidator):
+    """
+    Validator which succeeds if the `value` is a member of the `choices`.
+
+    :param iterable choices: An array of valid values.
+    :param dict error_messages: The error messages for various kinds of errors.
+    """
+
+    default_error_messages = {
+        'invalid': 'Not a valid choice.'
+    }
+
+    def __init__(self, choices, error_messages=None):
+        super().__init__(error_messages)
+        self.choices = choices
+
+    def __call__(self, value):
+        try:
+            if value not in self.choices:
+                self._fail('invalid', input=value)
+        except TypeError:
+            self._fail('invalid', input=value)
+
+
 class EmailValidator(BaseValidator):
     """
     Validator which validates an email address.
@@ -165,6 +189,28 @@ class RangeValidator(BaseValidator):
             self._fail('max_value', max_value=self.max_value)
 
 
+class RegexValidator(BaseValidator):
+    """
+    Validator which succeeds if the `value` matches with the regex.
+
+    :param regex: The regular expression string to use. Can also be a compiled regular expression pattern.
+    :param dict error_messages: The error messages for various kinds of errors.
+    """
+
+    default_error_messages = {
+        'invalid': 'This value does not match the required pattern.'
+    }
+
+    def __init__(self, regex, error_messages=None):
+        super().__init__(error_messages)
+        self.regex = regex
+
+    def __call__(self, value):
+        if self.regex.match(value) is None:
+            self._fail('invalid', value=value, regex=self.regex.pattern)
+        return value
+
+
 class UUIDValidator(BaseValidator):
     """
     Validator which succeeds if the value is an UUID.
@@ -180,27 +226,3 @@ class UUIDValidator(BaseValidator):
             uuid.UUID(hex=value)
         except (AttributeError, ValueError):
             self._fail('invalid', value=value)
-
-
-class ChoiceValidator(BaseValidator):
-    """
-    Validator which succeeds if the `value` is a member of the `choices`.
-
-    :param iterable choices: An array of valid values.
-    :param dict error_messages: The error messages for various kinds of errors.
-    """
-
-    default_error_messages = {
-        'invalid': 'Not a valid choice.'
-    }
-
-    def __init__(self, choices, error_messages=None):
-        super().__init__(error_messages)
-        self.choices = choices
-
-    def __call__(self, value):
-        try:
-            if value not in self.choices:
-                self._fail('invalid', input=value)
-        except TypeError:
-            self._fail('invalid', input=value)

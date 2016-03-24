@@ -62,6 +62,22 @@ class ValidatorValues(object):
                 self.validator(input_value)
 
 
+class TestChoiceValidator(TestCase, ValidatorValues):
+    valid_inputs = [
+        1,
+        2,
+        3,
+    ]
+
+    invalid_inputs = [
+        0,
+        4,
+        '1',
+    ]
+
+    validator = validators.ChoiceValidator([1, 2, 3])
+
+
 class TestEmailValidator(TestCase, ValidatorValues):
     valid_inputs = (
         'niceandsimple@example.com',
@@ -144,6 +160,16 @@ class TestRangeValidator(TestCase, ValidatorValues):
     validator = validators.RangeValidator(min_value=3, max_value=5)
 
 
+class TestRegexValidator(ValidatorValues):
+    valid_inputs = [
+        'a9'
+    ]
+    invalid_inputs = [
+        'A9'
+    ]
+    field = validators.RegexValidator(regex='[a-z][0-9]')
+
+
 class TestUUIDValidator(TestCase, ValidatorValues):
     valid_inputs = [
         '825d7aeb-05a9-45b5-a5b7-05df87923cda',
@@ -157,19 +183,3 @@ class TestUUIDValidator(TestCase, ValidatorValues):
     ]
 
     validator = validators.UUIDValidator()
-
-
-class TestChoiceValidator(TestCase, ValidatorValues):
-    valid_inputs = [
-        1,
-        2,
-        3,
-    ]
-
-    invalid_inputs = [
-        0,
-        4,
-        '1',
-    ]
-
-    validator = validators.ChoiceValidator([1, 2, 3])
