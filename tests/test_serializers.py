@@ -218,6 +218,14 @@ class TestPartial(TestCase):
 
 
 class TestOnly(TestCase):
+    def test_only_as_string(self):
+        class Serializer(serializers.Serializer):
+            pass
+
+        with self.assertRaises(AssertionError) as exc_info:
+            Serializer(only='field_1')
+        self.assertEqual(str(exc_info.exception), '`only` has to be a list or tuple')
+
     def test_dump_with_only_fields(self):
         class Serializer(serializers.Serializer):
             field_1 = serializers.IntegerField()
