@@ -164,10 +164,12 @@ class TestRegexValidator(TestCase, ValidatorValues):
     valid_inputs = [
         'a9'
     ]
+
     invalid_inputs = [
         'A9'
     ]
-    field = validators.RegexValidator(regex='[a-z][0-9]')
+    
+    validator = validators.RegexValidator(regex='[a-z][0-9]')
 
 
 class TestUUIDValidator(TestCase, ValidatorValues):
