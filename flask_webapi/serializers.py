@@ -494,7 +494,19 @@ class ListField(Field):
         if not self.allow_empty and len(value) == 0:
             self._fail('empty')
 
-        return [self.child.load(item) for item in value]
+        result = []
+        errors = {}
+
+        for idx, item in enumerate(value):
+            try:
+                result.append(self.child.load(item))
+            except ValidationError as e:
+                errors[idx] = e
+
+        if errors:
+            raise ValidationError(errors)
+
+        return result
 
     def _dump(self, value):
         """

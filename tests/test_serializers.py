@@ -1007,7 +1007,7 @@ class TestListField(TestCase, FieldValues):
     ]
     invalid_inputs = [
         ('not a list', 'Expected a list of items but got type "str".'),
-        ([1, 2, 'error'], 'A valid integer is required.'),
+        ([1, 2, 'error'], {2: [ValidationError('A valid integer is required.')]}),
         ({'one': 'two'}, 'Expected a list of items but got type "dict".')
     ]
     outputs = [
