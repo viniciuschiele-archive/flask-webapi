@@ -1,8 +1,13 @@
 import datetime
 import uuid
 
+# PyPy does no support Enum
+try:
+    from enum import Enum
+except ImportError:
+    Enum = None
+
 from decimal import Decimal
-from enum import Enum
 from flask import Flask, json
 from flask_webapi import WebAPI, serializers
 from flask_webapi.decorators import route, serializer
@@ -1098,30 +1103,31 @@ class TestUUIDField(TestCase, FieldValues):
     field = serializers.UUIDField()
 
 
-class TestEnumField(TestCase, FieldValues):
-    """
-    Valid and invalid values for `EnumField`.
-    """
-    class TestEnum(Enum):
-        member1 = 1
-        member2 = 2
+if Enum:
+    class TestEnumField(TestCase, FieldValues):
+        """
+        Valid and invalid values for `EnumField`.
+        """
+        class TestEnum(Enum):
+            member1 = 1
+            member2 = 2
 
-    valid_inputs = {
-        1: TestEnum.member1,
-        2: TestEnum.member2,
-        '1': TestEnum.member1,
-        '2': TestEnum.member2,
-        TestEnum.member2: TestEnum.member2,
-    }
-    invalid_inputs = {
-        0: '"0" is not a valid choice.',
-        3: '"3" is not a valid choice.',
-        '3': '"3" is not a valid choice.',
-    }
-    outputs = {
-        1: 1,
-        2: 2,
-        TestEnum.member2: 2,
-        None: None
-    }
-    field = serializers.EnumField(TestEnum)
+        valid_inputs = {
+            1: TestEnum.member1,
+            2: TestEnum.member2,
+            '1': TestEnum.member1,
+            '2': TestEnum.member2,
+            TestEnum.member2: TestEnum.member2,
+        }
+        invalid_inputs = {
+            0: '"0" is not a valid choice.',
+            3: '"3" is not a valid choice.',
+            '3': '"3" is not a valid choice.',
+        }
+        outputs = {
+            1: 1,
+            2: 2,
+            TestEnum.member2: 2,
+            None: None
+        }
+        field = serializers.EnumField(TestEnum)
