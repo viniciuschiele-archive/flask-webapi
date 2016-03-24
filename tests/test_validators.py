@@ -160,7 +160,7 @@ class TestRangeValidator(TestCase, ValidatorValues):
     validator = validators.RangeValidator(min_value=3, max_value=5)
 
 
-class TestRegexValidator(ValidatorValues):
+class TestRegexValidator(TestCase, ValidatorValues):
     valid_inputs = [
         'a9'
     ]
