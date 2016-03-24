@@ -1,3 +1,5 @@
+import re
+
 from flask_webapi import validators
 from flask_webapi.exceptions import ValidationError
 from unittest import TestCase
@@ -168,8 +170,8 @@ class TestRegexValidator(TestCase, ValidatorValues):
     invalid_inputs = [
         'A9'
     ]
-    
-    validator = validators.RegexValidator(regex='[a-z][0-9]')
+
+    validator = validators.RegexValidator(regex=re.compile('[a-z][0-9]'))
 
 
 class TestUUIDValidator(TestCase, ValidatorValues):
