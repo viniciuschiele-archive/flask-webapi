@@ -96,6 +96,9 @@ class Field(object):
         if value is missing:
             return self.get_default()
 
+        if value is None:
+            return None
+
         return self._dump(value)
 
     def load(self, data):
@@ -170,8 +173,6 @@ class BooleanField(Field):
         self._fail('invalid', value=value)
 
     def _dump(self, value):
-        if value is None:
-            return None
         if value in self.TRUE_VALUES:
             return True
         if value in self.FALSE_VALUES:
@@ -202,9 +203,6 @@ class DateField(Field):
         self._fail('invalid')
 
     def _dump(self, value):
-        if value is None:
-            return None
-
         return value.isoformat()
 
 
@@ -238,9 +236,6 @@ class DateTimeField(Field):
         self._fail('invalid')
 
     def _dump(self, value):
-        if value is None:
-            return None
-
         value = value.isoformat()
         if value.endswith('+00:00'):
             value = value[:-6] + 'Z'
@@ -394,9 +389,6 @@ class EnumField(Field):
             self._fail('invalid', value=value)
 
     def _dump(self, value):
-        if value is None:
-            return None
-
         if type(value) is self.enum_type:
             return value.value
 
@@ -435,8 +427,6 @@ class IntegerField(Field):
             self._fail('invalid')
 
     def _dump(self, value):
-        if value is None:
-            return None
         return int(value)
 
 
@@ -468,8 +458,6 @@ class FloatField(Field):
             self._fail('invalid')
 
     def _dump(self, value):
-        if value is None:
-            return None
         return float(value)
 
 
@@ -557,8 +545,6 @@ class StringField(Field):
         return value
 
     def _dump(self, value):
-        if value is None:
-            return None
         return str(value)
 
 
@@ -577,8 +563,6 @@ class UUIDField(Field):
             self._fail('invalid', value=value)
 
     def _dump(self, value):
-        if value is None:
-            return None
         return str(value)
 
 

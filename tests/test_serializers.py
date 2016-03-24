@@ -857,7 +857,8 @@ class TestDecimalField(TestCase, FieldValues):
         Decimal('1.0'): '1.0',
         Decimal('0.0'): '0.0',
         Decimal('1.09'): '1.1',
-        Decimal('0.04'): '0.0'
+        Decimal('0.04'): '0.0',
+        None: None,
     }
     field = serializers.DecimalField(max_digits=3, decimal_places=1)
 
@@ -1011,7 +1012,8 @@ class TestListField(TestCase, FieldValues):
     ]
     outputs = [
         ([1, 2, 3], [1, 2, 3]),
-        (['1', '2', '3'], [1, 2, 3])
+        (['1', '2', '3'], [1, 2, 3]),
+        (None, None)
     ]
     field = serializers.ListField(serializers.IntegerField)
 
