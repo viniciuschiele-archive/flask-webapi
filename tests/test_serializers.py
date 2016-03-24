@@ -492,7 +492,7 @@ class TestLoad(TestCase):
 
     def test_load_with_error(self):
         class Serializer(serializers.Serializer):
-            field = serializers.IntegerField
+            field = serializers.IntegerField()
 
         data = {'field': 'value'}
 
@@ -528,7 +528,7 @@ class TestView(TestCase):
 
     def test_single_result(self):
         class Serializer(serializers.Serializer):
-            field = serializers.StringField
+            field = serializers.StringField()
 
         @route('/view')
         @serializer(Serializer)
@@ -542,7 +542,7 @@ class TestView(TestCase):
 
     def test_multiple_results(self):
         class Serializer(serializers.Serializer):
-            field = serializers.StringField
+            field = serializers.StringField()
 
         @route('/view')
         @serializer(Serializer, many=True)
@@ -556,7 +556,7 @@ class TestView(TestCase):
 
     def test_multiple_results_with_envelope(self):
         class Serializer(serializers.Serializer):
-            field = serializers.StringField
+            field = serializers.StringField()
 
         @route('/view')
         @serializer(Serializer, many=True, envelope='results')
@@ -570,7 +570,7 @@ class TestView(TestCase):
 
     def test_none_with_envelope(self):
         class Serializer(serializers.Serializer):
-            field = serializers.StringField
+            field = serializers.StringField()
 
         @route('/view')
         @serializer(Serializer, envelope='results')
@@ -586,7 +586,7 @@ class TestView(TestCase):
 class TestHTMLInput(TestCase):
     def test_missing_html_integerfield(self):
         class TestSerializer(serializers.Serializer):
-            message = serializers.IntegerField
+            message = serializers.IntegerField()
 
         with self.assertRaises(serializers.ValidationError):
             TestSerializer().load(MultiDict())
@@ -601,7 +601,7 @@ class TestHTMLInput(TestCase):
 
     def test_missing_html_stringfield(self):
         class TestSerializer(serializers.Serializer):
-            message = serializers.StringField
+            message = serializers.StringField()
 
         with self.assertRaises(serializers.ValidationError):
             TestSerializer().load(MultiDict())
@@ -616,7 +616,7 @@ class TestHTMLInput(TestCase):
 
     def test_missing_html_listfield(self):
         class TestSerializer(serializers.Serializer):
-            scores = serializers.ListField(serializers.IntegerField)
+            scores = serializers.ListField(serializers.IntegerField())
 
         with self.assertRaises(serializers.ValidationError):
             TestSerializer().load(MultiDict())
@@ -679,7 +679,7 @@ class TestHTMLInput(TestCase):
 
     def test_html_listfield(self):
         class TestSerializer(serializers.Serializer):
-            scores = serializers.ListField(serializers.IntegerField)
+            scores = serializers.ListField(serializers.IntegerField())
 
         md = MultiDict()
         md.add('scores', 1)
@@ -1001,6 +1001,32 @@ class TestMinMaxFloatField(TestCase, FieldValues):
     field = serializers.FloatField(min_value=1, max_value=3)
 
 
+class TestDelimitedListField(TestCase, FieldValues):
+    """
+    Values for `DelimitedListField` with IntegerField as child.
+    """
+    valid_inputs = [
+        ('', []),
+        ('1', [1]),
+        ('1,2,3', [1, 2, 3]),
+    ]
+    invalid_inputs = [
+        ('one, two', 'A valid integer is required.'),
+        ([], 'A valid string is required.'),
+    ]
+    outputs = [
+        ([1, 2, 3], '1,2,3'),
+        (['1', '2', '3'], '1,2,3'),
+        (None, None)
+    ]
+    field = serializers.DelimitedListField(serializers.IntegerField())
+
+    def test_disallow_empty(self):
+        field = serializers.DelimitedListField(serializers.IntegerField(), allow_empty=False)
+        with self.assertRaises(serializers.ValidationError):
+            field.load('')
+
+
 class TestListField(TestCase, FieldValues):
     """
     Values for `ListField` with IntegerField as child.
@@ -1011,16 +1037,16 @@ class TestListField(TestCase, FieldValues):
         ([], [])
     ]
     invalid_inputs = [
-        ('not a list', 'Expected a list of items but got type "str".'),
+        ('not a list', 'Not a valid list.'),
         ([1, 2, 'error'], {2: [ValidationError('A valid integer is required.')]}),
-        ({'one': 'two'}, 'Expected a list of items but got type "dict".')
+        ({'one': 'two'}, 'Not a valid list.')
     ]
     outputs = [
         ([1, 2, 3], [1, 2, 3]),
         (['1', '2', '3'], [1, 2, 3]),
         (None, None)
     ]
-    field = serializers.ListField(serializers.IntegerField)
+    field = serializers.ListField(serializers.IntegerField())
 
     def test_disallow_empty(self):
         field = serializers.ListField(serializers.IntegerField(), allow_empty=False)

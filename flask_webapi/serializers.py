@@ -355,6 +355,48 @@ class DecimalField(Field):
         return value
 
 
+class DelimitedListField(Field):
+    """
+    A delimited list composed with another `Field` class that loads from a delimited string.
+    """
+
+    default_error_messages = {
+        'invalid': 'A valid string is required.',
+        'empty': 'This list may not be empty.'
+    }
+
+    delimiter = ','
+
+    def __init__(self, child, allow_empty=True, delimiter=None, **kwargs):
+        """
+        Initializes a new instance of `DelimitedList`.
+        :param Field child: A field instance.
+        :param str delimiter: Delimiter between values.
+        """
+        super().__init__(**kwargs)
+        self.child = child
+        self.allow_empty = allow_empty
+        self.delimiter = delimiter or self.delimiter
+
+    def _load(self, value):
+        if not isinstance(value, str):
+            self._fail('invalid')
+
+        if value == '':
+            values = []
+        else:
+            values = value.split(self.delimiter)
+
+        if not self.allow_empty and len(value) == 0:
+            self._fail('empty')
+
+        return [self.child.load(v) for v in values]
+
+    def _dump(self, value):
+        values = [self.child.dump(item) for item in value]
+        return self.delimiter.join(str(v) for v in values)
+
+
 class EnumField(Field):
     """
     A field that provides a set of enumerated values which an attribute must be constrained to.
@@ -463,14 +505,14 @@ class FloatField(Field):
 
 class ListField(Field):
     default_error_messages = {
-        'not_a_list': 'Expected a list of items but got type "{input_type}".',
+        'invalid': 'Not a valid list.',
         'empty': 'This list may not be empty.'
     }
 
     def __init__(self, child, allow_empty=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.child = child() if isinstance(child, type) else child
+        self.child = child
         self.allow_empty = allow_empty
 
     def get_value(self, dictionary):
@@ -489,7 +531,7 @@ class ListField(Field):
         List of dicts of native values <- List of dicts of primitive datatypes.
         """
         if not isinstance(value, list):
-            self._fail('not_a_list', input_type=type(value).__name__)
+            self._fail('invalid')
 
         if not self.allow_empty and len(value) == 0:
             self._fail('empty')
@@ -578,18 +620,16 @@ class UUIDField(Field):
         return str(value)
 
 
-class SerializerMetaclass(type):
+class SerializerMeta(type):
     def __new__(mcs, name, bases, attrs):
         attrs['_declared_fields'] = mcs._get_declared_fields(bases, attrs)
-        return super(SerializerMetaclass, mcs).__new__(mcs, name, bases, attrs)
+        return super(SerializerMeta, mcs).__new__(mcs, name, bases, attrs)
 
     @classmethod
     def _get_declared_fields(mcs, bases, attrs):
         fields = []
 
         for attr_name, attr in list(attrs.items()):
-            if isinstance(attr, type) and issubclass(attr, Field):
-                attr = attr()
             if isinstance(attr, Field):
                 fields.append((attr_name, attr))
 
@@ -600,7 +640,7 @@ class SerializerMetaclass(type):
         return OrderedDict(fields)
 
 
-class Serializer(Field, metaclass=SerializerMetaclass):
+class Serializer(Field, metaclass=SerializerMeta):
     default_error_messages = {
         'invalid': 'Invalid data. Expected a dictionary, but got {datatype}.'
     }

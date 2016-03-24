@@ -100,10 +100,8 @@ class WebAPI(object):
 
         for package in packages:
             module = importlib.import_module(package + '.' + module_name)
-            if not module:
-                continue
 
-            # Go through all members to check which one is a view.
+            # Go through all members to check which one is an action.
             members = inspect.getmembers(module)
 
             for _, member in members:

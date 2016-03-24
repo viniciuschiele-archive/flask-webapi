@@ -36,8 +36,8 @@ class TestQueryString(TestCase):
 
     def test_body_param_without_location(self):
         class Serializer(serializers.Serializer):
-            name = serializers.StringField
-            age = serializers.IntegerField
+            name = serializers.StringField()
+            age = serializers.IntegerField()
 
         @route('/view', methods=['POST'])
         @param('param_1', Serializer)
@@ -100,8 +100,8 @@ class TestQueryString(TestCase):
 
     def test_param_with_body_location(self):
         class Serializer(serializers.Serializer):
-            name = serializers.StringField
-            age = serializers.IntegerField
+            name = serializers.StringField()
+            age = serializers.IntegerField()
 
         @route('/view', methods=['POST'])
         @param('param_1', Serializer, location='body')
@@ -117,8 +117,8 @@ class TestQueryString(TestCase):
 
     def test_param_with_body_location_and_unsupported_content_type(self):
         class Serializer(serializers.Serializer):
-            name = serializers.StringField
-            age = serializers.IntegerField
+            name = serializers.StringField()
+            age = serializers.IntegerField()
 
         @route('/view', methods=['POST'])
         @param('param_1', Serializer, location='body')
@@ -136,8 +136,8 @@ class TestQueryString(TestCase):
 
     def test_param_with_body_location_and_malformed_data(self):
         class Serializer(serializers.Serializer):
-            name = serializers.StringField
-            age = serializers.IntegerField
+            name = serializers.StringField()
+            age = serializers.IntegerField()
 
         @route('/view', methods=['POST'])
         @param('param_1', Serializer, location='body')
