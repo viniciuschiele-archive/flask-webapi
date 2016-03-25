@@ -2,6 +2,7 @@
 Provides a BaseView class that is the base of all views in Flask WebAPI.
 """
 
+import copy
 
 from abc import ABCMeta, abstractmethod
 from flask import request, current_app
@@ -197,6 +198,17 @@ class View(BaseView):
             return data
 
         schema, many, envelope = serializer
+
+        # Gets the field names from the query string,
+        # only those fields are going to be dumped.
+        fields = request.args.get('fields')
+
+        if fields:
+            # schema has to clone to avoid
+            # problem with multiple threads.
+            schema = copy.copy(schema)
+            schema.only = fields.split(',')
+            schema.refresh()
 
         if many is None:
             many = isinstance(data, list)

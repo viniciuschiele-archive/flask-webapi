@@ -5,7 +5,7 @@ from werkzeug.datastructures import Headers
 from unittest import TestCase
 
 
-class TestQueryString(TestCase):
+class TestParam(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.app.debug = True
