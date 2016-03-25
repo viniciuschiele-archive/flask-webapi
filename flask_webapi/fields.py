@@ -87,8 +87,12 @@ class Field(object):
         return value
 
     def get_default(self):
+        if self.default is missing:
+            return missing
+
         if callable(self.default):
             return self.default()
+
         return self.default
 
     def dump(self, value):
@@ -517,7 +521,7 @@ class ListField(Field):
     def get_value(self, dictionary):
         value = dictionary.get(self.load_from, missing)
 
-        if value == missing:
+        if value is missing:
             return value
 
         if html.is_html_input(dictionary):

@@ -1,5 +1,6 @@
+import copy
+
 from collections import OrderedDict
-from werkzeug.utils import cached_property
 from .exceptions import ValidationError
 from .fields import Field
 from .utils import missing
@@ -39,20 +40,14 @@ class Schema(Field, metaclass=SchemaMeta):
 
         self.only = only or ()
         self.partial = partial
+        self.fields = {}
 
-    @cached_property
-    def fields(self):
-        """
-        A dictionary of {field_name: field_instance}.
-        """
-        # `fields` is evaluated lazily. We do this to ensure that we don't
-        # have issues importing modules that use ModelSerializers as fields,
-        # even if Django's app-loading stage has not yet run.
-        ret = {}
-        for field_name, field in self._declared_fields.items():
-            field.bind(field_name, self)
-            ret[field_name] = field
-        return ret
+        # used to cache the load only
+        # and dump only fields.
+        self._load_fields = []
+        self._dump_fields = []
+
+        self.refresh()
 
     def loads(self, data):
         instance = [self.load(value) for value in data]
@@ -78,35 +73,28 @@ class Schema(Field, metaclass=SchemaMeta):
     def post_validate(self, data):
         pass
 
-    @cached_property
-    def _load_fields(self):
-        lst = []
+    def refresh(self):
+        self.fields = copy.deepcopy(self._declared_fields)
 
-        for field in self.fields.values():
-            if self.only and field.field_name not in self.only:
-                continue
+        if self.only:
+            field_names = set(self.only)
+        else:
+            field_names = set(self.fields)
 
-            if field.dump_only:
-                continue
+        self._load_fields = []
+        self._dump_fields = []
 
-            lst.append(field)
+        for field_name, field in self.fields.items():
+            field.bind(field_name, self)
 
-        return lst
-
-    @cached_property
-    def _dump_fields(self):
-        lst = []
-
-        for field in self.fields.values():
-            if self.only and field.field_name not in self.only:
-                continue
-
-            if field.load_only:
-                continue
-
-            lst.append(field)
-
-        return lst
+            if field.field_name in field_names:
+                if field.load_only:
+                    self._load_fields.append(field)
+                elif field.dump_only:
+                    self._dump_fields.append(field)
+                else:
+                    self._load_fields.append(field)
+                    self._dump_fields.append(field)
 
     def _load(self, data):
         if not isinstance(data, dict):
