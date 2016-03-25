@@ -2,7 +2,8 @@ from flask import Flask
 from flask_webapi import WebAPI
 from flask_webapi.exceptions import NotFound, ValidationError
 from flask_webapi.decorators import route, param, serializer
-from flask_webapi.serializers import Serializer, StringField, IntegerField
+from flask_webapi.fields import StringField, IntegerField
+from flask_webapi.schemas import Schema
 
 
 class User(object):
@@ -14,7 +15,7 @@ class User(object):
         self.age = age
 
 
-class UserSerializer(Serializer):
+class UserSchema(Schema):
     username = StringField()
     password = StringField(load_only=True)
     first_name = StringField()
@@ -31,8 +32,8 @@ users = [
 
 
 @route('/users', methods=['POST'])
-@param('user', UserSerializer())
-@serializer(UserSerializer)
+@param('user', UserSchema())
+@serializer(UserSchema)
 def add_user(user):
     if any([db_user for db_user in users if db_user.username == user.username]):
         raise ValidationError('User already exists: ' + user.username)
@@ -53,7 +54,7 @@ def delete_user(username):
 
 @route('/users')
 @param('username', StringField(default=None))
-@serializer(UserSerializer, many=True)
+@serializer(UserSchema)
 def get_users(username):
     if username:
         return [user for user in users if username in user.username]
@@ -61,7 +62,7 @@ def get_users(username):
 
 
 @route('/users/<username>')
-@serializer(UserSerializer)
+@serializer(UserSchema)
 def get_user(username):
     for user in users:
         if username == user.username:
