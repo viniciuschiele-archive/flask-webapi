@@ -95,20 +95,17 @@ def param(name, field, location=None):
     return decorator
 
 
-def serializer(ser, many=None, envelope=None):
+def serializer(schema, many=None, envelope=None):
     """
     A decorator that apply a serializer to the action.
-    :param Serializer ser: The serializer used to serialize the data.
+    :param Schema schema: The schema used to serialize the data.
     :param bool many: If set to `True` the object will be serialized to a list.
     :param str envelope: The key used to envelope the data.
     :return: A function.
     """
     def decorator(func):
-        func.serializer = ser() if inspect.isclass(ser) else ser
-        func.serializer_args = {
-            'many': many,
-            'envelope': envelope
-        }
+        schema_instance = schema() if inspect.isclass(schema) else schema
+        func.serializer = schema_instance, many, envelope
         return func
     return decorator
 

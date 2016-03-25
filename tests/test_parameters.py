@@ -1,5 +1,5 @@
 from flask import Flask, json
-from flask_webapi import WebAPI, serializers
+from flask_webapi import WebAPI, fields, schemas
 from flask_webapi.decorators import param, route
 from werkzeug.datastructures import Headers
 from unittest import TestCase
@@ -14,7 +14,7 @@ class TestQueryString(TestCase):
 
     def test_query_param_without_location(self):
         @route('/view')
-        @param('param_1', serializers.StringField)
+        @param('param_1', fields.StringField)
         def view(param_1):
             return {'param_1': param_1}
         self.api.add_view(view)
@@ -25,7 +25,7 @@ class TestQueryString(TestCase):
 
     def test_form_param_without_location(self):
         @route('/view', methods=['POST'])
-        @param('param_1', serializers.StringField)
+        @param('param_1', fields.StringField)
         def view(param_1):
             return {'param_1': param_1}
         self.api.add_view(view)
@@ -35,12 +35,12 @@ class TestQueryString(TestCase):
         self.assertEqual(json.loads(response.data), dict(param_1='123'))
 
     def test_body_param_without_location(self):
-        class Serializer(serializers.Serializer):
-            name = serializers.StringField()
-            age = serializers.IntegerField()
+        class Schema(schemas.Schema):
+            name = fields.StringField()
+            age = fields.IntegerField()
 
         @route('/view', methods=['POST'])
-        @param('param_1', Serializer)
+        @param('param_1', Schema)
         def view(param_1):
             return param_1
         self.api.add_view(view)
@@ -53,7 +53,7 @@ class TestQueryString(TestCase):
 
     def test_param_with_cookie_location(self):
         @route('/view')
-        @param('param_1', serializers.StringField, location='cookie')
+        @param('param_1', fields.StringField, location='cookie')
         def view(param_1):
             return {'param_1': param_1}
         self.api.add_view(view)
@@ -65,7 +65,7 @@ class TestQueryString(TestCase):
 
     def test_param_with_header_location(self):
         @route('/view')
-        @param('param_1', serializers.StringField, location='header')
+        @param('param_1', fields.StringField, location='header')
         def view(param_1):
             return {'param_1': param_1}
         self.api.add_view(view)
@@ -78,7 +78,7 @@ class TestQueryString(TestCase):
 
     def test_param_with_form_location(self):
         @route('/view', methods=['POST'])
-        @param('param_1', serializers.StringField, location='form')
+        @param('param_1', fields.StringField, location='form')
         def view(param_1):
             return {'param_1': param_1}
         self.api.add_view(view)
@@ -89,7 +89,7 @@ class TestQueryString(TestCase):
 
     def test_param_with_query_location(self):
         @route('/view')
-        @param('param_1', serializers.StringField, location='query')
+        @param('param_1', fields.StringField, location='query')
         def view(param_1):
             return {'param_1': param_1}
         self.api.add_view(view)
@@ -99,12 +99,12 @@ class TestQueryString(TestCase):
         self.assertEqual(json.loads(response.data), dict(param_1='123'))
 
     def test_param_with_body_location(self):
-        class Serializer(serializers.Serializer):
-            name = serializers.StringField()
-            age = serializers.IntegerField()
+        class Schema(schemas.Schema):
+            name = fields.StringField()
+            age = fields.IntegerField()
 
         @route('/view', methods=['POST'])
-        @param('param_1', Serializer, location='body')
+        @param('param_1', Schema, location='body')
         def view(param_1):
             return param_1
         self.api.add_view(view)
@@ -116,12 +116,12 @@ class TestQueryString(TestCase):
         self.assertEqual(json.loads(response.data), dict(name='myname', age=20))
 
     def test_param_with_body_location_and_unsupported_content_type(self):
-        class Serializer(serializers.Serializer):
-            name = serializers.StringField()
-            age = serializers.IntegerField()
+        class Schema(schemas.Schema):
+            name = fields.StringField()
+            age = fields.IntegerField()
 
         @route('/view', methods=['POST'])
-        @param('param_1', Serializer, location='body')
+        @param('param_1', Schema, location='body')
         def view(param_1):
             return param_1
         self.api.add_view(view)
@@ -135,12 +135,12 @@ class TestQueryString(TestCase):
                          {'errors': [{'message': 'Unsupported media type "application/data" in request.'}]})
 
     def test_param_with_body_location_and_malformed_data(self):
-        class Serializer(serializers.Serializer):
-            name = serializers.StringField()
-            age = serializers.IntegerField()
+        class Schema(schemas.Schema):
+            name = fields.StringField()
+            age = fields.IntegerField()
 
         @route('/view', methods=['POST'])
-        @param('param_1', Serializer, location='body')
+        @param('param_1', Schema, location='body')
         def view(param_1):
             return param_1
         self.api.add_view(view)
@@ -150,7 +150,7 @@ class TestQueryString(TestCase):
 
     def test_param_with_invalid_location(self):
         @route('/view')
-        @param('param_1', serializers.StringField, location='not_found')
+        @param('param_1', fields.StringField, location='not_found')
         def view(param_1):
             return {'param_1': param_1}
         self.api.add_view(view)

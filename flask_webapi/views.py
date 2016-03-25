@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from flask import request, current_app
 from werkzeug.exceptions import HTTPException
 from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
-from .serializers import Serializer
+from .schemas import Schema
 from .utils import missing, unpack, reflect
 
 
@@ -150,7 +150,7 @@ class View(BaseView):
             data = self._get_arguments(location)
 
             try:
-                if isinstance(field, Serializer):
+                if isinstance(field, Schema):
                     kwargs[field_name] = field.load(data)
                 else:
                     value = field.get_value(data)
@@ -188,25 +188,23 @@ class View(BaseView):
         :param data: The data to be serialized.
         :return: A Python dict object.
         """
-        if not request.action.serializer:
-            return data
-
         if data is None:
             return None
 
         serializer = request.action.serializer
 
-        many = request.action.serializer_args.get('many')
+        if not serializer:
+            return data
+
+        schema, many, envelope = serializer
 
         if many is None:
             many = isinstance(data, list)
 
         if many:
-            data = serializer.dumps(data)
+            data = schema.dumps(data)
         else:
-            data = serializer.dump(data)
-
-        envelope = request.action.serializer_args.get('envelope')
+            data = schema.dump(data)
 
         if envelope:
             data = {envelope: data}
@@ -231,12 +229,12 @@ class View(BaseView):
             data, status, headers = unpack(data)
 
         if not isinstance(data, response_class):
-            if use_serializer:
-                data = self._serialize_data(data)
-
             if data is None:
                 data = response_class(status=204)
             else:
+                if use_serializer:
+                    data = self._serialize_data(data)
+
                 renderer, mimetype = self._select_renderer(force_renderer)
                 data_bytes = renderer.render(data, mimetype)
                 data = response_class(data_bytes, mimetype=str(mimetype))
@@ -268,7 +266,6 @@ class Action(object):
         self.parsers = self.__get_attr('parsers')
         self.renderers = self.__get_attr('renderers')
         self.serializer = self.__get_attr('serializer')
-        self.serializer_args = self.__get_attr('serializer_args')
         self.params = getattr(func, 'params', None)
         self.exception_handler = api.exception_handler
         self.argument_providers = api.argument_providers
@@ -277,16 +274,15 @@ class Action(object):
             self.func = reflect.func_to_method(func)
 
     def __get_attr(self, attribute_name):
-        value = getattr(self.api, attribute_name, None)
+        attribute_value = getattr(self.api, attribute_name, None)
         override_name = attribute_name + '_override'
 
         for obj in (self.view, self.func):
-            obj_value = getattr(obj, attribute_name, missing)
-            if obj_value is not missing:
-                override = getattr(obj, override_name, True)
-                if override:
-                    value = obj_value
+            value = getattr(obj, attribute_name, missing)
+            if value is not missing:
+                if getattr(obj, override_name, True):
+                    attribute_value = value
                 else:
-                    value.extend(obj_value)
+                    attribute_value.extend(value)
 
-        return value
+        return attribute_value
