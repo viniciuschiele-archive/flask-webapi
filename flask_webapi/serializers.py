@@ -648,7 +648,8 @@ class Serializer(Field, metaclass=SerializerMeta):
     def __init__(self, only=None, partial=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if only is not None and not isinstance(only, (list, tuple)):
+        only = only or ()
+        if not isinstance(only, (list, tuple)):
             raise AssertionError('`only` has to be a list or tuple')
 
         self.only = only or ()

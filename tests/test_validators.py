@@ -79,6 +79,11 @@ class TestChoiceValidator(TestCase, ValidatorValues):
 
     validator = validators.ChoiceValidator([1, 2, 3])
 
+    def test_choices_as_string(self):
+        with self.assertRaises(AssertionError) as exc_info:
+            validators.ChoiceValidator(choices='1 2 3')
+        self.assertEqual(str(exc_info.exception), '`choices` has to be a list or tuple')
+
 
 class TestEmailValidator(TestCase, ValidatorValues):
     valid_inputs = (

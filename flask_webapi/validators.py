@@ -61,13 +61,14 @@ class ChoiceValidator(BaseValidator):
 
     def __init__(self, choices, error_messages=None):
         super().__init__(error_messages)
+
+        choices = choices or ()
+        assert isinstance(choices, (list, tuple)), '`choices` has to be a list or tuple'
+
         self.choices = choices
 
     def __call__(self, value):
-        try:
-            if value not in self.choices:
-                self._fail('invalid', input=value)
-        except TypeError:
+        if value not in self.choices:
             self._fail('invalid', input=value)
 
 
