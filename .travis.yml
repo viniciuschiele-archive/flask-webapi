@@ -1,8 +1,8 @@
 language: python
 python:
+  - pypy3
   - 3.4
   - 3.5
-  - pypy3
 install:
  - pip install -r requirements.txt
  - pip install -r test-requirements.txt
