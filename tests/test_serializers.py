@@ -534,7 +534,7 @@ class TestView(TestCase):
         self.api = WebAPI(self.app)
         self.client = self.app.test_client()
 
-    def test_single_result(self):
+    def test_single_result_with_many_none(self):
         class Serializer(serializers.Serializer):
             field = serializers.StringField()
 
@@ -548,7 +548,35 @@ class TestView(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(response.data), dict(field='value'))
 
-    def test_multiple_results(self):
+    def test_single_result_with_many_false(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.StringField()
+
+        @route('/view')
+        @serializer(Serializer, many=False)
+        def view():
+            return {'field': 'value'}
+
+        self.api.add_view(view)
+        response = self.client.get('/view')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.data), dict(field='value'))
+
+    def test_multiple_results_with_many_none(self):
+        class Serializer(serializers.Serializer):
+            field = serializers.StringField()
+
+        @route('/view')
+        @serializer(Serializer)
+        def view():
+            return [{'field': 'value'}]
+
+        self.api.add_view(view)
+        response = self.client.get('/view')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.data), [dict(field='value')])
+
+    def test_multiple_results_with_many_true(self):
         class Serializer(serializers.Serializer):
             field = serializers.StringField()
 

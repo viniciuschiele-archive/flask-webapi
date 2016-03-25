@@ -196,7 +196,12 @@ class View(BaseView):
 
         serializer = request.action.serializer
 
-        if request.action.serializer_args.get('many'):
+        many = request.action.serializer_args.get('many')
+
+        if many is None:
+            many = isinstance(data, list)
+
+        if many:
             data = serializer.dumps(data)
         else:
             data = serializer.dump(data)
@@ -262,9 +267,9 @@ class Action(object):
         self.content_negotiator = self.__get_attr('content_negotiator')
         self.parsers = self.__get_attr('parsers')
         self.renderers = self.__get_attr('renderers')
+        self.serializer = self.__get_attr('serializer')
+        self.serializer_args = self.__get_attr('serializer_args')
         self.params = getattr(func, 'params', None)
-        self.serializer = getattr(func, 'serializer', None)
-        self.serializer_args = getattr(func, 'serializer_args', None)
         self.exception_handler = api.exception_handler
         self.argument_providers = api.argument_providers
 

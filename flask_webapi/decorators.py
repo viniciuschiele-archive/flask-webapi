@@ -95,7 +95,7 @@ def param(name, field, location=None):
     return decorator
 
 
-def serializer(ser, many=False, envelope=None):
+def serializer(ser, many=None, envelope=None):
     """
     A decorator that apply a serializer to the action.
     :param Serializer ser: The serializer used to serialize the data.
