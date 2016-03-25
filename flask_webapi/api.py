@@ -6,7 +6,7 @@ import importlib
 import inspect
 
 from flask import request
-from .negotiation import DefaultContentNegotiator
+from .negotiators import DefaultContentNegotiator
 from .parameters import get_argument_providers
 from .parsers import JSONParser, FormDataParser
 from .permissions import AllowAny
