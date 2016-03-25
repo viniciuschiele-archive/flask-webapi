@@ -2,8 +2,8 @@ import random
 import string
 import time
 
-from flask_webapi import serializers
-from marshmallow import fields, Schema
+from flask_webapi import fields, schemas
+from marshmallow import fields as mm_fields, Schema as mm_schema
 
 
 def generate_random_string(size):
@@ -28,45 +28,45 @@ class Model(object):
     property15 = 123456789
 
 
-class ModelSerializer(serializers.Serializer):
-    property1 = serializers.StringField(allow_none=True)
-    property2 = serializers.StringField()
-    property3 = serializers.StringField()
-    property4 = serializers.StringField()
-    property5 = serializers.StringField()
-    property6 = serializers.StringField()
-    property7 = serializers.StringField()
-    property8 = serializers.StringField()
-    property9 = serializers.StringField()
-    property10 = serializers.StringField()
-    property11 = serializers.StringField()
-    property12 = serializers.StringField()
-    property13 = serializers.StringField()
-    property14 = serializers.StringField()
-    property15 = serializers.IntegerField()
+class ModelSchema(schemas.Schema):
+    property1 = fields.StringField(allow_none=True)
+    property2 = fields.StringField()
+    property3 = fields.StringField()
+    property4 = fields.StringField()
+    property5 = fields.StringField()
+    property6 = fields.StringField()
+    property7 = fields.StringField()
+    property8 = fields.StringField()
+    property9 = fields.StringField()
+    property10 = fields.StringField()
+    property11 = fields.StringField()
+    property12 = fields.StringField()
+    property13 = fields.StringField()
+    property14 = fields.StringField()
+    property15 = fields.IntegerField()
 
 
-class ModelSchema(Schema):
-    property1 = fields.String(allow_none=True)
-    property2 = fields.String()
-    property3 = fields.String()
-    property4 = fields.String()
-    property5 = fields.String()
-    property6 = fields.String()
-    property7 = fields.String()
-    property8 = fields.String()
-    property9 = fields.String()
-    property10 = fields.String()
-    property11 = fields.String()
-    property12 = fields.String()
-    property13 = fields.String()
-    property14 = fields.String()
-    property15 = fields.Integer()
+class MM_ModelSchema(mm_schema):
+    property1 = mm_fields.String(allow_none=True)
+    property2 = mm_fields.String()
+    property3 = mm_fields.String()
+    property4 = mm_fields.String()
+    property5 = mm_fields.String()
+    property6 = mm_fields.String()
+    property7 = mm_fields.String()
+    property8 = mm_fields.String()
+    property9 = mm_fields.String()
+    property10 = mm_fields.String()
+    property11 = mm_fields.String()
+    property12 = mm_fields.String()
+    property13 = mm_fields.String()
+    property14 = mm_fields.String()
+    property15 = mm_fields.Integer()
 
 
 if __name__ == '__main__':
-    model = Model()
-
+    # model = Model()
+    #
     # serializer = ModelSerializer()
     # schema = ModelSchema()
     #
@@ -82,12 +82,12 @@ if __name__ == '__main__':
 
     models = [Model() for i in range(500)]
 
-    serializer = ModelSerializer()
-    schema = ModelSchema(many=True)
+    serializer = ModelSchema()
+    schema = MM_ModelSchema(many=True)
 
     s = time.time()
     data = serializer.dumps(models)
-    print('Serializer - dump: ' + str(time.time() - s))
+    print('WebAPI - dump: ' + str(time.time() - s))
 
     s = time.time()
     data2 = schema.dump(models).data
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
     s = time.time()
     serializer.loads(data)
-    print('Serializer - load: ' + str(time.time() - s))
+    print('WebAPI - load: ' + str(time.time() - s))
 
     s = time.time()
     d = schema.load(data2)
