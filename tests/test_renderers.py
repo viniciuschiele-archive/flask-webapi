@@ -1,14 +1,14 @@
 import pickle
 
 from flask import Flask, json
-from flask_webapi import WebAPI
+from flask_webapi import WebAPI, views
 from flask_webapi.decorators import route, renderer
 from flask_webapi.renderers import BaseRenderer, JSONRenderer, PickleRenderer
 from flask_webapi.utils.mimetypes import MimeType
 from unittest import TestCase
 
 
-class TestRenderer(TestCase):
+class TestView(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
@@ -40,19 +40,19 @@ class TestRenderer(TestCase):
         self.assertEqual(response.data.decode(), 'RendererA')
 
     def test_renderer_with_accept_specified(self):
-        response = self.client.get('/view', headers=dict(accept='application/rendererb'))
+        response = self.client.get('/view', headers={'accept': 'application/rendererb'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/rendererb')
         self.assertEqual(response.data.decode(), 'RendererB')
 
     def test_renderer_with_accept_any(self):
-        response = self.client.get('/view', headers=dict(accept='*/*'))
+        response = self.client.get('/view', headers={'accept': '*/*'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/renderera')
         self.assertEqual(response.data.decode(), 'RendererA')
 
     def test_renderer_with_accept_unsupported(self):
-        response = self.client.get('/view', headers=dict(accept='application/renderer'))
+        response = self.client.get('/view', headers={'accept': 'application/renderer'})
         self.assertEqual(response.status_code, 406)
 
 

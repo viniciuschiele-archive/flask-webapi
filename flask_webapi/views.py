@@ -189,9 +189,6 @@ class View(BaseView):
         :param data: The data to be serialized.
         :return: A Python dict object.
         """
-        if data is None:
-            return None
-
         serializer = request.action.serializer
 
         if not serializer:
