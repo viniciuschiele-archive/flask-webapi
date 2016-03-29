@@ -1,7 +1,6 @@
 from flask import Flask
-from flask_webapi import WebAPI
+from flask_webapi import WebAPI, route, param, serializer
 from flask_webapi.exceptions import NotFound, ValidationError
-from flask_webapi.decorators import route, param, serializer
 from flask_webapi.fields import StringField, IntegerField
 from flask_webapi.schemas import Schema
 

@@ -201,7 +201,7 @@ class View(BaseView):
         fields = request.args.get('fields')
 
         if fields:
-            # schema has to clone to avoid
+            # schema has to be cloned to avoid
             # problem with multiple threads.
             schema = copy.copy(schema)
             schema.only = fields.split(',')
