@@ -560,7 +560,7 @@ class TestUUIDField(TestCase, FieldValues):
     field = fields.UUIDField()
 
 
-if Enum:
+if Enum is not None:
     class TestEnumField(TestCase, FieldValues):
         """
         Valid and invalid values for `EnumField`.
