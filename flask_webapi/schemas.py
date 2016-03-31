@@ -15,9 +15,9 @@ class SchemaMeta(type):
     def _get_declared_fields(mcs, bases, attrs):
         fields = []
 
-        for attr_name, attr in list(attrs.items()):
-            if isinstance(attr, Field):
-                fields.append((attr_name, attr))
+        for attr_name, attr_value in list(attrs.items()):
+            if isinstance(attr_value, Field):
+                fields.append((attr_name, attrs.pop(attr_name)))
 
         for base in reversed(bases):
             if hasattr(base, '_declared_fields'):

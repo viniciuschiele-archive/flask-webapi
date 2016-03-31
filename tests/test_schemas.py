@@ -1,6 +1,4 @@
-from flask import Flask, json
-from flask_webapi import WebAPI, exceptions, fields, schemas
-from flask_webapi.decorators import route, serializer
+from flask_webapi import exceptions, fields, schemas
 from flask_webapi.exceptions import ValidationError
 from unittest import TestCase
 

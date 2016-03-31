@@ -1,33 +1,36 @@
 import pickle
 
 from flask import Flask, json
-from flask_webapi import WebAPI, views
-from flask_webapi.decorators import route, renderer
+from flask_webapi import WebAPI
 from flask_webapi.renderers import BaseRenderer, JSONRenderer, PickleRenderer
+from flask_webapi.views import route
 from flask_webapi.utils.mimetypes import MimeType
 from unittest import TestCase
 
 
 class TestView(TestCase):
+
+    class RendererA(BaseRenderer):
+        mimetype = MimeType.parse('application/renderera')
+
+        def render(self, data, mimetype):
+            return 'RendererA'.encode()
+
+    class RendererB(BaseRenderer):
+        mimetype = MimeType.parse('application/rendererb')
+
+        def render(self, data, mimetype):
+            return 'RendererB'.encode()
+
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
+        self.api.renderers.clear()
+        self.api.renderers.append(self.RendererA())
+        self.api.renderers.append(self.RendererB())
         self.client = self.app.test_client()
 
-        class RendererA(BaseRenderer):
-            mimetype = MimeType.parse('application/renderera')
-
-            def render(self, data, mimetype):
-                return 'RendererA'.encode()
-
-        class RendererB(BaseRenderer):
-            mimetype = MimeType.parse('application/rendererb')
-
-            def render(self, data, mimetype):
-                return 'RendererB'.encode()
-
         @route('/view')
-        @renderer(RendererA, RendererB)
         def view():
             return 'text'
 

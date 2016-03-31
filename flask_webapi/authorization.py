@@ -2,8 +2,27 @@
 Provides a set of pluggable permission policies.
 """
 
+import inspect
+
 from abc import ABCMeta, abstractmethod
 from flask import request
+from .exceptions import NotAuthenticated, PermissionDenied
+from .filters import authorization_filter
+
+
+@authorization_filter
+def authorizer(*permissions):
+    permissions = [item() if inspect.isclass(item) else item for item in permissions]
+
+    def authorize():
+        for permission in permissions:
+            if not permission.has_permission():
+                if getattr(request, 'user', None):
+                    raise PermissionDenied()
+                else:
+                    raise NotAuthenticated()
+
+    return authorize
 
 
 class BasePermission(metaclass=ABCMeta):

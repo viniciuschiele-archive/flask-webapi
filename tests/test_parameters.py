@@ -1,6 +1,7 @@
 from flask import Flask, json
 from flask_webapi import WebAPI, fields, schemas
-from flask_webapi.decorators import param, route
+from flask_webapi.parameters import param
+from flask_webapi.views import route
 from werkzeug.datastructures import Headers
 from unittest import TestCase
 
@@ -26,7 +27,7 @@ class TestLocation(TestCase):
 
     def test_header_location(self):
         @route('/view')
-        @param('name', fields.StringField, location='header')
+        @param('name', fields.StringField(load_from='Name'), location='header')
         def view(name):
             return {'name': name}
         self.api.add_view(view)

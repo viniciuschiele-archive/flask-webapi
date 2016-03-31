@@ -1,37 +1,96 @@
 """
-Provides filters used to inject code into methods.
+Provides filters used to inject code into views.
 """
+
+
+def authentication_filter(function):
+    """
+    Filter that performs authentication.
+    :param function: The authentication function.
+    """
+    def inner(*args, **kwargs):
+        def inner2(f):
+            order = kwargs.pop('order', -1)
+            authenticate = function(*args, **kwargs)
+
+            def outer(f):
+                def outer2(*args, **kwargs):
+                    authenticate()
+                    return f(*args, **kwargs)
+                return outer2
+
+            f.filters = getattr(f, 'filters', [])
+            f.filters.append((authentication_filter, outer, order))
+            return f
+        return inner2
+    return inner
+
+
+def authorization_filter(function):
+    """
+    Filter that performs authorization.
+    :param function: The authorization function.
+    """
+    def inner(*args, **kwargs):
+        def inner2(f):
+            order = kwargs.pop('order', -1)
+            authorize = function(*args, **kwargs)
+
+            def outer(f):
+                def outer2(*args, **kwargs):
+                    authorize()
+                    return f(*args, **kwargs)
+                return outer2
+
+            f.filters = getattr(f, 'filters', [])
+            f.filters.append((authorization_filter, outer, order))
+            return f
+        return inner2
+    return inner
 
 
 def action_filter(function):
     """
-    Filter used to inject code before and after the execution of the action.
-    :param function: The function to be injected.
+    Filter that performs authorization.
+    :param function: The authorization function.
     """
-    def wrapper(*args, **kwargs):
-        def execute(f):
+    def inner(*args, **kwargs):
+        def inner2(f):
             order = kwargs.pop('order', -1)
-            next = function(*args, **kwargs)
+            action = function(*args, **kwargs)
+
+            def outer(f):
+                def outer2(*args, **kwargs):
+                    return action(f, *args, **kwargs)
+                return outer2
 
             f.filters = getattr(f, 'filters', [])
-            f.filters.append((action_filter, next, order))
+            f.filters.append((authorization_filter, outer, order))
             return f
-        return execute
-    return wrapper
+        return inner2
+    return inner
 
 
 def exception_filter(function):
     """
-    Filter used to inject code when an exception is raised.
-    :param function: The function to be injected.
+    Filter that performs authorization.
+    :param function: The authorization function.
     """
-    def wrapper(*args, **kwargs):
-        def execute(f):
+    def inner(*args, **kwargs):
+        def inner2(f):
             order = kwargs.pop('order', -1)
-            next = function(*args, **kwargs)
+            handle_error = function(*args, **kwargs)
+
+            def outer(f):
+                def outer2(*args, **kwargs):
+                    try:
+                        return f(*args, **kwargs)
+                    except Exception as e:
+                        return handle_error(e)
+                return outer2
 
             f.filters = getattr(f, 'filters', [])
-            f.filters.append((action_filter, next, order))
+            f.filters.append((exception_filter, outer, order))
             return f
-        return execute
-    return wrapper
+        return inner2
+    return inner

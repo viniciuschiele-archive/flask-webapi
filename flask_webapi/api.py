@@ -6,10 +6,10 @@ import importlib
 import inspect
 
 from flask import request
+from .authorization import AllowAny
 from .negotiators import DefaultContentNegotiator
 from .parameters import get_argument_providers
 from .parsers import JSONParser, FormDataParser
-from .permissions import AllowAny
 from .renderers import JSONRenderer
 from .utils.routing import Route, urljoin, get_view_prefixes, get_view_routes
 from .views import exception_handler, BaseView, View, Action
@@ -39,13 +39,12 @@ class WebAPI(object):
         self._routes = []
 
         self.app = None
-        self.authenticators = []
-        self.permissions = [AllowAny()]
+        self.argument_providers = get_argument_providers()
         self.content_negotiator = DefaultContentNegotiator()
+        self.filters = []
         self.parsers = [JSONParser(), FormDataParser()]
         self.renderers = [JSONRenderer()]
         self.exception_handler = exception_handler
-        self.argument_providers = get_argument_providers()
 
         if app:
             self.init_app(app)

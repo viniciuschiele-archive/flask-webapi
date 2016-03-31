@@ -1,6 +1,7 @@
 from flask import Flask, json
 from flask_webapi import WebAPI, fields, schemas
-from flask_webapi.decorators import route, serializer
+from flask_webapi.serialization import serializer
+from flask_webapi.views import route
 from unittest import TestCase
 
 
@@ -22,7 +23,7 @@ class TestView(TestCase):
         self.api.add_view(view)
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.data), dict(field='value'))
+        self.assertEqual(json.loads(response.data), {'field': 'value'})
 
     def test_single_result_with_many_false(self):
         class Schema(schemas.Schema):
