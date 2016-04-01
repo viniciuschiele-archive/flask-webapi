@@ -2,17 +2,16 @@
 Provides the main class for Flask WebAPI.
 """
 
+import copy
 import importlib
 import inspect
 
-from flask import request
-from .authorization import AllowAny
 from .negotiators import DefaultContentNegotiator
 from .parameters import get_argument_providers
 from .parsers import JSONParser, FormDataParser
 from .renderers import JSONRenderer
 from .utils.routing import Route, urljoin, get_view_prefixes, get_view_routes
-from .views import exception_handler, BaseView, View, Action
+from .views import exception_handler, BaseView, View, ActionContext
 
 
 class WebAPI(object):
@@ -125,9 +124,13 @@ class WebAPI(object):
         :return: A function
         """
         def view(*args, **kwargs):
-            request.action = action
-            instance = action.view()
-            return instance.dispatch(*args, **kwargs)
+            context = copy.copy(action)
+            context.args = args
+            context.kwargs = kwargs
+            context.response = context.app.response_class()
+            instance = context.view()
+            instance.dispatch(context)
+            return context.response
         return view
 
     def _build_routes(self, view):
@@ -172,5 +175,5 @@ class WebAPI(object):
         :param routes: The list of routes.
         """
         for route in routes:
-            action = Action(route.func, route.view, self)
-            self.app.add_url_rule(route.url, route.endpoint, self._make_view(action), methods=route.methods)
+            context = ActionContext(route.func, route.view, self)
+            self.app.add_url_rule(route.url, route.endpoint, self._make_view(context), methods=route.methods)

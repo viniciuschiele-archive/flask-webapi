@@ -147,11 +147,12 @@ class TestView(TestCase):
 
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.data), {'errors': [{'message': 'A server error occurred.'}]})
+        self.assertEqual(json.loads(response.get_data()), {'errors': [{'message': 'A server error occurred.'}]})
 
     def test_exception_handler(self):
-        def custom_exception_handler(view, e):
-            return Response(e.message, status=400)
+        def custom_exception_handler(context):
+            context.result = {'message': context.exception.message}
+            context.response.status_code = 400
 
         @route('/view')
         def view():
@@ -162,4 +163,4 @@ class TestView(TestCase):
 
         response = self.client.get('/view')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual('user error.', response.get_data(as_text=True))
+        self.assertEqual(json.loads(response.get_data()), {'message': 'user error.'})

@@ -9,62 +9,59 @@ from .filters import action_filter
 from .schemas import Schema
 
 
-@action_filter
-def param(name, field, location=None):
-    """
-    A decorator that apply a argument parser to the action.
-    :param str name: The name of the parameter.
-    :param Field field: The field used to fill the parameter.
-    :param str location: Where to retrieve the values.
-    :return: A function.
-    """
+class param(action_filter):
+    def __init__(self, name, field, location=None, order=-1):
+        super().__init__(order)
 
-    if isinstance(field, type):
-        field = field()
+        if isinstance(field, type):
+            field = field()
 
-    is_schema = isinstance(field, Schema)
+        self.is_schema = isinstance(field, Schema)
 
-    if not is_schema:
-        field = type('ParamSchema', (Schema,), {name: field})()
+        if not self.is_schema:
+            field = type('ParamSchema', (Schema,), {name: field})()
 
-    def get_arguments():
-        """
-        Gets the argument data based on the location.
-        :return: The data obtained.
-        """
-        if location is None:
-            local_location = 'query' if request.method == 'GET' else 'body'
-        else:
-            local_location = location
+        self.name = name
+        self.field = field
+        self.location = location
 
-        provider = request.action.argument_providers.get(local_location)
-
-        if provider:
-            return provider.get_data()
-
-        raise Exception('Argument provider for location "%s" not found.' % local_location)
-
-    def execute(func, *args, **kwargs):
+    def before_action(self, context):
         errors = {}
 
-        data = get_arguments()
+        data = self._get_arguments(context)
 
         try:
-            result = field.load(data)
+            result = self.field.load(data)
 
-            if is_schema:
-                kwargs[name] = result
+            if self.is_schema:
+                context.kwargs[self.name] = result
             else:
-                kwargs.update(result)
+                context.kwargs.update(result)
         except ValidationError as e:
             errors.update(e.message)
 
         if errors:
             raise ValidationError(errors)
 
-        return func(*args, **kwargs)
+    def after_action(self, context):
+        pass
 
-    return execute
+    def _get_arguments(self, context):
+        """
+        Gets the argument data based on the location.
+        :return: The data obtained.
+        """
+        if self.location is None:
+            location = 'query' if request.method == 'GET' else 'body'
+        else:
+            location = self.location
+
+        provider = context.argument_providers.get(location)
+
+        if provider:
+            return provider.get_data(context)
+
+        raise Exception('Argument provider for location "%s" not found.' % location)
 
 
 def get_argument_providers():
@@ -84,9 +81,10 @@ class BaseArgumentProvider(metaclass=ABCMeta):
     A base class from which all provider classes should inherit.
     """
     @abstractmethod
-    def get_data(self):
+    def get_data(self, context):
         """
         Returns the arguments as `dict`.
+        :param ActionContext context:
         :return dict: The `dict` containing the arguments.
         """
 
@@ -95,7 +93,7 @@ class QueryStringProvider(BaseArgumentProvider):
     """
     Provides arguments from the request query string.
     """
-    def get_data(self):
+    def get_data(self, context):
         return request.args
 
 
@@ -103,7 +101,7 @@ class FormDataProvider(BaseArgumentProvider):
     """
     Provides arguments from the request form.
     """
-    def get_data(self):
+    def get_data(self, context):
         return request.form
 
 
@@ -111,7 +109,7 @@ class HeaderProvider(BaseArgumentProvider):
     """
     Provides arguments from the request headers.
     """
-    def get_data(self):
+    def get_data(self, context):
         return dict(request.headers)
 
 
@@ -119,7 +117,7 @@ class CookieProvider(BaseArgumentProvider):
     """
     Provides arguments from the request cookies.
     """
-    def get_data(self):
+    def get_data(self, context):
         return request.cookies
 
 
@@ -127,11 +125,9 @@ class BodyProvider(BaseArgumentProvider):
     """
     Provides arguments from the request body.
     """
-    def get_data(self):
-        action = request.action
-
-        negotiator = action.content_negotiator
-        parsers = action.parsers
+    def get_data(self, context):
+        negotiator = context.content_negotiator
+        parsers = context.parsers
 
         parser, mimetype = negotiator.select_parser(parsers)
 

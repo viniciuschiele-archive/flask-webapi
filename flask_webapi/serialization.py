@@ -5,8 +5,7 @@ from flask import request, current_app
 from .filters import action_filter
 
 
-@action_filter
-def serializer(schema, many=None, envelope=None):
+class serializer(action_filter):
     """
     A decorator that apply a serializer to the action.
     :param Schema schema: The schema used to serialize the data.
@@ -14,25 +13,27 @@ def serializer(schema, many=None, envelope=None):
     :param str envelope: The key used to envelope the data.
     :return: A function.
     """
-    schema = schema() if inspect.isclass(schema) else schema
+    def __init__(self, schema, many=None, envelope=None,  order=-1):
+        super().__init__(order)
 
-    def serialize(func, *args, **kwargs):
-        """
-        Serializes the given data into a Python dict.
-        :param func:
-        :return: A Python dict object.
-        """
+        self.schema = schema() if inspect.isclass(schema) else schema
+        self.many = many
+        self.envelope = envelope
 
-        data = func(*args, **kwargs)
+    def before_action(self, context):
+        pass
 
-        if data is None:
-            return None
+    def after_action(self, context):
+        result = context.result
 
-        if data is current_app.response_class:
-            return data
+        if result is None:
+            return
 
-        local_schema = schema
-        local_many = many
+        if result is current_app.response_class:
+            return
+
+        schema = self.schema
+        many = self.many
 
         # Gets the field names from the query string,
         # only those fields are going to be dumped.
@@ -41,21 +42,21 @@ def serializer(schema, many=None, envelope=None):
         if fields:
             # schema has to be cloned to avoid
             # problem with multiple threads.
-            local_schema = copy.copy(local_schema)
-            local_schema.only = fields.split(',')
-            local_schema.refresh()
+            schema = copy.copy(schema)
+            schema.only = fields.split(',')
+            schema.refresh()
 
-        if local_many is None:
-            local_many = isinstance(data, (list, tuple))
+        if many is None:
+            many = isinstance(result, (list, tuple))
 
-        if local_many:
-            data = local_schema.dumps(data)
+        if many:
+            result = schema.dumps(result)
         else:
-            data = local_schema.dump(data)
+            result = schema.dump(result)
 
-        if envelope:
-            data = {envelope: data}
+        if self.envelope:
+            result = {self.envelope: result}
 
-        return data
+        context.result = result
 
-    return serialize
+

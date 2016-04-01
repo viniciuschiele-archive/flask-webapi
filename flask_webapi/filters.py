@@ -3,94 +3,101 @@ Provides filters used to inject code into views.
 """
 
 
-def authentication_filter(function):
+def filter(filter_cls):
     """
     Filter that performs authentication.
-    :param function: The authentication function.
+    :param filter_cls:
     """
-    def inner(*args, **kwargs):
-        def inner2(f):
-            order = kwargs.pop('order', -1)
-            authenticate = function(*args, **kwargs)
-
-            def outer(f):
-                def outer2(*args, **kwargs):
-                    authenticate()
-                    return f(*args, **kwargs)
-                return outer2
-
-            f.filters = getattr(f, 'filters', [])
-            f.filters.append((authentication_filter, outer, order))
-            return f
-        return inner2
-    return inner
+    return filter_cls
 
 
-def authorization_filter(function):
+@filter
+class authentication_filter(object):
     """
-    Filter that performs authorization.
-    :param function: The authorization function.
+    Filter that performs authentication.
     """
-    def inner(*args, **kwargs):
-        def inner2(f):
-            order = kwargs.pop('order', -1)
-            authorize = function(*args, **kwargs)
+    def __init__(self, order=-1):
+        self.order = order
 
-            def outer(f):
-                def outer2(*args, **kwargs):
-                    authorize()
-                    return f(*args, **kwargs)
-                return outer2
+    def __call__(self, func):
+        func.filters = getattr(func, 'filters', [])
+        func.filters.append(self)
+        return func
 
-            f.filters = getattr(f, 'filters', [])
-            f.filters.append((authorization_filter, outer, order))
-            return f
-        return inner2
-    return inner
+    def authenticate(self, context):
+        pass
 
 
-def action_filter(function):
+@filter
+class authorization_filter(object):
     """
     Filter that performs authorization.
-    :param function: The authorization function.
     """
-    def inner(*args, **kwargs):
-        def inner2(f):
-            order = kwargs.pop('order', -1)
-            action = function(*args, **kwargs)
+    def __init__(self, order=-1):
+        self.order = order
 
-            def outer(f):
-                def outer2(*args, **kwargs):
-                    return action(f, *args, **kwargs)
-                return outer2
+    def __call__(self, func):
+        func.filters = getattr(func, 'filters', [])
+        func.filters.append(self)
+        return func
 
-            f.filters = getattr(f, 'filters', [])
-            f.filters.append((authorization_filter, outer, order))
-            return f
-        return inner2
-    return inner
+    def authorize(self, context):
+        pass
 
 
-def exception_filter(function):
+@filter
+class action_filter(object):
     """
     Filter that performs authorization.
-    :param function: The authorization function.
     """
-    def inner(*args, **kwargs):
-        def inner2(f):
-            order = kwargs.pop('order', -1)
-            handle_error = function(*args, **kwargs)
+    def __init__(self, order=-1):
+        self.order = order
 
-            def outer(f):
-                def outer2(*args, **kwargs):
-                    try:
-                        return f(*args, **kwargs)
-                    except Exception as e:
-                        return handle_error(e)
-                return outer2
+    def __call__(self, func):
+        func.filters = getattr(func, 'filters', [])
+        func.filters.append(self)
+        return func
 
-            f.filters = getattr(f, 'filters', [])
-            f.filters.append((exception_filter, outer, order))
-            return f
-        return inner2
-    return inner
+    def before_action(self, context):
+        pass
+
+    def after_action(self, context):
+        pass
+
+
+@filter
+class response_filter(object):
+    """
+    Filter that performs authorization.
+    """
+    def __init__(self, order=-1):
+        self.order = order
+
+    def __call__(self, func):
+        func.filters = getattr(func, 'filters', [])
+        func.filters.append(self)
+        return func
+
+    def before_response(self, context):
+        pass
+
+    def after_response(self, context):
+        pass
+
+
+@filter
+class exception_filter(object):
+    """
+    Filter that performs authorization.
+    """
+    def __init__(self, order=-1):
+        self.order = order
+
+    def __call__(self, func):
+        func.filters = getattr(func, 'filters', [])
+        func.filters.append(self)
+        return func
+
+    def handle_exception(self, context):
+        pass
+

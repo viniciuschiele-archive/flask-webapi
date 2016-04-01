@@ -9,22 +9,21 @@ from flask import request
 from .filters import authentication_filter
 
 
-@authentication_filter
-def authenticator(*authenticators):
-    authenticators = [item() if inspect.isclass(item) else item for item in authenticators]
+class authenticator(authentication_filter):
+    def __init__(self, *authenticators, **kwargs):
+        super().__init__(**kwargs)
+        self.authenticators = [item() if inspect.isclass(item) else item for item in authenticators]
 
-    def authenticate():
+    def authenticate(self, context):
         request.user = None
         request.auth = None
 
-        for auth in authenticators:
+        for auth in self.authenticators:
             auth_tuple = auth.authenticate()
 
             if auth_tuple:
                 request.user, request.auth = auth_tuple
                 break
-
-    return authenticate
 
 
 class BaseAuthenticator(metaclass=ABCMeta):

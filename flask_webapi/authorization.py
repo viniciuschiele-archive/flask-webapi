@@ -10,19 +10,18 @@ from .exceptions import NotAuthenticated, PermissionDenied
 from .filters import authorization_filter
 
 
-@authorization_filter
-def authorizer(*permissions):
-    permissions = [item() if inspect.isclass(item) else item for item in permissions]
+class authorizer(authorization_filter):
+    def __init__(self, *permissions, order=-1):
+        super().__init__(order)
+        self.permissions = [permission() if inspect.isclass(permission) else permission for permission in permissions]
 
-    def authorize():
-        for permission in permissions:
+    def authorize(self, context):
+        for permission in self.permissions:
             if not permission.has_permission():
                 if getattr(request, 'user', None):
                     raise PermissionDenied()
                 else:
                     raise NotAuthenticated()
-
-    return authorize
 
 
 class BasePermission(metaclass=ABCMeta):

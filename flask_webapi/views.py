@@ -2,24 +2,23 @@
 Provides a BaseView class that is the base of all views in Flask WebAPI.
 """
 
-import copy
-
 from abc import ABCMeta, abstractmethod
-from flask import request, current_app
+from flask import current_app
 from werkzeug.exceptions import HTTPException
-from .exceptions import APIException, NotAcceptable, NotAuthenticated, PermissionDenied, ValidationError
-from .filters import authentication_filter, authorization_filter, action_filter, exception_filter
-from .schemas import Schema
-from .utils import missing, unpack, reflect
+from .exceptions import APIException, NotAcceptable
+from .filters import authentication_filter, authorization_filter, action_filter, response_filter, exception_filter
+from .utils import reflect
 
 
-def exception_handler(view, e):
+def exception_handler(context):
     """
     Handles a specific error, by returning an appropriate response.
     :param BaseView view: The view which raised the exception.
     :param Exception e: The exception.
     :return: A response
     """
+    e = context.exception
+
     if isinstance(e, APIException):
         message = e
     elif isinstance(e, HTTPException):
@@ -29,7 +28,8 @@ def exception_handler(view, e):
         debug = current_app.config.get('DEBUG')
         message = APIException(str(e)) if debug else APIException()
 
-    return {'errors': message.denormalize()}, message.status_code
+    context.result = {'errors': message.denormalize()}
+    context.response.status_code = message.status_code
 
 
 def route(url, endpoint=None, methods=None):
@@ -55,12 +55,10 @@ class BaseView(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, context):
         """
         Dispatches the incoming request to the particular method.
-        :param args: The arguments parsed by Flask.
-        :param kwargs: The arguments parsed by Flask.
-        :return: A `flask.Response` instance.
+        :param ActionContext context:
         """
 
 
@@ -70,46 +68,96 @@ class View(BaseView):
     argument parsing, serialization, error handling.
     """
 
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, context):
         """
         Dispatches the incoming request to the particular method.
-        :param args: The arguments parsed by Flask.
-        :param kwargs: The arguments parsed by Flask.
-        :return: A `flask.Response` instance.
+        :param ActionContext context:
         """
         try:
-            return self._handle_request(*args, **kwargs)
+            self._handle_request(context)
         except Exception as e:
-            return self._handle_exception(e)
+            context.exception = e
+            self._handle_exception(context)
 
-    def _handle_request(self, *args, **kwargs):
+    def _handle_request(self, context):
         """
         Applies all steps of the pipeline on the incoming request.
+        :param ActionContext context:
         :return: A `flask.Response` instance.
         """
-        response = request.action.func(self, *args, **kwargs)
+        for filter in context.authentication_filters:
+            filter.authenticate(context)
 
-        return self._make_response(response)
+        for filter in context.authorization_filters:
+            filter.authorize(context)
 
-    def _handle_exception(self, e):
+        try:
+            for filter in context.action_filters:
+                filter.before_action(context)
+
+            if context.result is None:
+                context.result = context.func(self, *context.args, **context.kwargs)
+
+            for filter in context.action_filters:
+                filter.after_action(context)
+        except Exception as e:
+            context.exception = e
+            for filter in context.exception_filters:
+                filter.on_exception(context)
+
+            if context.result is None:
+                raise
+        else:
+            for filter in context.response_filters:
+                filter.before_response(context)
+
+        self._make_response(context)
+
+        for filter in context.response_filters:
+            filter.after_response(context)
+
+    def _handle_exception(self, context):
         """
         Handles any error that occurs, giving the opportunity for
         custom error handling by user code.
         :param Exception e: The exception.
         :return: A `flask.Response` instance.
         """
-        response = request.action.exception_handler(self, e)
+        context.exception_handler(context)
 
-        return self._make_response(response, force_renderer=True)
+        self._make_response(context, force_renderer=True)
 
-    def _select_renderer(self, force=False):
+    def _make_response(self, context, force_renderer=False):
+        """
+        Returns a `flask.Response` for the given data.
+        The appropriated renderer is taken based on the request header Accept.
+        If there is not data to be serialized the response status code is 204.
+
+        :param context: The Python object to be serialized.
+        :param bool force_renderer: If set to `True` selects the first renderer when the appropriated is not found.
+        :return: A Flask response.
+        """
+        result = context.result
+        if result is None:
+            context.response.status_code = 204
+            return
+
+        if type(context.response) == type(result):
+            context.response = result
+
+        renderer, mimetype = self._select_renderer(context, force_renderer)
+        response_bytes = renderer.render(result, mimetype)
+        context.response.content_type = str(mimetype)
+        context.response.set_data(response_bytes)
+
+    def _select_renderer(self, context, force=False):
         """
         Determines which renderer should be used to render the outgoing response.
         :param force: If set to `True` selects the first renderer when the appropriated is not found.
         :return: A tuple with renderer and the mimetype.
         """
-        negotiator = request.action.content_negotiator
-        renderers = request.action.renderers
+        negotiator = context.content_negotiator
+        renderers = context.renderers
 
         try:
             return negotiator.select_renderer(renderers)
@@ -118,50 +166,24 @@ class View(BaseView):
                 raise
             return renderers[0], renderers[0].mimetype
 
-    def _make_response(self, data, force_renderer=False):
-        """
-        Returns a `flask.Response` for the given data.
-        The appropriated renderer is taken based on the request header Accept.
-        If there is not data to be serialized the response status code is 204.
 
-        :param data: The Python object to be serialized.
-        :param bool force_renderer: If set to `True` selects the first renderer when the appropriated is not found.
-        :return: A Flask response.
-        """
-        response_class = request.action.app.response_class
-
-        status = headers = None
-        if isinstance(data, tuple):
-            data, status, headers = unpack(data)
-
-        if not isinstance(data, response_class):
-            if data is None:
-                data = response_class(status=204)
-            else:
-                renderer, mimetype = self._select_renderer(force_renderer)
-                data_bytes = renderer.render(data, mimetype)
-                data = response_class(data_bytes, mimetype=str(mimetype))
-
-        if status is not None:
-            data.status_code = status
-
-        if headers:
-            data.headers.extend(headers)
-
-        return data
-
-
-class Action(object):
+class ActionContext(object):
     """
     Represents a func in the View that should be
     treated as a Flask view.
     """
 
     def __init__(self, func, view, api):
-        self.func = self.__apply_filters(func, view, api)
+        self.func = func
         self.view = view
         self.api = api
         self.app = api.app
+
+        self.authentication_filters = self.__get_filters_by_type(authentication_filter)
+        self.authorization_filters = self.__get_filters_by_type(authorization_filter)
+        self.action_filters = self.__get_filters_by_type(action_filter)
+        self.response_filters = self.__get_filters_by_type(response_filter)
+        self.exception_filters = self.__get_filters_by_type(exception_filter)
 
         self.argument_providers = api.argument_providers
         self.content_negotiator = self.api.content_negotiator
@@ -172,36 +194,15 @@ class Action(object):
         if not reflect.has_self_argument(self.func):
             self.func = reflect.func_to_method(self.func)
 
-    def __apply_filters(self, func, view, api):
-        filters = getattr(func, 'filters', []) + \
-                  getattr(view, 'filters', []) + \
-                  getattr(api, 'filters', [])
+        self.args = None
+        self.kwargs = None
+        self.result = None
+        self.exception = None
+        self.response = None
 
-        func = self.__apply_filters_by_type(exception_filter, func, filters)
-        func = self.__apply_filters_by_type(action_filter, func, filters)
-        func = self.__apply_filters_by_type(authorization_filter, func, filters)
-        func = self.__apply_filters_by_type(authentication_filter, func, filters)
+    def __get_filters_by_type(self, filter_type):
+        filters = getattr(self.func, 'filters', []) + \
+                  getattr(self.view, 'filters', []) + \
+                  getattr(self.api, 'filters', [])
 
-        return func
-
-    def __apply_filters_by_type(self, filter_type, func, filters):
-        filters = sorted(filter(lambda x: x[0] == filter_type, filters), key=lambda x: x[2])
-
-        for _, f, _ in filters:
-            func = f(func)
-
-        return func
-
-    def __get_attr(self, attribute_name):
-        attribute_value = getattr(self.api, attribute_name, None)
-        override_name = attribute_name + '_override'
-
-        for obj in (self.view, self.func):
-            value = getattr(obj, attribute_name, missing)
-            if value is not missing:
-                if getattr(obj, override_name, True):
-                    attribute_value = value
-                else:
-                    attribute_value.extend(value)
-
-        return attribute_value
+        return sorted([filter for filter in filters if isinstance(filter, filter_type)], key=lambda x: x.order)
