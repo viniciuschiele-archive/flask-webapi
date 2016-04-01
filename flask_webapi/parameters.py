@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from flask import request
 from .exceptions import ValidationError
 from .filters import action_filter
-from .schemas import Schema
+from .serialization import Schema
 
 
 class param(action_filter):

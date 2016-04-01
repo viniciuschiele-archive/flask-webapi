@@ -1,5 +1,5 @@
 from flask import Flask, json
-from flask_webapi import WebAPI, fields, schemas
+from flask_webapi import WebAPI, serialization
 from flask_webapi.parameters import param
 from flask_webapi.views import route
 from werkzeug.datastructures import Headers
@@ -15,7 +15,7 @@ class TestLocation(TestCase):
 
     def test_cookie_location(self):
         @route('/view')
-        @param('name', fields.StringField, location='cookie')
+        @param('name', serialization.StringField, location='cookie')
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -27,7 +27,7 @@ class TestLocation(TestCase):
 
     def test_header_location(self):
         @route('/view')
-        @param('name', fields.StringField(load_from='Name'), location='header')
+        @param('name', serialization.StringField(load_from='Name'), location='header')
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -40,7 +40,7 @@ class TestLocation(TestCase):
 
     def test_form_location(self):
         @route('/view', methods=['POST'])
-        @param('name', fields.StringField, location='form')
+        @param('name', serialization.StringField, location='form')
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -51,7 +51,7 @@ class TestLocation(TestCase):
 
     def test_query_location(self):
         @route('/view')
-        @param('name', fields.StringField, location='query')
+        @param('name', serialization.StringField, location='query')
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -61,9 +61,9 @@ class TestLocation(TestCase):
         self.assertEqual(json.loads(response.data), {'name': 'foo'})
 
     def test_body_location(self):
-        class Schema(schemas.Schema):
-            first_name = fields.StringField()
-            last_name = fields.StringField()
+        class Schema(serialization.Schema):
+            first_name = serialization.StringField()
+            last_name = serialization.StringField()
 
         @route('/view', methods=['POST'])
         @param('user', Schema, location='body')
@@ -79,7 +79,7 @@ class TestLocation(TestCase):
 
     def test_invalid_location(self):
         @route('/view')
-        @param('name', fields.StringField, location='not_found')
+        @param('name', serialization.StringField, location='not_found')
         def view(name):
             pass
         self.api.add_view(view)
@@ -99,7 +99,7 @@ class TestWithoutLocation(TestCase):
 
     def test_query_param_without_location(self):
         @route('/view')
-        @param('name', fields.StringField())
+        @param('name', serialization.StringField())
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -110,7 +110,7 @@ class TestWithoutLocation(TestCase):
 
     def test_form_param_without_location(self):
         @route('/view', methods=['POST'])
-        @param('name', fields.StringField())
+        @param('name', serialization.StringField())
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -120,9 +120,9 @@ class TestWithoutLocation(TestCase):
         self.assertEqual(json.loads(response.data), {'name': 'foo'})
 
     def test_body_param_without_location(self):
-        class Schema(schemas.Schema):
-            first_name = fields.StringField()
-            last_name = fields.StringField()
+        class Schema(serialization.Schema):
+            first_name = serialization.StringField()
+            last_name = serialization.StringField()
 
         @route('/view', methods=['POST'])
         @param('user', Schema)
@@ -146,7 +146,7 @@ class TestInputError(TestCase):
 
     def test_error_on_field(self):
         @route('/view')
-        @param('name', fields.StringField)
+        @param('name', serialization.StringField)
         def view(name):
             pass
         self.api.add_view(view)
@@ -157,8 +157,8 @@ class TestInputError(TestCase):
                          {'errors': [{'message': 'This field is required.', 'field': 'name'}]})
 
     def test_error_on_schema(self):
-        class Schema(schemas.Schema):
-            name = fields.StringField()
+        class Schema(serialization.Schema):
+            name = serialization.StringField()
 
         @route('/view')
         @param('user', Schema)
@@ -173,8 +173,8 @@ class TestInputError(TestCase):
                          {'errors': [{'message': 'This field is required.', 'field': 'name'}]})
 
     def test_malformed_data(self):
-        class Schema(schemas.Schema):
-            name = fields.StringField()
+        class Schema(serialization.Schema):
+            name = serialization.StringField()
 
         @route('/view', methods=['POST'])
         @param('user', Schema, location='body')
@@ -187,8 +187,8 @@ class TestInputError(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_unsupported_content_type(self):
-        class Schema(schemas.Schema):
-            name = fields.StringField()
+        class Schema(serialization.Schema):
+            name = serialization.StringField()
 
         @route('/view', methods=['POST'])
         @param('user', Schema, location='body')
