@@ -7,9 +7,8 @@ import importlib
 import inspect
 
 from .negotiators import DefaultContentNegotiator
+from .formatters import FormInputFormatter, JsonInputFormatter, JsonOutputFormatter
 from .parameters import get_argument_providers
-from .parsers import JSONParser, FormDataParser
-from .renderers import JSONRenderer
 from .utils.routing import Route, urljoin, get_view_prefixes, get_view_routes
 from .views import exception_handler, BaseView, View, ActionContext
 
@@ -41,8 +40,8 @@ class WebAPI(object):
         self.argument_providers = get_argument_providers()
         self.content_negotiator = DefaultContentNegotiator()
         self.filters = []
-        self.parsers = [JSONParser(), FormDataParser()]
-        self.renderers = [JSONRenderer()]
+        self.input_formatters = [JsonInputFormatter(), FormInputFormatter()]
+        self.output_formatters = [JsonOutputFormatter()]
         self.exception_handler = exception_handler
 
         if app:
@@ -128,8 +127,10 @@ class WebAPI(object):
             context.args = args
             context.kwargs = kwargs
             context.response = context.app.response_class()
+
             instance = context.view()
             instance.dispatch(context)
+
             return context.response
         return view
 

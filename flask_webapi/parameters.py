@@ -127,14 +127,8 @@ class BodyProvider(BaseArgumentProvider):
     """
     def get_data(self, context):
         negotiator = context.content_negotiator
-        parsers = context.parsers
+        formatters = context.input_formatters
 
-        parser, mimetype = negotiator.select_parser(parsers)
+        formatter, mimetype = negotiator.select_input_formatter(formatters)
 
-        # to avoid problems related to the input stream
-        # we call get_data to cache the input data.
-        request.get_data()
-
-        stream = request._get_stream_for_parsing()
-
-        return parser.parse(stream, mimetype)
+        return formatter.read(request, mimetype)

@@ -5,8 +5,3 @@ class missing(object):
     It is required because `None` may be a valid input or output value.
     """
     pass
-
-
-def unpack(value):
-    data, status, headers = value + (None,) * (3 - len(value))
-    return data, status, headers

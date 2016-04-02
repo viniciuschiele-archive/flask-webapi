@@ -5,7 +5,7 @@ Content negotiation selects a appropriated parser and renderer for a HTTP reques
 from abc import ABCMeta, abstractmethod
 from flask import request
 from .exceptions import NotAcceptable, UnsupportedMediaType
-from .utils.mimetypes import MimeType
+from .formatters import MimeType
 
 
 class BaseContentNegotiator(metaclass=ABCMeta):
@@ -14,18 +14,18 @@ class BaseContentNegotiator(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def select_parser(self, parsers):
+    def select_input_formatter(self, formatters):
         """
         Selects the appropriated parser for the given request.
-        :param parsers: The lists of parsers.
+        :param formatters: The lists of input formatters.
         :return: The parser selected or raise `UnsupportedMediaType`.
         """
 
     @abstractmethod
-    def select_renderer(self, renderers):
+    def select_output_formatter(self, formatters):
         """
         Selects the appropriated renderer for the given request.
-        :param renderers: The lists of renderers.
+        :param formatters: The lists of output formatters.
         :return: The renderer selected or raise `NotAcceptable`.
         """
 
@@ -36,31 +36,31 @@ class DefaultContentNegotiator(BaseContentNegotiator):
     renderer by request accept.
     """
 
-    def select_parser(self, parsers):
+    def select_input_formatter(self, formatters):
         """
         Selects the appropriated parser that matches to the request's content type.
-        :param parsers: The lists of parsers.
+        :param formatters: The lists of input formatters.
         :return: The parser selected or raise `UnsupportedMediaType`.
         """
         mimetype = MimeType.parse(request.content_type)
 
-        for parser in parsers:
-            if mimetype.match(parser.mimetype):
-                return parser, mimetype
+        for formatter in formatters:
+            if mimetype.match(formatter.mimetype):
+                return formatter, mimetype
 
         raise UnsupportedMediaType(request.content_type)
 
-    def select_renderer(self, renderers):
+    def select_output_formatter(self, formatters):
         """
         Selects the appropriated parser that matches to the request's accept header.
-        :param renderers: The lists of parsers.
+        :param formatters: The lists of output formatters.
         :return: The parser selected or raise `NotAcceptable`.
         """
         for mimetype in self._get_accept_list():
             accept_mimetype = MimeType.parse(mimetype)
-            for renderer in renderers:
-                if accept_mimetype.match(renderer.mimetype):
-                    return renderer, renderer.mimetype.replace(params=accept_mimetype.params)
+            for formatter in formatters:
+                if accept_mimetype.match(formatter.mimetype):
+                    return formatter, formatter.mimetype.replace(params=accept_mimetype.params)
 
         raise NotAcceptable()
 

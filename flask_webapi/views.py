@@ -125,9 +125,9 @@ class View(BaseView):
         """
         context.exception_handler(context)
 
-        self._make_response(context, force_renderer=True)
+        self._make_response(context, force_formatter=True)
 
-    def _make_response(self, context, force_renderer=False):
+    def _make_response(self, context, force_formatter=False):
         """
         Returns a `flask.Response` for the given data.
         The appropriated renderer is taken based on the request header Accept.
@@ -145,26 +145,24 @@ class View(BaseView):
         if type(context.response) == type(result):
             context.response = result
 
-        renderer, mimetype = self._select_renderer(context, force_renderer)
-        response_bytes = renderer.render(result, mimetype)
-        context.response.content_type = str(mimetype)
-        context.response.set_data(response_bytes)
+        formatter, mimetype = self._select_output_formatter(context, force_formatter)
+        formatter.write(context.response, result, mimetype)
 
-    def _select_renderer(self, context, force=False):
+    def _select_output_formatter(self, context, force=False):
         """
         Determines which renderer should be used to render the outgoing response.
         :param force: If set to `True` selects the first renderer when the appropriated is not found.
         :return: A tuple with renderer and the mimetype.
         """
         negotiator = context.content_negotiator
-        renderers = context.renderers
+        formatters = context.output_formatters
 
         try:
-            return negotiator.select_renderer(renderers)
+            return negotiator.select_output_formatter(formatters)
         except NotAcceptable:
             if not force:
                 raise
-            return renderers[0], renderers[0].mimetype
+            return formatters[0], formatters[0].mimetype
 
 
 class ActionContext(object):
@@ -187,8 +185,8 @@ class ActionContext(object):
 
         self.argument_providers = api.argument_providers
         self.content_negotiator = self.api.content_negotiator
-        self.parsers = self.api.parsers
-        self.renderers = self.api.renderers
+        self.input_formatters = self.api.input_formatters
+        self.output_formatters = self.api.output_formatters
         self.exception_handler = api.exception_handler
 
         if not reflect.has_self_argument(self.func):
