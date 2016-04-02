@@ -1,8 +1,13 @@
 import datetime
 import uuid
 
+# PyPy does no support Enum
+try:
+    from enum import Enum
+except ImportError:
+    Enum = None
+
 from decimal import Decimal
-from enum import Enum
 from flask import Flask, json
 from flask_webapi import WebAPI, serialization
 from flask_webapi.exceptions import ValidationError
