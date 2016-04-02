@@ -96,7 +96,7 @@ class TestView(TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.api = WebAPI(self.app)
-        self.api.output_formatters.clear()
+        self.api.output_formatters = []
         self.api.output_formatters.append(self.OutputFormatterA())
         self.api.output_formatters.append(self.OutputFormatterB())
         self.client = self.app.test_client()
