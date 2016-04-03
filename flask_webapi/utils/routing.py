@@ -11,9 +11,9 @@ def urljoin(*urls):
 
 
 class Route(object):
-    def __init__(self, url, endpoint, methods, func, view):
+    def __init__(self, url, endpoint, methods, func, view_class):
         self.url = url
         self.endpoint = endpoint
         self.methods = methods
         self.func = func
-        self.view = view
+        self.view_class = view_class

@@ -13,8 +13,7 @@ from .utils import reflect
 def exception_handler(context):
     """
     Handles a specific error, by returning an appropriate response.
-    :param BaseView view: The view which raised the exception.
-    :param Exception e: The exception.
+    :param ActionContext context: The context of the current action.
     :return: A response
     """
     e = context.exception
@@ -40,7 +39,6 @@ def route(url, endpoint=None, methods=None):
     :param list methods: A list of http methods.
     :return: A function.
     """
-
     def decorator(func):
         routes = getattr(func, 'routes', None)
         if not routes:
@@ -126,7 +124,7 @@ class View(BaseView):
             filter.before_action(context)
 
         if context.result is None:
-            context.result = context.func(self, *context.args, **context.kwargs)
+            context.result = context.method(self, *context.args, **context.kwargs)
 
         for filter in context.action_filters:
             filter.after_action(context)
@@ -182,9 +180,10 @@ class ActionContext(object):
     treated as a Flask view.
     """
 
-    def __init__(self, func, view, api):
+    def __init__(self, func, view_class, api):
         self.func = func
-        self.view = view
+        self.method = func
+        self.view_class = view_class
         self.api = api
         self.app = api.app
 
@@ -200,8 +199,8 @@ class ActionContext(object):
         self.output_formatters = self.api.output_formatters
         self.exception_handler = api.exception_handler
 
-        if not reflect.has_self_argument(self.func):
-            self.func = reflect.func_to_method(self.func)
+        if not reflect.has_self_argument(self.method):
+            self.method = reflect.func_to_method(self.method)
 
         self.args = None
         self.kwargs = None
@@ -213,7 +212,7 @@ class ActionContext(object):
     def __get_filters_by_type(self, filter_type):
         filters_by_type = sorted([filter for filter in
                                   getattr(self.func, 'filters', []) +
-                                  getattr(self.view, 'filters', []) +
+                                  getattr(self.view_class, 'filters', []) +
                                   getattr(self.api, 'filters', [])
                                   if isinstance(filter, filter_type)], key=lambda x: x.order)
 

@@ -119,7 +119,7 @@ class WebAPI(object):
     def _make_view(self, action):
         """
         Returns a view function expected by Flask.
-        :param Action action: The action.
+        :param ActionContext action: The action context.
         :return: A function
         """
         def view(*args, **kwargs):
@@ -128,7 +128,7 @@ class WebAPI(object):
             context.kwargs = kwargs
             context.response = context.app.response_class()
 
-            instance = context.view()
+            instance = context.view_class()
             instance.dispatch(context)
 
             return context.response
@@ -176,5 +176,5 @@ class WebAPI(object):
         :param routes: The list of routes.
         """
         for route in routes:
-            context = ActionContext(route.func, route.view, self)
+            context = ActionContext(route.func, route.view_class, self)
             self.app.add_url_rule(route.url, route.endpoint, self._make_view(context), methods=route.methods)

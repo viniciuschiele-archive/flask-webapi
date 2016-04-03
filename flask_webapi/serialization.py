@@ -21,7 +21,7 @@ MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key
 class serialize(ActionFilter):
     """
     A decorator that apply a serializer to the action.
-    :param Schema schema: The schema used to serialize the data.
+    :param Schema|type schema: The schema used to serialize the data.
     :param bool many: If set to `True` the object will be serialized to a list.
     :param str envelope: The key used to envelope the data.
     :return: A function.
