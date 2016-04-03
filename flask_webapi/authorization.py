@@ -17,6 +17,9 @@ class authorize(AuthorizationFilter):
         self.permissions = [permission() if inspect.isclass(permission) else permission for permission in permissions]
 
     def authorize(self, context):
+        if getattr(context.func, 'allow_anonymous', False):
+            return
+
         for permission in self.permissions:
             if permission.has_permission():
                 return
@@ -25,6 +28,11 @@ class authorize(AuthorizationFilter):
             raise PermissionDenied()
         else:
             raise NotAuthenticated()
+
+
+def allow_anonymous(function):
+    function.allow_anonymous = True
+    return function
 
 
 class BasePermission(metaclass=ABCMeta):
