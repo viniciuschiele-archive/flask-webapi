@@ -85,36 +85,20 @@ class View(BaseView):
         :param ActionContext context:
         :return: A `flask.Response` instance.
         """
-        for filter in context.authentication_filters:
-            filter.authenticate(context)
-
-        for filter in context.authorization_filters:
-            filter.authorize(context)
 
         try:
-            for filter in context.action_filters:
-                filter.before_action(context)
-
-            if context.result is None:
-                context.result = context.func(self, *context.args, **context.kwargs)
-
-            for filter in context.action_filters:
-                filter.after_action(context)
+            self._execute_authentication_filters(context)
+            self._execute_authorization_filters(context)
+            self._execute_action_with_filters(context)
+            self._make_response_with_filters(context)
         except Exception as e:
             context.exception = e
-            for filter in context.exception_filters:
-                filter.handle_exception(context)
+            self._execute_exception_filters(context)
 
-            if context.result is None:
+            if not context.exception_handled:
                 raise
-        else:
-            for filter in context.response_filters:
-                filter.before_response(context)
 
-        self._make_response(context)
-
-        for filter in context.response_filters:
-            filter.after_response(context)
+            self._make_response_with_filters(context)
 
     def _handle_exception(self, context):
         """
@@ -125,9 +109,31 @@ class View(BaseView):
         """
         context.exception_handler(context)
 
-        self._make_response(context, force_formatter=True)
+        self._make_response_with_filters(context, force_formatter=True)
 
-    def _make_response(self, context, force_formatter=False):
+    def _execute_authentication_filters(self, context):
+        for filter in context.authentication_filters:
+            filter.authenticate(context)
+
+    def _execute_authorization_filters(self, context):
+        for filter in context.authorization_filters:
+            filter.authorize(context)
+
+    def _execute_action_with_filters(self, context):
+        for filter in context.action_filters:
+            filter.before_action(context)
+
+        if context.result is None:
+            context.result = context.func(self, *context.args, **context.kwargs)
+
+        for filter in context.action_filters:
+            filter.after_action(context)
+
+    def _execute_exception_filters(self, context):
+        for filter in context.exception_filters:
+            filter.handle_exception(context)
+
+    def _make_response_with_filters(self, context, force_formatter=False):
         """
         Returns a `flask.Response` for the given data.
         The appropriated renderer is taken based on the request header Accept.
@@ -137,16 +143,19 @@ class View(BaseView):
         :param bool force_renderer: If set to `True` selects the first renderer when the appropriated is not found.
         :return: A Flask response.
         """
-        result = context.result
-        if result is None:
-            context.response.status_code = 204
-            return
 
-        if type(context.response) == type(result):
-            context.response = result
+        if not isinstance(context.result, current_app.response_class):
+            for filter in context.response_filters:
+                filter.before_response(context)
 
-        formatter, mimetype = self._select_output_formatter(context, force_formatter)
-        formatter.write(context.response, result, mimetype)
+            if context.result is None:
+                context.response.status_code = 204
+            else:
+                formatter, mimetype = self._select_output_formatter(context, force_formatter)
+                formatter.write(context.response, context.result, mimetype)
+
+        for filter in context.response_filters:
+            filter.after_response(context)
 
     def _select_output_formatter(self, context, force=False):
         """
@@ -196,6 +205,7 @@ class ActionContext(object):
         self.kwargs = None
         self.result = None
         self.exception = None
+        self.exception_handled = False
         self.response = None
 
     def __get_filters_by_type(self, filter_type):
