@@ -11,7 +11,7 @@ from .filters import AuthorizationFilter, filter
 
 
 @filter()
-class authorizer(AuthorizationFilter):
+class authorize(AuthorizationFilter):
     def __init__(self, *permissions, order=-1):
         super().__init__(order)
         self.permissions = [permission() if inspect.isclass(permission) else permission for permission in permissions]

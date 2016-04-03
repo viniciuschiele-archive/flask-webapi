@@ -11,7 +11,7 @@ from decimal import Decimal
 from flask import Flask, json
 from flask_webapi import WebAPI, serialization
 from flask_webapi.exceptions import ValidationError
-from flask_webapi.serialization import serializer
+from flask_webapi.serialization import serialize
 from flask_webapi.utils import timezone
 from flask_webapi.views import route
 from unittest import TestCase
@@ -1116,7 +1116,7 @@ class TestView(TestCase):
             field = serialization.StringField()
 
         @route('/view')
-        @serializer(Schema)
+        @serialize(Schema)
         def view():
             return {'field': 'value'}
 
@@ -1130,7 +1130,7 @@ class TestView(TestCase):
             field = serialization.StringField()
 
         @route('/view')
-        @serializer(Schema, many=False)
+        @serialize(Schema, many=False)
         def view():
             return {'field': 'value'}
 
@@ -1144,7 +1144,7 @@ class TestView(TestCase):
             field = serialization.StringField()
 
         @route('/view')
-        @serializer(Schema)
+        @serialize(Schema)
         def view():
             return [{'field': 'value'}]
 
@@ -1158,7 +1158,7 @@ class TestView(TestCase):
             field = serialization.StringField()
 
         @route('/view')
-        @serializer(Schema, many=True)
+        @serialize(Schema, many=True)
         def view():
             return [{'field': 'value'}]
 
@@ -1172,7 +1172,7 @@ class TestView(TestCase):
             field = serialization.StringField()
 
         @route('/view')
-        @serializer(Schema, many=True, envelope='results')
+        @serialize(Schema, many=True, envelope='results')
         def view():
             return [{'field': 'value'}]
 
@@ -1186,7 +1186,7 @@ class TestView(TestCase):
             field = serialization.StringField()
 
         @route('/view')
-        @serializer(Schema, envelope='results')
+        @serialize(Schema, envelope='results')
         def view():
             return None
 
@@ -1202,7 +1202,7 @@ class TestView(TestCase):
             age = serialization.IntegerField()
 
         @route('/view')
-        @serializer(Schema)
+        @serialize(Schema)
         def view():
             return {'first_name': 'foo',
                     'last_name': 'bar',
@@ -1220,7 +1220,7 @@ class TestView(TestCase):
             age = serialization.IntegerField()
 
         @route('/view')
-        @serializer(Schema)
+        @serialize(Schema)
         def view():
             return {'first_name': 'foo',
                     'last_name': 'bar',
@@ -1238,7 +1238,7 @@ class TestView(TestCase):
             age = serialization.IntegerField()
 
         @route('/view')
-        @serializer(Schema)
+        @serialize(Schema)
         def view():
             return {'first_name': 'foo',
                     'last_name': 'bar',
