@@ -7,10 +7,11 @@ import inspect
 from abc import ABCMeta, abstractmethod
 from flask import request
 from .exceptions import NotAuthenticated, PermissionDenied
-from .filters import authorization_filter
+from .filters import AuthorizationFilter, filter
 
 
-class authorizer(authorization_filter):
+@filter
+class authorizer(AuthorizationFilter):
     def __init__(self, *permissions, order=-1):
         super().__init__(order)
         self.permissions = [permission() if inspect.isclass(permission) else permission for permission in permissions]

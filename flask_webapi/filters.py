@@ -11,11 +11,7 @@ def filter(filter_cls):
     return filter_cls
 
 
-@filter
-class authentication_filter(object):
-    """
-    Filter that performs authentication.
-    """
+class BaseFilter(object):
     def __init__(self, order=-1):
         self.order = order
 
@@ -24,29 +20,24 @@ class authentication_filter(object):
         func.filters.append(self)
         return func
 
+
+class AuthenticationFilter(BaseFilter):
+    """
+    Filter that performs authentication.
+    """
     def authenticate(self, context):
         pass
 
 
-@filter
-class authorization_filter(object):
+class AuthorizationFilter(BaseFilter):
     """
     Filter that performs authorization.
     """
-    def __init__(self, order=-1):
-        self.order = order
-
-    def __call__(self, func):
-        func.filters = getattr(func, 'filters', [])
-        func.filters.append(self)
-        return func
-
     def authorize(self, context):
         pass
 
 
-@filter
-class action_filter(object):
+class ActionFilter(BaseFilter):
     """
     Filter that performs authorization.
     """
@@ -65,8 +56,7 @@ class action_filter(object):
         pass
 
 
-@filter
-class response_filter(object):
+class ResponseFilter(BaseFilter):
     """
     Filter that performs authorization.
     """
@@ -85,8 +75,7 @@ class response_filter(object):
         pass
 
 
-@filter
-class exception_filter(object):
+class ExceptionFilter(BaseFilter):
     """
     Filter that performs authorization.
     """

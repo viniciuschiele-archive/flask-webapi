@@ -5,11 +5,12 @@ Argument provider obtains the data for the parameters.
 from abc import ABCMeta, abstractmethod
 from flask import request
 from .exceptions import ValidationError
-from .filters import action_filter
+from .filters import ActionFilter, filter
 from .serialization import Schema
 
 
-class param(action_filter):
+@filter
+class param(ActionFilter):
     def __init__(self, name, field, location=None, order=-1):
         super().__init__(order)
 

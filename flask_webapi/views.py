@@ -5,8 +5,8 @@ Provides a BaseView class that is the base of all views in Flask WebAPI.
 from abc import ABCMeta, abstractmethod
 from flask import current_app
 from werkzeug.exceptions import HTTPException
+from . import filters
 from .exceptions import APIException, NotAcceptable
-from .filters import authentication_filter, authorization_filter, action_filter, response_filter, exception_filter
 from .utils import reflect
 
 
@@ -103,7 +103,7 @@ class View(BaseView):
         except Exception as e:
             context.exception = e
             for filter in context.exception_filters:
-                filter.on_exception(context)
+                filter.handle_exception(context)
 
             if context.result is None:
                 raise
@@ -177,11 +177,11 @@ class ActionContext(object):
         self.api = api
         self.app = api.app
 
-        self.authentication_filters = self.__get_filters_by_type(authentication_filter)
-        self.authorization_filters = self.__get_filters_by_type(authorization_filter)
-        self.action_filters = self.__get_filters_by_type(action_filter)
-        self.response_filters = self.__get_filters_by_type(response_filter)
-        self.exception_filters = self.__get_filters_by_type(exception_filter)
+        self.authentication_filters = self.__get_filters_by_type(filters.AuthenticationFilter)
+        self.authorization_filters = self.__get_filters_by_type(filters.AuthorizationFilter)
+        self.action_filters = self.__get_filters_by_type(filters.ActionFilter)
+        self.response_filters = self.__get_filters_by_type(filters.ResponseFilter)
+        self.exception_filters = self.__get_filters_by_type(filters.ExceptionFilter)
 
         self.argument_providers = api.argument_providers
         self.content_negotiator = self.api.content_negotiator

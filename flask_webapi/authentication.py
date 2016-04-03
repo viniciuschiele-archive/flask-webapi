@@ -6,10 +6,11 @@ import inspect
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from .filters import authentication_filter
+from .filters import AuthenticationFilter, filter
 
 
-class authenticator(authentication_filter):
+@filter
+class authenticator(AuthenticationFilter):
     def __init__(self, *authenticators, **kwargs):
         super().__init__(**kwargs)
         self.authenticators = [item() if inspect.isclass(item) else item for item in authenticators]
