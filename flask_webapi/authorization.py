@@ -18,11 +18,13 @@ class authorizer(AuthorizationFilter):
 
     def authorize(self, context):
         for permission in self.permissions:
-            if not permission.has_permission():
-                if getattr(request, 'user', None):
-                    raise PermissionDenied()
-                else:
-                    raise NotAuthenticated()
+            if permission.has_permission():
+                return
+
+        if getattr(request, 'user', None):
+            raise PermissionDenied()
+        else:
+            raise NotAuthenticated()
 
 
 class BasePermission(metaclass=ABCMeta):
