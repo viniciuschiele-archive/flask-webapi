@@ -40,12 +40,14 @@ def route(url, endpoint=None, methods=None):
     :param list methods: A list of http methods.
     :return: A function.
     """
+
     def decorator(func):
         routes = getattr(func, 'routes', None)
         if not routes:
             func.routes = routes = []
         routes.append((url, endpoint, methods))
         return func
+
     return decorator
 
 
@@ -209,8 +211,21 @@ class ActionContext(object):
         self.response = None
 
     def __get_filters_by_type(self, filter_type):
-        filters = getattr(self.func, 'filters', []) + \
-                  getattr(self.view, 'filters', []) + \
-                  getattr(self.api, 'filters', [])
+        filters_by_type = sorted([filter for filter in
+                                  getattr(self.func, 'filters', []) +
+                                  getattr(self.view, 'filters', []) +
+                                  getattr(self.api, 'filters', [])
+                                  if isinstance(filter, filter_type)], key=lambda x: x.order)
 
-        return sorted([filter for filter in filters if isinstance(filter, filter_type)], key=lambda x: x.order)
+        filters = []
+
+        while len(filters_by_type) > 0:
+            filter = filters_by_type.pop(0)
+            filters.append(filter)
+            if not getattr(filter, 'allow_multiple', True):
+                for filter2 in list(filters_by_type):
+                    if not isinstance(filter2, type(filter)):
+                        filters_by_type.remove(filter2)
+                        filters.append(filter2)
+
+        return filters

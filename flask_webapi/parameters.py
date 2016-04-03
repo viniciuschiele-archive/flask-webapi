@@ -9,7 +9,7 @@ from .filters import ActionFilter, filter
 from .serialization import Schema
 
 
-@filter
+@filter()
 class param(ActionFilter):
     def __init__(self, name, field, location=None, order=-1):
         super().__init__(order)

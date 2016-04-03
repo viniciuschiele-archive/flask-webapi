@@ -10,7 +10,7 @@ from .exceptions import NotAuthenticated, PermissionDenied
 from .filters import AuthorizationFilter, filter
 
 
-@filter
+@filter()
 class authorizer(AuthorizationFilter):
     def __init__(self, *permissions, order=-1):
         super().__init__(order)

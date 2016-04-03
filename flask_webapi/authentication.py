@@ -9,7 +9,7 @@ from flask import request
 from .filters import AuthenticationFilter, filter
 
 
-@filter
+@filter()
 class authenticator(AuthenticationFilter):
     def __init__(self, *authenticators, **kwargs):
         super().__init__(**kwargs)
