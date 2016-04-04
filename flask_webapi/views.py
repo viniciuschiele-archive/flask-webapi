@@ -124,7 +124,7 @@ class View(BaseView):
             filter.before_action(context)
 
         if context.result is None:
-            context.result = context.method(self, *context.args, **context.kwargs)
+            context.result = context.func(self, *context.args, **context.kwargs)
 
         for filter in context.action_filters:
             filter.after_action(context)
@@ -182,7 +182,6 @@ class ActionContext(object):
 
     def __init__(self, func, view_class, api):
         self.func = func
-        self.method = func
         self.view_class = view_class
         self.api = api
         self.app = api.app
@@ -193,14 +192,14 @@ class ActionContext(object):
         self.response_filters = self.__get_filters_by_type(filters.ResponseFilter)
         self.exception_filters = self.__get_filters_by_type(filters.ExceptionFilter)
 
-        self.argument_providers = api.argument_providers
-        self.content_negotiator = self.api.content_negotiator
-        self.input_formatters = self.api.input_formatters
-        self.output_formatters = self.api.output_formatters
+        self.content_negotiator = api.content_negotiator
+        self.input_formatters = api.input_formatters
+        self.output_formatters = api.output_formatters
         self.exception_handler = api.exception_handler
+        self.value_providers = api.value_providers
 
-        if not reflect.has_self_argument(self.method):
-            self.method = reflect.func_to_method(self.method)
+        if not reflect.has_self_parameter(self.func):
+            self.func = reflect.func_to_method(self.func)
 
         self.args = None
         self.kwargs = None
