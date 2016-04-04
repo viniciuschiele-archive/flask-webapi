@@ -33,10 +33,10 @@ class serialize(ActionFilter):
         self.many = many
         self.envelope = envelope
 
-    def before_action(self, context):
+    def pre_action(self, context):
         pass
 
-    def after_action(self, context):
+    def post_action(self, context):
         result = context.result
 
         if result is None:
