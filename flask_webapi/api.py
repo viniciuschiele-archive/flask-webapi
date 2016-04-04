@@ -7,8 +7,8 @@ import importlib
 import inspect
 
 from .negotiators import DefaultContentNegotiator
-from .formatters import FormInputFormatter, JsonInputFormatter, JsonOutputFormatter
-from .parameters import get_argument_providers
+from .formatters import get_default_input_formatters, get_default_output_formatters
+from .parameters import get_default_providers
 from .utils.routing import Route, urljoin, get_view_prefixes, get_view_routes
 from .views import exception_handler, BaseView, View, ActionContext
 
@@ -37,12 +37,12 @@ class WebAPI(object):
         self._routes = []
 
         self.app = None
-        self.argument_providers = get_argument_providers()
         self.content_negotiator = DefaultContentNegotiator()
         self.filters = []
-        self.input_formatters = [JsonInputFormatter(), FormInputFormatter()]
-        self.output_formatters = [JsonOutputFormatter()]
+        self.input_formatters = get_default_input_formatters()
+        self.output_formatters = get_default_output_formatters()
         self.exception_handler = exception_handler
+        self.value_providers = get_default_providers()
 
         if app:
             self.init_app(app)

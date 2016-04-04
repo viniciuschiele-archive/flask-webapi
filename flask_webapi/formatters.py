@@ -6,8 +6,23 @@ import pickle
 
 from abc import ABCMeta, abstractmethod
 from flask import json
-from werkzeug.urls import url_decode_stream
 from .exceptions import ParseError
+
+
+def get_default_input_formatters():
+    """
+    Gets all instances of input formatters.
+    :return: A list of input formatters.
+    """
+    return [JsonInputFormatter(), FormInputFormatter()]
+
+
+def get_default_output_formatters():
+    """
+    Gets all instances of output formatters.
+    :return: A list of output formatters.
+    """
+    return [JsonOutputFormatter()]
 
 
 class MimeType(object):
