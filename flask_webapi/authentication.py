@@ -10,7 +10,7 @@ from .filters import AuthenticationFilter, filter
 
 
 @filter()
-class authenticator(AuthenticationFilter):
+class Authenticator(AuthenticationFilter):
     def __init__(self, *authenticators, **kwargs):
         super().__init__(**kwargs)
         self.authenticators = [item() if inspect.isclass(item) else item for item in authenticators]
@@ -37,3 +37,6 @@ class BaseAuthenticator(metaclass=ABCMeta):
         """
         Authenticate the request and return a two-tuple of (user, token).
         """
+
+
+authenticator = Authenticator

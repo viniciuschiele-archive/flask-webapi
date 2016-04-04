@@ -2,15 +2,15 @@
 Provides the main class for Flask WebAPI.
 """
 
-import copy
 import importlib
 import inspect
 
-from .negotiators import DefaultContentNegotiator
+from .actions import ActionContext, ActionDescriptorBuilder, DefaultActionExecutor
 from .formatters import get_default_input_formatters, get_default_output_formatters
+from .negotiators import DefaultContentNegotiator
 from .parameters import get_default_providers
 from .utils.routing import Route, urljoin, get_view_prefixes, get_view_routes
-from .views import exception_handler, BaseView, View, ActionContext
+from .views import exception_handler
 
 
 class WebAPI(object):
@@ -37,6 +37,7 @@ class WebAPI(object):
         self._routes = []
 
         self.app = None
+        self.action_executor = DefaultActionExecutor()
         self.content_negotiator = DefaultContentNegotiator()
         self.filters = []
         self.input_formatters = get_default_input_formatters()
@@ -70,10 +71,10 @@ class WebAPI(object):
         :param view: The function or class of your view.
         """
         if inspect.isfunction(view):
-            view = type('FunctionBasedView', (View,), {view.__name__: view})
+            view = type('FunctionBasedView', (object,), {view.__name__: view})
 
-        if not inspect.isclass(view) or not issubclass(view, BaseView):
-            raise TypeError('View must be a class and must inherit from %s.' % BaseView.__name__)
+        if not inspect.isclass(view):
+            raise TypeError('View must be a class')
 
         routes = self._build_routes(view)
 
@@ -104,7 +105,7 @@ class WebAPI(object):
             for _, member in members:
                 if inspect.isfunction(member) and hasattr(member, 'routes'):
                     self.add_view(member)
-                elif inspect.isclass(member) and issubclass(member, BaseView):
+                elif inspect.isclass(member) and member.__name__.endswith('View'):
                     self.add_view(member)
 
     def _make_endpoint(self, view, func):
@@ -116,23 +117,17 @@ class WebAPI(object):
         """
         return func.__module__ + '.' + view.__name__ + '.' + func.__name__
 
-    def _make_view(self, action):
+    def _make_view(self, descriptor):
         """
         Returns a view function expected by Flask.
-        :param ActionContext action: The action context.
+        :param ActionDescriptor descriptor: The action descriptor.
         :return: A function
         """
-        def view(*args, **kwargs):
-            context = copy.copy(action)
-            context.args = args
-            context.kwargs = kwargs
-            context.response = context.app.response_class()
-
-            instance = context.view_class()
-            instance.dispatch(context)
-
+        def func_view(*args, **kwargs):
+            context = ActionContext(descriptor, self, args, kwargs)
+            self.action_executor.execute(context)
             return context.response
-        return view
+        return func_view
 
     def _build_routes(self, view):
         """
@@ -175,6 +170,7 @@ class WebAPI(object):
         Registers a list of routes into Flask.
         :param routes: The list of routes.
         """
+        builder = ActionDescriptorBuilder()
         for route in routes:
-            context = ActionContext(route.func, route.view_class, self)
-            self.app.add_url_rule(route.url, route.endpoint, self._make_view(context), methods=route.methods)
+            descriptor = builder.build(route.func, route.view_class, self)
+            self.app.add_url_rule(route.url, route.endpoint, self._make_view(descriptor), methods=route.methods)

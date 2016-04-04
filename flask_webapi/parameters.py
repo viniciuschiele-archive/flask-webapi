@@ -9,8 +9,20 @@ from .filters import ActionFilter, filter
 from .serialization import Schema
 
 
+def get_default_providers():
+    """
+    Gets all instances of value providers.
+    :return: A list of value providers.
+    """
+    return {'query': QueryStringProvider(),
+            'form': FormDataProvider(),
+            'header': HeaderProvider(),
+            'cookie': CookieProvider(),
+            'body': BodyProvider()}
+
+
 @filter()
-class param(ActionFilter):
+class Parameter(ActionFilter):
     def __init__(self, name, field, location=None, order=-1):
         super().__init__(order)
 
@@ -63,18 +75,6 @@ class param(ActionFilter):
             return provider.get_data(context)
 
         raise Exception('Argument provider for location "%s" not found.' % location)
-
-
-def get_default_providers():
-    """
-    Gets all instances of value providers.
-    :return: A list of value providers.
-    """
-    return {'query': QueryStringProvider(),
-            'form': FormDataProvider(),
-            'header': HeaderProvider(),
-            'cookie': CookieProvider(),
-            'body': BodyProvider()}
 
 
 class BaseValueProvider(metaclass=ABCMeta):
@@ -133,3 +133,6 @@ class BodyProvider(BaseValueProvider):
         formatter, mimetype = negotiator.select_input_formatter(formatters)
 
         return formatter.read(request, mimetype)
+
+
+param = Parameter

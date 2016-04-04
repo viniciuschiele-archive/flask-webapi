@@ -18,7 +18,7 @@ MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key
 
 
 @filter(allow_multiple=False)
-class serialize(ActionFilter):
+class Serialize(ActionFilter):
     """
     A decorator that apply a serializer to the action.
     :param Schema|type schema: The schema used to serialize the data.
@@ -830,3 +830,6 @@ class Schema(Field, metaclass=SchemaMeta):
 
         if d:
             raise ValidationError(d)
+
+
+serialize = Serialize

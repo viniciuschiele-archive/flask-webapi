@@ -10,14 +10,19 @@ from .exceptions import NotAuthenticated, PermissionDenied
 from .filters import AuthorizationFilter, filter
 
 
+def allow_anonymous(function):
+    function.allow_anonymous = True
+    return function
+
+
 @filter()
-class authorize(AuthorizationFilter):
+class Authorize(AuthorizationFilter):
     def __init__(self, *permissions, order=-1):
         super().__init__(order)
         self.permissions = [permission() if inspect.isclass(permission) else permission for permission in permissions]
 
     def authorize(self, context):
-        if getattr(context.func, 'allow_anonymous', False):
+        if getattr(context.descriptor.func, 'allow_anonymous', False):
             return
 
         for permission in self.permissions:
@@ -28,11 +33,6 @@ class authorize(AuthorizationFilter):
             raise PermissionDenied()
         else:
             raise NotAuthenticated()
-
-
-def allow_anonymous(function):
-    function.allow_anonymous = True
-    return function
 
 
 class BasePermission(metaclass=ABCMeta):
@@ -66,3 +66,6 @@ class IsAuthenticated(BasePermission):
 
     def has_permission(self):
         return getattr(request, 'user', None) is not None
+
+
+authorize = Authorize

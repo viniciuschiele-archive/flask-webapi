@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_webapi import WebAPI
-from flask_webapi.views import View, route
+from flask_webapi.views import route
 from unittest import TestCase
 
 
@@ -30,7 +30,7 @@ class TestView(TestCase):
 
     def test_class_based_view_with_prefix(self):
         @route('/prefix')
-        class FakeView(View):
+        class FakeView(object):
             @route('/view')
             def get(self):
                 pass

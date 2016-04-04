@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_webapi import WebAPI
-from flask_webapi.views import View, route
+from flask_webapi.views import route
 from unittest import TestCase
 
 
@@ -33,21 +33,10 @@ class TestWebAPI(TestCase):
         self.assertEqual(response.status_code, 204)
 
     def test_add_invalid_view(self):
-        attr_view = None
-
-        def invalid_view():
-            pass
-
-        class InvalidView(object):
-            pass
-
-        self.api.add_view(invalid_view)
+        attr_view = ''
 
         with self.assertRaises(TypeError):
             self.api.add_view(attr_view)
-
-        with self.assertRaises(TypeError):
-            self.api.add_view(InvalidView)
 
     def test_add_same_view_multiple_times(self):
         self.api.add_view(FakeView)
@@ -81,7 +70,7 @@ class TestWebAPI(TestCase):
             self.api.scan_views('tests', 'module_not_found')
 
 
-class FakeView(View):
+class FakeView(object):
     @route('/view')
     def view(self):
         pass
