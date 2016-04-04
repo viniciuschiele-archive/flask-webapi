@@ -47,10 +47,10 @@ class ActionFilter(BaseFilter):
     """
     Filter that performs authorization.
     """
-    def before_action(self, context):
+    def pre_action(self, context):
         pass
 
-    def after_action(self, context):
+    def post_action(self, context):
         pass
 
 
@@ -58,10 +58,10 @@ class ResponseFilter(BaseFilter):
     """
     Filter that performs authorization.
     """
-    def before_response(self, context):
+    def pre_response(self, context):
         pass
 
-    def after_response(self, context):
+    def post_response(self, context):
         pass
 
 

@@ -121,13 +121,13 @@ class View(BaseView):
 
     def _execute_action_with_filters(self, context):
         for filter in context.action_filters:
-            filter.before_action(context)
+            filter.pre_action(context)
 
         if context.result is None:
             context.result = context.func(self, *context.args, **context.kwargs)
 
         for filter in context.action_filters:
-            filter.after_action(context)
+            filter.post_action(context)
 
     def _execute_exception_filters(self, context):
         for filter in context.exception_filters:
@@ -140,13 +140,13 @@ class View(BaseView):
         If there is not data to be serialized the response status code is 204.
 
         :param context: The Python object to be serialized.
-        :param bool force_renderer: If set to `True` selects the first renderer when the appropriated is not found.
+        :param bool force_formatter: If set to `True` selects the first formatter when the appropriated is not found.
         :return: A Flask response.
         """
 
         if not isinstance(context.result, current_app.response_class):
             for filter in context.response_filters:
-                filter.before_response(context)
+                filter.pre_response(context)
 
             if context.result is None:
                 context.response.status_code = 204
@@ -155,7 +155,7 @@ class View(BaseView):
                 formatter.write(context.response, context.result, mimetype)
 
         for filter in context.response_filters:
-            filter.after_response(context)
+            filter.post_response(context)
 
     def _select_output_formatter(self, context, force=False):
         """
@@ -193,9 +193,9 @@ class ActionContext(object):
         self.exception_filters = self.__get_filters_by_type(filters.ExceptionFilter)
 
         self.content_negotiator = api.content_negotiator
+        self.exception_handler = api.exception_handler
         self.input_formatters = api.input_formatters
         self.output_formatters = api.output_formatters
-        self.exception_handler = api.exception_handler
         self.value_providers = api.value_providers
 
         if not reflect.has_self_parameter(self.func):
@@ -221,9 +221,9 @@ class ActionContext(object):
             filter = filters_by_type.pop(0)
             filters.append(filter)
             if not getattr(filter, 'allow_multiple', True):
-                for filter2 in list(filters_by_type):
-                    if not isinstance(filter2, type(filter)):
-                        filters_by_type.remove(filter2)
-                        filters.append(filter2)
+                for next_filter in list(filters_by_type):
+                    if not isinstance(next_filter, type(filter)):
+                        filters_by_type.remove(next_filter)
+                        filters.append(next_filter)
 
         return filters
