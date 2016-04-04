@@ -52,12 +52,12 @@ class param(ActionFilter):
         Gets the argument data based on the location.
         :return: The data obtained.
         """
-        if self.location is None:
+        if not self.location:
             location = 'query' if request.method == 'GET' else 'body'
         else:
             location = self.location
 
-        provider = context.argument_providers.get(location)
+        provider = context.value_providers.get(location)
 
         if provider:
             return provider.get_data(context)
@@ -65,10 +65,10 @@ class param(ActionFilter):
         raise Exception('Argument provider for location "%s" not found.' % location)
 
 
-def get_argument_providers():
+def get_default_providers():
     """
-    Gets all instances of argument providers.
-    :return: A list of argument providers.
+    Gets all instances of value providers.
+    :return: A list of value providers.
     """
     return {'query': QueryStringProvider(),
             'form': FormDataProvider(),
@@ -77,7 +77,7 @@ def get_argument_providers():
             'body': BodyProvider()}
 
 
-class BaseArgumentProvider(metaclass=ABCMeta):
+class BaseValueProvider(metaclass=ABCMeta):
     """
     A base class from which all provider classes should inherit.
     """
@@ -90,7 +90,7 @@ class BaseArgumentProvider(metaclass=ABCMeta):
         """
 
 
-class QueryStringProvider(BaseArgumentProvider):
+class QueryStringProvider(BaseValueProvider):
     """
     Provides arguments from the request query string.
     """
@@ -98,7 +98,7 @@ class QueryStringProvider(BaseArgumentProvider):
         return request.args
 
 
-class FormDataProvider(BaseArgumentProvider):
+class FormDataProvider(BaseValueProvider):
     """
     Provides arguments from the request form.
     """
@@ -106,7 +106,7 @@ class FormDataProvider(BaseArgumentProvider):
         return request.form
 
 
-class HeaderProvider(BaseArgumentProvider):
+class HeaderProvider(BaseValueProvider):
     """
     Provides arguments from the request headers.
     """
@@ -114,7 +114,7 @@ class HeaderProvider(BaseArgumentProvider):
         return dict(request.headers)
 
 
-class CookieProvider(BaseArgumentProvider):
+class CookieProvider(BaseValueProvider):
     """
     Provides arguments from the request cookies.
     """
@@ -122,7 +122,7 @@ class CookieProvider(BaseArgumentProvider):
         return request.cookies
 
 
-class BodyProvider(BaseArgumentProvider):
+class BodyProvider(BaseValueProvider):
     """
     Provides arguments from the request body.
     """
