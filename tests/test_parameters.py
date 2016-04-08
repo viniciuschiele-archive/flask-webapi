@@ -13,9 +13,9 @@ class TestLocation(TestCase):
         self.api = WebAPI(self.app)
         self.client = self.app.test_client()
 
-    def test_cookie_location(self):
+    def test_cookies_location(self):
         @route('/view')
-        @param('name', serialization.StringField, location='cookie')
+        @param('name', serialization.StringField, location='cookies')
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -25,9 +25,9 @@ class TestLocation(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(response.data), {'name': 'foo'})
 
-    def test_header_location(self):
+    def test_headers_location(self):
         @route('/view')
-        @param('name', serialization.StringField(load_from='Name'), location='header')
+        @param('name', serialization.StringField(load_from='Name'), location='headers')
         def view(name):
             return {'name': name}
         self.api.add_view(view)
@@ -86,8 +86,7 @@ class TestLocation(TestCase):
 
         response = self.client.get('/view?name=foo')
         self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.data),
-                         {'errors': [{'message': 'Argument provider for location "not_found" not found.'}]})
+        self.assertTrue('Value provider' in response.get_data(as_text=True))
 
 
 class TestWithoutLocation(TestCase):

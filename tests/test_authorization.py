@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_webapi import WebAPI
-from flask_webapi.authentication import authenticator, BaseAuthenticator
+from flask_webapi.authentication import authenticate, BaseAuthenticator
 from flask_webapi.authorization import authorize, BasePermission, IsAuthenticated
 from flask_webapi.routers import route
 from unittest import TestCase
@@ -14,7 +14,7 @@ class TestView(TestCase):
 
     def test_permission_granted(self):
         @route('/view')
-        @authenticator(Authenticator)
+        @authenticate(Authenticator)
         @authorize(IsAuthenticated)
         def view():
             pass
@@ -29,7 +29,7 @@ class TestView(TestCase):
                 return False
 
         @route('/view')
-        @authenticator(Authenticator)
+        @authenticate(Authenticator)
         @authorize(Denied)
         def view():
             pass

@@ -1,5 +1,5 @@
 """
-Content negotiation selects a appropriated parser and renderer for a HTTP request.
+Content negotiation selects a appropriated input and output formatter for a HTTP request.
 """
 
 from abc import ABCMeta, abstractmethod
@@ -16,7 +16,7 @@ class BaseContentNegotiator(metaclass=ABCMeta):
     @abstractmethod
     def select_input_formatter(self, formatters):
         """
-        Selects the appropriated parser for the given request.
+        Selects the appropriated formatter for the given request.
         :param formatters: The lists of input formatters.
         :return: The parser selected or raise `UnsupportedMediaType`.
         """
@@ -24,7 +24,7 @@ class BaseContentNegotiator(metaclass=ABCMeta):
     @abstractmethod
     def select_output_formatter(self, formatters):
         """
-        Selects the appropriated renderer for the given request.
+        Selects the appropriated formatter for the given request.
         :param formatters: The lists of output formatters.
         :return: The renderer selected or raise `NotAcceptable`.
         """
@@ -32,13 +32,13 @@ class BaseContentNegotiator(metaclass=ABCMeta):
 
 class DefaultContentNegotiator(BaseContentNegotiator):
     """
-    Selects a parser by request content type and a
-    renderer by request accept.
+    Selects a input formatter by request content type and a
+    output formatter by request accept header.
     """
 
     def select_input_formatter(self, formatters):
         """
-        Selects the appropriated parser that matches to the request's content type.
+        Selects the appropriated formatter that matches with the request content type.
         :param formatters: The lists of input formatters.
         :return: The parser selected or raise `UnsupportedMediaType`.
         """
@@ -52,7 +52,7 @@ class DefaultContentNegotiator(BaseContentNegotiator):
 
     def select_output_formatter(self, formatters):
         """
-        Selects the appropriated parser that matches to the request's accept header.
+        Selects the appropriated formatter that matches to the request accept header.
         :param formatters: The lists of output formatters.
         :return: The parser selected or raise `NotAcceptable`.
         """

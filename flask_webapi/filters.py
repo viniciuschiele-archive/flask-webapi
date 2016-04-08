@@ -1,12 +1,13 @@
 """
-Provides filters used to inject code into views.
+Provides a set of filter classes used to inject code into actions and views.
 """
 
 
 def filter(allow_multiple=True):
     """
-    Filter that performs authentication.
-    :param bool allow_multiple:
+    Decorator that allows the filter class to be used as a decorator.
+    :param bool allow_multiple: Set to `True` to allow multiples
+        filter of same type on the same action.
     """
     def wrapper(cls):
         def decorator(*args, **kwargs):
@@ -18,13 +19,23 @@ def filter(allow_multiple=True):
 
 
 class BaseFilter(object):
+    """
+    A base class from which all filter classes should inherit.
+    :param order: The order in which the filter is executed.
+    """
+
     def __init__(self, order=-1):
         self.order = order
 
-    def __call__(self, func):
-        func.filters = getattr(func, 'filters', [])
-        func.filters.append(self)
-        return func
+    def __call__(self, action):
+        """
+        Applies the filter on the given action.
+        :param action: The action that will receive the filter.
+        :return: The action itself.
+        """
+        action.filters = getattr(action, 'filters', [])
+        action.filters.append(self)
+        return action
 
 
 class AuthenticationFilter(BaseFilter):
@@ -45,8 +56,9 @@ class AuthorizationFilter(BaseFilter):
 
 class ActionFilter(BaseFilter):
     """
-    Filter that performs authorization.
+    Filter that allows to inject code before and after the action.
     """
+
     def pre_action(self, context):
         pass
 
@@ -67,7 +79,7 @@ class ResponseFilter(BaseFilter):
 
 class ExceptionFilter(BaseFilter):
     """
-    Filter that performs authorization.
+    Filter that handles unhandled exceptions.
     """
     def handle_exception(self, context):
         pass

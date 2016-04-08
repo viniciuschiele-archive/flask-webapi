@@ -1,5 +1,5 @@
 """
-Provides a set of pluggable permission policies.
+Provides a set of classes for authorization.
 """
 
 import inspect
@@ -10,13 +10,25 @@ from .exceptions import NotAuthenticated, PermissionDenied
 from .filters import AuthorizationFilter, filter
 
 
-def allow_anonymous(function):
-    function.allow_anonymous = True
-    return function
+def allow_anonymous(action):
+    """
+    Allows an action to be called for unauthenticated users.
+    :param action: The action to be allowed.
+    :return: The action itself.
+    """
+    action.allow_anonymous = True
+    return action
 
 
 @filter()
 class Authorize(AuthorizationFilter):
+    """
+    Specifies that access to a view or action method is
+    restricted to users who meet the authorization requirement.
+
+    :param list permissions: The list of `BasePermission`.
+    :param int order: The order in which the filter is executed.
+    """
     def __init__(self, *permissions, order=-1):
         super().__init__(order)
         self.permissions = [permission() if inspect.isclass(permission) else permission for permission in permissions]
@@ -45,18 +57,6 @@ class BasePermission(metaclass=ABCMeta):
         """
         Returns `True` if permission is granted, `False` otherwise.
         """
-
-
-class AllowAny(BasePermission):
-    """
-    Allow any access.
-    This isn't strictly required, since you could use an empty
-    permission_classes list, but it's useful because it makes the intention
-    more explicit.
-    """
-
-    def has_permission(self):
-        return True
 
 
 class IsAuthenticated(BasePermission):

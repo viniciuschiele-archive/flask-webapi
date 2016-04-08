@@ -1,5 +1,5 @@
 """
-Argument provider obtains the data for the parameters.
+Provides a set of classes to deal with input data.
 """
 
 from abc import ABCMeta, abstractmethod
@@ -16,13 +16,19 @@ def get_default_providers():
     """
     return {'query': QueryStringProvider(),
             'form': FormDataProvider(),
-            'header': HeaderProvider(),
-            'cookie': CookieProvider(),
+            'headers': HeadersProvider(),
+            'cookies': CookiesProvider(),
             'body': BodyProvider()}
 
 
 @filter()
 class Parameter(ActionFilter):
+    """
+    Filter that retrieve a specific parameter from a specific location.
+    :param str name: The name of parameter.
+    :param Field field: The field used to parse the argument.
+    :param str location: The location from where to retrieve the value.
+    """
     def __init__(self, name, field, location=None, order=-1):
         super().__init__(order)
 
@@ -74,7 +80,7 @@ class Parameter(ActionFilter):
         if provider:
             return provider.get_data(context)
 
-        raise Exception('Argument provider for location "%s" not found.' % location)
+        raise Exception('Value provider for location "%s" not found.' % location)
 
 
 class BaseValueProvider(metaclass=ABCMeta):
@@ -85,7 +91,7 @@ class BaseValueProvider(metaclass=ABCMeta):
     def get_data(self, context):
         """
         Returns the arguments as `dict`.
-        :param ActionContext context:
+        :param ActionContext context: The action context.
         :return dict: The `dict` containing the arguments.
         """
 
@@ -106,7 +112,7 @@ class FormDataProvider(BaseValueProvider):
         return request.form
 
 
-class HeaderProvider(BaseValueProvider):
+class HeadersProvider(BaseValueProvider):
     """
     Provides arguments from the request headers.
     """
@@ -114,7 +120,7 @@ class HeaderProvider(BaseValueProvider):
         return dict(request.headers)
 
 
-class CookieProvider(BaseValueProvider):
+class CookiesProvider(BaseValueProvider):
     """
     Provides arguments from the request cookies.
     """

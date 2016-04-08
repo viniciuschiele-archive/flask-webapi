@@ -2,8 +2,8 @@ import random
 import string
 import time
 
-from flask_webapi import fields, schemas
-from marshmallow import fields as mm_fields, Schema as mm_schema
+from flask_webapi import serialization
+from marshmallow import fields, Schema
 
 
 def generate_random_string(size):
@@ -28,40 +28,40 @@ class Model(object):
     property15 = 123456789
 
 
-class ModelSchema(schemas.Schema):
-    property1 = fields.StringField(allow_none=True)
-    property2 = fields.StringField()
-    property3 = fields.StringField()
-    property4 = fields.StringField()
-    property5 = fields.StringField()
-    property6 = fields.StringField()
-    property7 = fields.StringField()
-    property8 = fields.StringField()
-    property9 = fields.StringField()
-    property10 = fields.StringField()
-    property11 = fields.StringField()
-    property12 = fields.StringField()
-    property13 = fields.StringField()
-    property14 = fields.StringField()
-    property15 = fields.IntegerField()
+class ModelSchema(serialization.Schema):
+    property1 = serialization.StringField(allow_none=True)
+    property2 = serialization.StringField()
+    property3 = serialization.StringField()
+    property4 = serialization.StringField()
+    property5 = serialization.StringField()
+    property6 = serialization.StringField()
+    property7 = serialization.StringField()
+    property8 = serialization.StringField()
+    property9 = serialization.StringField()
+    property10 = serialization.StringField()
+    property11 = serialization.StringField()
+    property12 = serialization.StringField()
+    property13 = serialization.StringField()
+    property14 = serialization.StringField()
+    property15 = serialization.IntegerField()
 
 
-class MM_ModelSchema(mm_schema):
-    property1 = mm_fields.String(allow_none=True)
-    property2 = mm_fields.String()
-    property3 = mm_fields.String()
-    property4 = mm_fields.String()
-    property5 = mm_fields.String()
-    property6 = mm_fields.String()
-    property7 = mm_fields.String()
-    property8 = mm_fields.String()
-    property9 = mm_fields.String()
-    property10 = mm_fields.String()
-    property11 = mm_fields.String()
-    property12 = mm_fields.String()
-    property13 = mm_fields.String()
-    property14 = mm_fields.String()
-    property15 = mm_fields.Integer()
+class MM_ModelSchema(Schema):
+    property1 = fields.String(allow_none=True)
+    property2 = fields.String()
+    property3 = fields.String()
+    property4 = fields.String()
+    property5 = fields.String()
+    property6 = fields.String()
+    property7 = fields.String()
+    property8 = fields.String()
+    property9 = fields.String()
+    property10 = fields.String()
+    property11 = fields.String()
+    property12 = fields.String()
+    property13 = fields.String()
+    property14 = fields.String()
+    property15 = fields.Integer()
 
 
 if __name__ == '__main__':

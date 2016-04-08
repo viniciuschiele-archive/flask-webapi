@@ -57,7 +57,11 @@ class BaseRouter(metaclass=ABCMeta):
 
     @abstractmethod
     def get_routes(self, view):
-        pass
+        """
+        Returns the routes for the given view.
+        :param view: The view.
+        :return: A list of `Route`.
+        """
 
 
 class DefaultRouter(BaseRouter):

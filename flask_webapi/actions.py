@@ -1,6 +1,9 @@
+import traceback
+
 from abc import ABCMeta, abstractmethod
 from flask import current_app
-from .exceptions import NotAcceptable
+from werkzeug.exceptions import HTTPException
+from .exceptions import APIException, NotAcceptable
 from .filters import AuthenticationFilter, AuthorizationFilter, ActionFilter, ResponseFilter, ExceptionFilter
 from .utils import reflect
 
@@ -23,7 +26,6 @@ class ActionContext(object):
         self.exception_filters = list(descriptor.exception_filters)
 
         self.content_negotiator = api.content_negotiator
-        self.exception_handler = api.exception_handler
         self.input_formatters = api.input_formatters
         self.output_formatters = api.output_formatters
         self.value_providers = api.value_providers
@@ -100,8 +102,7 @@ class DefaultActionExecutor(BaseActionExecutor):
     def execute(self, context):
         try:
             self._handle_request(context)
-        except Exception as e:
-            context.exception = e
+        except:
             self._handle_exception(context)
 
     def _handle_request(self, context):
@@ -129,10 +130,19 @@ class DefaultActionExecutor(BaseActionExecutor):
         """
         Handles any error that occurs, giving the opportunity for
         custom error handling by user code.
-        :param Exception e: The exception.
-        :return: A `flask.Response` instance.
+        :param ActionContext context: The action context.
         """
-        context.exception_handler(context)
+        if isinstance(context.exception, APIException):
+            message = context.exception
+        elif isinstance(context.exception, HTTPException):
+            message = APIException(context.exception.description)
+            message.status_code = context.exception.code
+        else:
+            debug = current_app.config.get('DEBUG')
+            message = APIException(traceback.format_exc()) if debug else APIException()
+
+        context.result = {'errors': message.denormalize()}
+        context.response.status_code = message.status_code
 
         self._make_response_with_filters(context, force_formatter=True)
 

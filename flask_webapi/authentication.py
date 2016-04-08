@@ -1,5 +1,5 @@
 """
-Provides various authentication policies.
+Provides a set of classes for authentication.
 """
 
 import inspect
@@ -10,17 +10,27 @@ from .filters import AuthenticationFilter, filter
 
 
 @filter()
-class Authenticator(AuthenticationFilter):
-    def __init__(self, *authenticators, **kwargs):
-        super().__init__(**kwargs)
+class Authenticate(AuthenticationFilter):
+    """
+    Specifies the authenticator that validates the credentials for the current user.
+
+    :param list authenticators: The list of `BaseAuthenticator`.
+    :param int order: The order in which the filter is executed.
+    """
+    def __init__(self, *authenticators, order=-1):
+        super().__init__(order)
         self.authenticators = [item() if inspect.isclass(item) else item for item in authenticators]
 
     def authenticate(self, context):
+        """
+        Authenticates the current user.
+        :param ActionContext context: The action context.
+        """
         request.user = None
         request.auth = None
 
-        for auth in self.authenticators:
-            auth_tuple = auth.authenticate()
+        for authenticator in self.authenticators:
+            auth_tuple = authenticator.authenticate()
 
             if auth_tuple:
                 request.user, request.auth = auth_tuple
@@ -39,4 +49,4 @@ class BaseAuthenticator(metaclass=ABCMeta):
         """
 
 
-authenticator = Authenticator
+authenticate = Authenticate

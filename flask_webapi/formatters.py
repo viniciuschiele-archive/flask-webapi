@@ -1,5 +1,5 @@
 """
-Parsers used to parse a stream into Python object.
+Provides a set of formatters to read and write content from/to the request/response body.
 """
 
 import pickle
@@ -125,7 +125,7 @@ class MimeType(object):
 
 class BaseInputFormatter(metaclass=ABCMeta):
     """
-    A base class from which all parser classes should inherit.
+    A base class from which all input formatter classes should inherit.
     """
 
     mimetype = None
@@ -133,16 +133,16 @@ class BaseInputFormatter(metaclass=ABCMeta):
     @abstractmethod
     def read(self, request, mimetype):
         """
-        Parses the given stream and returns a Python object.
-        :param request: The request containing the data to be parsed.
-        :param MimeType mimetype: The mimetype chose to parse the data.
-        :return: A Python object
+        Reads a `dict` object from the request body.
+        :param request: The request containing the data.
+        :param MimeType mimetype: The mimetype chose to read the data.
+        :return: A `dict` instance.
         """
 
 
 class BaseOutputFormatter(metaclass=ABCMeta):
     """
-    A base class from which all renderer classes should inherit.
+    A base class from which all output formatter classes should inherit.
     """
 
     mimetype = None
@@ -150,26 +150,26 @@ class BaseOutputFormatter(metaclass=ABCMeta):
     @abstractmethod
     def write(self, response, data, mimetype=None):
         """
-        Serializes the given data into a byte array.
-        :param data: The data to be rendered.
-        :param mimetype: The mimetype to render the data.
-        :return: A byte array.
+        Writes the given data into response body.
+        :param response: The flask response instance.
+        :param data: The data to be written into body.
+        :param MimeType mimetype: The content type.
         """
 
 
 class JsonInputFormatter(BaseInputFormatter):
     """
-    Parses JSON data into Python object.
+    An `BaseInputFormatter` for JSON content.
     """
 
     mimetype = MimeType.parse('application/json')
 
     def read(self, request, mimetype):
         """
-        Parses a stream containing a JSON document and returns a Python object.
-        :param request: The request containing the Json document.
-        :param MimeType mimetype: The mimetype chose to parse the data.
-        :return: A Python object.
+        Reads a `dict` object from the request body.
+        :param request: The request containing the data.
+        :param MimeType mimetype: The mimetype chose to read the data.
+        :return: A `dict` instance.
         """
         encoding = mimetype.params.get('charset') or 'utf-8'
 
@@ -181,17 +181,17 @@ class JsonInputFormatter(BaseInputFormatter):
 
 class JsonOutputFormatter(BaseOutputFormatter):
     """
-    Renderer which render into JSON.
+    An `BaseOutputFormatter` for JSON content.
     """
 
     mimetype = MimeType.parse('application/json')
 
     def write(self, response, data, mimetype=None):
         """
-        Serializes the given data into a byte array containing a JSON document.
-        :param data: A Python object.
-        :param MimeType mimetype: The mimetype to render the data.
-        :return: A byte array containing a JSON document.
+        Writes the given data into response body.
+        :param response: The flask response instance.
+        :param data: The data to be written into body.
+        :param MimeType mimetype: The content type.
         """
         if not mimetype:
             mimetype = self.mimetype
@@ -220,17 +220,17 @@ class JsonOutputFormatter(BaseOutputFormatter):
 
 class PickleOutputFormatter(BaseOutputFormatter):
     """
-    Renderer which render into Pickle binary.
+    An `BaseOutputFormatter` for Pickle content.
     """
 
     mimetype = MimeType.parse('application/pickle')
 
     def write(self, response, data, mimetype=None):
         """
-        Serializes the given data into a Pickle byte array.
-        :param data: A Python object.
-        :param mimetype: The mimetype to render the data.
-        :return: A byte array containing a Pickle document.
+        Writes the given data into response body.
+        :param response: The flask response instance.
+        :param data: The data to be written into body.
+        :param MimeType mimetype: The content type.
         """
         response.set_data(pickle.dumps(data))
         response.content_type = str(mimetype)
@@ -238,16 +238,16 @@ class PickleOutputFormatter(BaseOutputFormatter):
 
 class FormInputFormatter(BaseInputFormatter):
     """
-    Parses JSON data into Python object.
+    An `BaseInputFormatter` for form urlencoded content.
     """
 
     mimetype = MimeType.parse('application/x-www-form-urlencoded')
 
     def read(self, request, mimetype):
         """
-        Parses a stream containing the form data and returns a Python object.
-        :param request: The request containing a form data.
-        :param MimeType mimetype: The mimetype chose to parse the data.
-        :return: A Python object.
+        Reads a `dict` object from the request body..
+        :param request: The request containing the data.
+        :param MimeType mimetype: The mimetype chose to read the data.
+        :return: A `dict` instance.
         """
         return request.form

@@ -10,7 +10,6 @@ from .formatters import get_default_input_formatters, get_default_output_formatt
 from .negotiators import DefaultContentNegotiator
 from .parameters import get_default_providers
 from .routers import has_routes, DefaultRouter
-from .views import exception_handler
 
 
 class WebAPI(object):
@@ -42,7 +41,6 @@ class WebAPI(object):
         self.filters = []
         self.input_formatters = get_default_input_formatters()
         self.output_formatters = get_default_output_formatters()
-        self.exception_handler = exception_handler
         self.router = DefaultRouter()
         self.value_providers = get_default_providers()
 
@@ -72,7 +70,7 @@ class WebAPI(object):
         :param view: The function or class of your view.
         """
         if inspect.isfunction(view):
-            view = type('FunctionBasedView', (object,), {view.__name__: view})
+            view = type('ClassBasedView', (object,), {view.__name__: view})
 
         if not inspect.isclass(view):
             raise TypeError('View must be a class')
