@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_webapi import WebAPI
-from flask_webapi.views import route
+from flask_webapi.routers import route
 from unittest import TestCase
 
 

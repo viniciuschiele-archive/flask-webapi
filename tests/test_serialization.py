@@ -11,9 +11,9 @@ from decimal import Decimal
 from flask import Flask, json
 from flask_webapi import WebAPI, serialization
 from flask_webapi.exceptions import ValidationError
+from flask_webapi.routers import route
 from flask_webapi.serialization import serialize
 from flask_webapi.utils import timezone
-from flask_webapi.views import route
 from unittest import TestCase
 from werkzeug.datastructures import MultiDict
 

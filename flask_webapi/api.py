@@ -9,7 +9,7 @@ from .actions import ActionContext, ActionDescriptorBuilder, DefaultActionExecut
 from .formatters import get_default_input_formatters, get_default_output_formatters
 from .negotiators import DefaultContentNegotiator
 from .parameters import get_default_providers
-from .utils.routing import Route, urljoin, get_view_prefixes, get_view_routes
+from .routers import has_routes, DefaultRouter
 from .views import exception_handler
 
 
@@ -43,6 +43,7 @@ class WebAPI(object):
         self.input_formatters = get_default_input_formatters()
         self.output_formatters = get_default_output_formatters()
         self.exception_handler = exception_handler
+        self.router = DefaultRouter()
         self.value_providers = get_default_providers()
 
         if app:
@@ -76,7 +77,7 @@ class WebAPI(object):
         if not inspect.isclass(view):
             raise TypeError('View must be a class')
 
-        routes = self._build_routes(view)
+        routes = self.router.get_routes(view)
 
         # If Flask app was set, it adds
         # the view straightway to the Flask app
@@ -103,19 +104,10 @@ class WebAPI(object):
             members = inspect.getmembers(module)
 
             for _, member in members:
-                if inspect.isfunction(member) and hasattr(member, 'routes'):
+                if inspect.isfunction(member) and has_routes(member):
                     self.add_view(member)
                 elif inspect.isclass(member) and member.__name__.endswith('View'):
                     self.add_view(member)
-
-    def _make_endpoint(self, view, func):
-        """
-        Returns an endpoint for the given view and func.
-        :param BaseView view: The class of your view.
-        :param func: The function of your view.
-        :return str: The endpoint as string.
-        """
-        return func.__module__ + '.' + view.__name__ + '.' + func.__name__
 
     def _make_view(self, descriptor):
         """
@@ -128,42 +120,6 @@ class WebAPI(object):
             self.action_executor.execute(context)
             return context.response
         return func_view
-
-    def _build_routes(self, view):
-        """
-        Returns the routes for the given view.
-        :param view: The view.
-        :return: A list of routes.
-        """
-        ret = []
-
-        # routes can be set using the decorator
-        # @route on top of the class view.
-        # e.g:
-        #
-        # @route('/prefix')
-        # class MyView(BaseView):
-        prefixes = get_view_prefixes(view) or [None]
-
-        for _, func in inspect.getmembers(view):
-            routes = get_view_routes(func)
-
-            # if the action hasn't routes
-            # it is ignored.
-            if not routes:
-                continue
-
-            for url, endpoint, methods in routes:
-                for prefix in prefixes:
-                    if prefix:
-                        url = urljoin(prefix, url)
-
-                    if not endpoint:
-                        endpoint = self._make_endpoint(view, func)
-
-                    ret.append(Route(url, endpoint, methods, func, view))
-
-        return ret
 
     def _register_routes(self, routes):
         """

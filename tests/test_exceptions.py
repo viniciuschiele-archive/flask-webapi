@@ -1,7 +1,7 @@
-from flask import Flask, json, Response
+from flask import Flask, json
 from flask_webapi import WebAPI
 from flask_webapi.exceptions import APIException, UnsupportedMediaType, ValidationError
-from flask_webapi.views import route
+from flask_webapi.routers import route
 from unittest import TestCase
 from werkzeug.exceptions import BadRequest
 

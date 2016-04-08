@@ -3,8 +3,8 @@ import pickle
 from flask import Flask, json, Response
 from flask_webapi import WebAPI
 from flask_webapi.formatters import BaseOutputFormatter, JsonOutputFormatter, PickleOutputFormatter, MimeType
+from flask_webapi.routers import route
 from flask_webapi.utils import missing
-from flask_webapi.views import route
 from unittest import TestCase
 
 

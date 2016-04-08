@@ -1,7 +1,7 @@
 from flask import Flask, json
 from flask_webapi import WebAPI, serialization
 from flask_webapi.parameters import param
-from flask_webapi.views import route
+from flask_webapi.routers import route
 from werkzeug.datastructures import Headers
 from unittest import TestCase
 

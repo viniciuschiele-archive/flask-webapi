@@ -26,21 +26,3 @@ def exception_handler(context):
 
     context.result = {'errors': message.denormalize()}
     context.response.status_code = message.status_code
-
-
-def route(url, endpoint=None, methods=None):
-    """
-    A decorator that apply a route to the view or action.
-    :param str url: The url rule.
-    :param str endpoint: The endpoint.
-    :param list methods: A list of http methods.
-    :return: A function.
-    """
-    def decorator(func):
-        routes = getattr(func, 'routes', None)
-        if not routes:
-            func.routes = routes = []
-        routes.append((url, endpoint, methods))
-        return func
-
-    return decorator
