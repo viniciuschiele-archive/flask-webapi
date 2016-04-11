@@ -6,6 +6,7 @@ import inspect
 
 from abc import ABCMeta, abstractmethod
 from flask import request
+from .exceptions import AuthenticationFailed
 from .filters import AuthenticationFilter, filter
 
 
@@ -45,8 +46,43 @@ class BaseAuthenticator(metaclass=ABCMeta):
     @abstractmethod
     def authenticate(self):
         """
-        Authenticate the request and return a two-tuple of (user, token).
+        Authenticate the request and return a two-tuple of (user, auth).
         """
+
+
+class BasicAuthenticator(BaseAuthenticator):
+    """
+    HTTP Basic authentication against username and password.
+    """
+
+    def authenticate(self):
+        """
+        Returns the user authenticated if a correct username and password have been supplied
+        using HTTP Basic authentication, otherwise returns `None`.
+        """
+        auth = request.authorization
+
+        if not auth:
+            return None
+
+        if auth.type.lower() != 'basic':
+            return None
+
+        user_auth = self.authenticate_credentials(auth.username, auth.password)
+
+        if user_auth is None:
+            raise AuthenticationFailed('Invalid username/password.')
+
+        return user_auth
+
+    def authenticate_credentials(self, username, password):
+        """
+        Authenticates the given username and password.
+        :param username: The username to be authenticated.
+        :param password: The username to be authenticated.
+        :return: A two-tuple of (user, auth) or `None`.
+        """
+        raise NotImplementedError()
 
 
 authenticate = Authenticate
