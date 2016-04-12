@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_webapi.exceptions import NotAcceptable, UnsupportedMediaType
 from flask_webapi.formatters import JsonInputFormatter, JsonOutputFormatter, PickleOutputFormatter, MimeType
-from flask_webapi.negotiators import DefaultContentNegotiator
+from flask_webapi.negotiation import DefaultContentNegotiator
 from unittest import TestCase
 
 
@@ -12,13 +12,12 @@ class TestSelectInputFormatter(TestCase):
 
     def test_empty_formatters(self):
         with self.app.test_request_context():
-            with self.assertRaises(UnsupportedMediaType):
-                self.negotiation.select_input_formatter([])
+            self.assertIsNone(self.negotiation.select_input_formatter([]))
 
     def test_empty_content_type(self):
         with self.app.test_request_context():
-            with self.assertRaises(UnsupportedMediaType):
-                self.negotiation.select_input_formatter([JsonInputFormatter()])
+            formatters = [JsonInputFormatter()]
+            self.assertIsNone(self.negotiation.select_input_formatter(formatters))
 
     def test_valid_content_type(self):
         with self.app.test_request_context(content_type='application/json;charset=utf-8'):
@@ -29,8 +28,8 @@ class TestSelectInputFormatter(TestCase):
 
     def test_invalid_content_type(self):
         with self.app.test_request_context(content_type='application/data'):
-            with self.assertRaises(UnsupportedMediaType):
-                self.negotiation.select_input_formatter([JsonInputFormatter()])
+            formatters = [JsonInputFormatter()]
+            self.assertIsNone(self.negotiation.select_input_formatter(formatters))
 
 
 class TestSelectOutputFormatter(TestCase):
@@ -40,8 +39,7 @@ class TestSelectOutputFormatter(TestCase):
 
     def test_empty_formatters(self):
         with self.app.test_request_context():
-            with self.assertRaises(NotAcceptable):
-                self.negotiation.select_output_formatter([])
+            self.assertIsNone(self.negotiation.select_output_formatter([]))
 
     def test_empty_accept_header(self):
         with self.app.test_request_context():
@@ -59,8 +57,8 @@ class TestSelectOutputFormatter(TestCase):
 
     def test_invalid_accept_header(self):
         with self.app.test_request_context(headers={'accept': 'application/data'}):
-            with self.assertRaises(NotAcceptable):
-                self.negotiation.select_output_formatter([JsonOutputFormatter()])
+            formatters = [JsonOutputFormatter()]
+            self.assertIsNone(self.negotiation.select_output_formatter(formatters))
 
     def test_multiple_accept_header(self):
         with self.app.test_request_context(headers={'accept': 'application/xml,application/json;'}):

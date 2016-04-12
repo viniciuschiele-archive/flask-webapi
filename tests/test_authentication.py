@@ -1,6 +1,6 @@
 from flask import Flask, request
 from flask_webapi import WebAPI
-from flask_webapi.authentication import authenticate, BaseAuthenticator
+from flask_webapi.authentication import authenticate, Authenticator
 from flask_webapi.exceptions import AuthenticationFailed
 from flask_webapi.routers import route
 from unittest import TestCase
@@ -14,7 +14,7 @@ class TestView(TestCase):
 
     def test_valid_credentials(self):
         @route('/view')
-        @authenticate(Authenticator)
+        @authenticate(FakeAuthenticator)
         def view():
             self.assertEqual(request.user, 'user1')
             self.assertEqual(request.auth, '1234')
@@ -25,7 +25,7 @@ class TestView(TestCase):
 
     def test_invalid_credentials(self):
         @route('/view')
-        @authenticate(Authenticator)
+        @authenticate(FakeAuthenticator)
         def view():
             self.assertEqual(request.user, None)
             self.assertEqual(request.auth, None)
@@ -36,7 +36,7 @@ class TestView(TestCase):
 
     def test_missing_credentials(self):
         @route('/view')
-        @authenticate(Authenticator)
+        @authenticate(FakeAuthenticator)
         def view():
             self.assertEqual(request.user, None)
             self.assertEqual(request.auth, None)
@@ -46,7 +46,7 @@ class TestView(TestCase):
         self.assertEqual(response.status_code, 204)
 
 
-class Authenticator(BaseAuthenticator):
+class FakeAuthenticator(Authenticator):
     def authenticate(self):
         auth = request.headers.get('Authorization')
 

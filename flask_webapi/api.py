@@ -7,7 +7,7 @@ import inspect
 
 from .actions import ActionContext, ActionDescriptorBuilder, DefaultActionExecutor
 from .formatters import get_default_input_formatters, get_default_output_formatters
-from .negotiators import DefaultContentNegotiator
+from .negotiation import DefaultContentNegotiator
 from .parameters import get_default_providers
 from .routers import has_routes, DefaultRouter
 

@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_webapi import WebAPI
-from flask_webapi.authentication import authenticate, BaseAuthenticator
-from flask_webapi.authorization import authorize, BasePermission, IsAuthenticated
+from flask_webapi.authentication import authenticate, Authenticator
+from flask_webapi.authorization import authorize, Permission, IsAuthenticated
 from flask_webapi.routers import route
 from unittest import TestCase
 
@@ -14,7 +14,7 @@ class TestView(TestCase):
 
     def test_permission_granted(self):
         @route('/view')
-        @authenticate(Authenticator)
+        @authenticate(FakeAuthenticator)
         @authorize(IsAuthenticated)
         def view():
             pass
@@ -24,12 +24,12 @@ class TestView(TestCase):
         self.assertEqual(response.status_code, 204)
 
     def test_permission_denied(self):
-        class Denied(BasePermission):
+        class Denied(Permission):
             def has_permission(self):
                 return False
 
         @route('/view')
-        @authenticate(Authenticator)
+        @authenticate(FakeAuthenticator)
         @authorize(Denied)
         def view():
             pass
@@ -49,6 +49,6 @@ class TestView(TestCase):
         self.assertEqual(response.status_code, 401)
 
 
-class Authenticator(BaseAuthenticator):
+class FakeAuthenticator(Authenticator):
     def authenticate(self):
         return 'user1', '1234'

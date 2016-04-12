@@ -38,7 +38,7 @@ class Authenticate(AuthenticationFilter):
                 break
 
 
-class BaseAuthenticator(metaclass=ABCMeta):
+class Authenticator(metaclass=ABCMeta):
     """
     A base class from which all authentication classes should inherit.
     """
@@ -50,7 +50,7 @@ class BaseAuthenticator(metaclass=ABCMeta):
         """
 
 
-class BasicAuthenticator(BaseAuthenticator):
+class BasicAuthenticator(Authenticator):
     """
     HTTP Basic authentication against username and password.
     """

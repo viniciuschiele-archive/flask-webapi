@@ -47,7 +47,7 @@ class Authorize(AuthorizationFilter):
             raise NotAuthenticated()
 
 
-class BasePermission(metaclass=ABCMeta):
+class Permission(metaclass=ABCMeta):
     """
     A base class from which all permission classes should inherit.
     """
@@ -59,7 +59,7 @@ class BasePermission(metaclass=ABCMeta):
         """
 
 
-class IsAuthenticated(BasePermission):
+class IsAuthenticated(Permission):
     """
     Allows access only to authenticated users.
     """

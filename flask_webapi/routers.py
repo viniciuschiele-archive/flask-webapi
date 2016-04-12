@@ -24,7 +24,6 @@ def route(url, endpoint=None, methods=None):
     :param list methods: A list of http methods.
     :return: A function.
     """
-
     if not url:
         raise ValueError('url cannot be empty.')
 
@@ -50,7 +49,7 @@ class Route:
         self.view_class = view_class
 
 
-class BaseRouter(metaclass=ABCMeta):
+class Router(metaclass=ABCMeta):
     """
     A base class from which all router classes should inherit.
     """
@@ -64,7 +63,7 @@ class BaseRouter(metaclass=ABCMeta):
         """
 
 
-class DefaultRouter(BaseRouter):
+class DefaultRouter(Router):
     def get_routes(self, view):
         """
         Returns the routes for the given view.

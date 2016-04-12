@@ -6,7 +6,6 @@ import pickle
 
 from abc import ABCMeta, abstractmethod
 from flask import json
-from .exceptions import ParseError
 
 
 def get_default_input_formatters():
@@ -123,7 +122,7 @@ class MimeType(object):
         return MimeType(main_type, sub_type, params)
 
 
-class BaseInputFormatter(metaclass=ABCMeta):
+class InputFormatter(metaclass=ABCMeta):
     """
     A base class from which all input formatter classes should inherit.
     """
@@ -131,7 +130,7 @@ class BaseInputFormatter(metaclass=ABCMeta):
     mimetype = None
 
     @abstractmethod
-    def read(self, request, mimetype):
+    def read(self, request, mimetype=None):
         """
         Reads a `dict` object from the request body.
         :param request: The request containing the data.
@@ -140,7 +139,7 @@ class BaseInputFormatter(metaclass=ABCMeta):
         """
 
 
-class BaseOutputFormatter(metaclass=ABCMeta):
+class OutputFormatter(metaclass=ABCMeta):
     """
     A base class from which all output formatter classes should inherit.
     """
@@ -157,31 +156,47 @@ class BaseOutputFormatter(metaclass=ABCMeta):
         """
 
 
-class JsonInputFormatter(BaseInputFormatter):
+class FormInputFormatter(InputFormatter):
     """
-    An `BaseInputFormatter` for JSON content.
+    An `InputFormatter` for form urlencoded content.
+    """
+
+    mimetype = MimeType.parse('application/x-www-form-urlencoded')
+
+    def read(self, request, mimetype=None):
+        """
+        Reads a `dict` object from the request body..
+        :param request: The request containing the data.
+        :param MimeType mimetype: The mimetype chose to read the data.
+        :return: A `dict` instance.
+        """
+        return request.form
+
+
+class JsonInputFormatter(InputFormatter):
+    """
+    An `InputFormatter` for JSON content.
     """
 
     mimetype = MimeType.parse('application/json')
 
-    def read(self, request, mimetype):
+    def read(self, request, mimetype=None):
         """
         Reads a `dict` object from the request body.
         :param request: The request containing the data.
         :param MimeType mimetype: The mimetype chose to read the data.
         :return: A `dict` instance.
         """
-        encoding = mimetype.params.get('charset') or 'utf-8'
+        if not mimetype:
+            mimetype = self.mimetype
 
-        try:
-            return json.loads(request.get_data(), encoding=encoding)
-        except ValueError as e:
-            raise ParseError('Json parse error: ' + str(e))
+        encoding = mimetype.params.get('charset', 'utf-8')
+        return json.loads(request.get_data(), encoding=encoding)
 
 
-class JsonOutputFormatter(BaseOutputFormatter):
+class JsonOutputFormatter(OutputFormatter):
     """
-    An `BaseOutputFormatter` for JSON content.
+    An `OutputFormatter` for JSON content.
     """
 
     mimetype = MimeType.parse('application/json')
@@ -197,7 +212,7 @@ class JsonOutputFormatter(BaseOutputFormatter):
             mimetype = self.mimetype
 
         indent = self.get_indent(mimetype)
-        encoding = mimetype.params.get('charset') or 'utf-8'
+        encoding = mimetype.params.get('charset', 'utf-8')
         response.set_data(json.dumps(data, indent=indent).encode(encoding))
         response.content_type = str(mimetype)
 
@@ -218,9 +233,30 @@ class JsonOutputFormatter(BaseOutputFormatter):
             return None
 
 
-class PickleOutputFormatter(BaseOutputFormatter):
+class PickleInputFormatter(InputFormatter):
     """
-    An `BaseOutputFormatter` for Pickle content.
+    An `InputFormatter` for JSON content.
+    """
+
+    mimetype = MimeType.parse('application/pickle')
+
+    def read(self, request, mimetype=None):
+        """
+        Reads a `dict` object from the request body.
+        :param request: The request containing the data.
+        :param MimeType mimetype: The mimetype chose to read the data.
+        :return: A `dict` instance.
+        """
+        if not mimetype:
+            mimetype = self.mimetype
+
+        encoding = mimetype.params.get('charset', 'ASCII')
+        return pickle.loads(request.get_data(), encoding=encoding)
+
+
+class PickleOutputFormatter(OutputFormatter):
+    """
+    An `OutputFormatter` for Pickle content.
     """
 
     mimetype = MimeType.parse('application/pickle')
@@ -232,22 +268,8 @@ class PickleOutputFormatter(BaseOutputFormatter):
         :param data: The data to be written into body.
         :param MimeType mimetype: The content type.
         """
+        if not mimetype:
+            mimetype = self.mimetype
+
         response.set_data(pickle.dumps(data))
         response.content_type = str(mimetype)
-
-
-class FormInputFormatter(BaseInputFormatter):
-    """
-    An `BaseInputFormatter` for form urlencoded content.
-    """
-
-    mimetype = MimeType.parse('application/x-www-form-urlencoded')
-
-    def read(self, request, mimetype):
-        """
-        Reads a `dict` object from the request body..
-        :param request: The request containing the data.
-        :param MimeType mimetype: The mimetype chose to read the data.
-        :return: A `dict` instance.
-        """
-        return request.form

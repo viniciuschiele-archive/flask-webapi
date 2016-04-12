@@ -5,7 +5,7 @@ from flask import current_app
 from werkzeug.exceptions import HTTPException
 from .exceptions import APIException, NotAcceptable
 from .filters import AuthenticationFilter, AuthorizationFilter, ActionFilter, ResponseFilter, ExceptionFilter
-from .utils import reflect
+from .utils import missing, reflect
 
 
 class ActionContext(object):
@@ -26,13 +26,13 @@ class ActionContext(object):
         self.exception_filters = list(descriptor.exception_filters)
 
         self.content_negotiator = api.content_negotiator
-        self.input_formatters = api.input_formatters
-        self.output_formatters = api.output_formatters
-        self.value_providers = api.value_providers
+        self.input_formatters = list(api.input_formatters)
+        self.output_formatters = list(api.output_formatters)
+        self.value_providers = dict(api.value_providers)
 
         self.args = args
         self.kwargs = kwargs
-        self.result = None
+        self.result = missing
         self.exception = None
         self.exception_handled = False
         self.response = self.app.response_class()
@@ -92,26 +92,19 @@ class ActionDescriptorBuilder(object):
         return ret
 
 
-class BaseActionExecutor(metaclass=ABCMeta):
+class ActionExecutor(metaclass=ABCMeta):
     @abstractmethod
     def execute(self, context):
         pass
 
 
-class DefaultActionExecutor(BaseActionExecutor):
+class DefaultActionExecutor(ActionExecutor):
     def execute(self, context):
-        try:
-            self._handle_request(context)
-        except:
-            self._handle_exception(context)
-
-    def _handle_request(self, context):
         """
         Applies all steps of the pipeline on the incoming request.
         :param ActionContext context:
         :return: A `flask.Response` instance.
         """
-
         try:
             self._execute_authentication_filters(context)
             self._execute_authorization_filters(context)
@@ -119,12 +112,7 @@ class DefaultActionExecutor(BaseActionExecutor):
             self._make_response_with_filters(context)
         except Exception as e:
             context.exception = e
-            self._execute_exception_filters(context)
-
-            if not context.exception_handled:
-                raise
-
-            self._make_response_with_filters(context)
+            self._handle_exception(context)
 
     def _handle_exception(self, context):
         """
@@ -155,14 +143,23 @@ class DefaultActionExecutor(BaseActionExecutor):
             filter.authorize(context)
 
     def _execute_action_with_filters(self, context):
-        for filter in context.action_filters:
-            filter.pre_action(context)
+        try:
+            for filter in context.action_filters:
+                filter.pre_action(context)
 
-        if context.result is None:
-            context.result = context.descriptor.func(self, *context.args, **context.kwargs)
+            if context.result is missing:
+                view = context.descriptor.view_class()
+                context.result = context.descriptor.func(view, *context.args, **context.kwargs)
 
-        for filter in context.action_filters:
-            filter.post_action(context)
+            for filter in reversed(context.action_filters):
+                filter.post_action(context)
+        except Exception as e:
+            context.exception = e
+
+            self._execute_exception_filters(context)
+
+            if not context.exception_handled:
+                raise
 
     def _execute_exception_filters(self, context):
         for filter in context.exception_filters:
@@ -189,7 +186,7 @@ class DefaultActionExecutor(BaseActionExecutor):
                 formatter, mimetype = self._select_output_formatter(context, force_formatter)
                 formatter.write(context.response, context.result, mimetype)
 
-        for filter in context.response_filters:
+        for filter in reversed(context.response_filters):
             filter.post_response(context)
 
     def _select_output_formatter(self, context, force=False):
@@ -201,9 +198,12 @@ class DefaultActionExecutor(BaseActionExecutor):
         negotiator = context.content_negotiator
         formatters = context.output_formatters
 
-        try:
-            return negotiator.select_output_formatter(formatters)
-        except NotAcceptable:
-            if not force:
-                raise
+        formatter_pair = negotiator.select_output_formatter(formatters)
+
+        if formatter_pair:
+            return formatter_pair
+
+        if force:
             return formatters[0], formatters[0].mimetype
+
+        raise NotAcceptable()

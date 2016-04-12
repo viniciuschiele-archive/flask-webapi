@@ -4,7 +4,7 @@ Provides a set of classes to deal with input data.
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from .exceptions import ValidationError
+from .exceptions import ParseError, UnsupportedMediaType, ValidationError
 from .filters import ActionFilter, filter
 from .serialization import Schema
 
@@ -77,13 +77,13 @@ class Parameter(ActionFilter):
 
         provider = context.value_providers.get(location)
 
-        if provider:
-            return provider.get_data(context)
+        if provider is None:
+            raise Exception('Value provider for location "%s" not found.' % location)
 
-        raise Exception('Value provider for location "%s" not found.' % location)
+        return provider.get_data(context)
 
 
-class BaseValueProvider(metaclass=ABCMeta):
+class ValueProvider(metaclass=ABCMeta):
     """
     A base class from which all provider classes should inherit.
     """
@@ -96,7 +96,7 @@ class BaseValueProvider(metaclass=ABCMeta):
         """
 
 
-class QueryStringProvider(BaseValueProvider):
+class QueryStringProvider(ValueProvider):
     """
     Provides arguments from the request query string.
     """
@@ -104,7 +104,7 @@ class QueryStringProvider(BaseValueProvider):
         return request.args
 
 
-class FormDataProvider(BaseValueProvider):
+class FormDataProvider(ValueProvider):
     """
     Provides arguments from the request form.
     """
@@ -112,7 +112,7 @@ class FormDataProvider(BaseValueProvider):
         return request.form
 
 
-class HeadersProvider(BaseValueProvider):
+class HeadersProvider(ValueProvider):
     """
     Provides arguments from the request headers.
     """
@@ -120,7 +120,7 @@ class HeadersProvider(BaseValueProvider):
         return dict(request.headers)
 
 
-class CookiesProvider(BaseValueProvider):
+class CookiesProvider(ValueProvider):
     """
     Provides arguments from the request cookies.
     """
@@ -128,7 +128,7 @@ class CookiesProvider(BaseValueProvider):
         return request.cookies
 
 
-class BodyProvider(BaseValueProvider):
+class BodyProvider(ValueProvider):
     """
     Provides arguments from the request body.
     """
@@ -136,9 +136,17 @@ class BodyProvider(BaseValueProvider):
         negotiator = context.content_negotiator
         formatters = context.input_formatters
 
-        formatter, mimetype = negotiator.select_input_formatter(formatters)
+        formatter_pair = negotiator.select_input_formatter(formatters)
 
-        return formatter.read(request, mimetype)
+        if formatter_pair is None:
+            raise UnsupportedMediaType(request.content_type)
+
+        formatter, mimetype = formatter_pair
+
+        try:
+            return formatter.read(request, mimetype)
+        except ValueError as e:
+            raise ParseError('Parse error: ' + str(e))
 
 
 param = Parameter

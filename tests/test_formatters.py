@@ -2,7 +2,7 @@ import pickle
 
 from flask import Flask, json, Response
 from flask_webapi import WebAPI
-from flask_webapi.formatters import BaseOutputFormatter, JsonOutputFormatter, PickleOutputFormatter, MimeType
+from flask_webapi.formatters import OutputFormatter, JsonOutputFormatter, PickleOutputFormatter, MimeType
 from flask_webapi.routers import route
 from flask_webapi.utils import missing
 from unittest import TestCase
@@ -79,14 +79,14 @@ class TestMimeType(TestCase):
 
 class TestView(TestCase):
 
-    class OutputFormatterA(BaseOutputFormatter):
+    class OutputFormatterA(OutputFormatter):
         mimetype = MimeType.parse('application/formattera')
 
         def write(self, response, data, mimetype=None):
             response.set_data('FormatterA')
             response.content_type = str(mimetype)
 
-    class OutputFormatterB(BaseOutputFormatter):
+    class OutputFormatterB(OutputFormatter):
         mimetype = MimeType.parse('application/formatterb')
 
         def write(self, response, data, mimetype=None):

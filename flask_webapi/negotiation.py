@@ -4,11 +4,10 @@ Content negotiation selects a appropriated input and output formatter for a HTTP
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from .exceptions import NotAcceptable, UnsupportedMediaType
 from .formatters import MimeType
 
 
-class BaseContentNegotiator(metaclass=ABCMeta):
+class ContentNegotiator(metaclass=ABCMeta):
     """
     Base class for all content negotiations.
     """
@@ -18,7 +17,7 @@ class BaseContentNegotiator(metaclass=ABCMeta):
         """
         Selects the appropriated formatter for the given request.
         :param formatters: The lists of input formatters.
-        :return: The parser selected or raise `UnsupportedMediaType`.
+        :return: The parser selected or `None`.
         """
 
     @abstractmethod
@@ -26,11 +25,11 @@ class BaseContentNegotiator(metaclass=ABCMeta):
         """
         Selects the appropriated formatter for the given request.
         :param formatters: The lists of output formatters.
-        :return: The renderer selected or raise `NotAcceptable`.
+        :return: The renderer selected or `None`.
         """
 
 
-class DefaultContentNegotiator(BaseContentNegotiator):
+class DefaultContentNegotiator(ContentNegotiator):
     """
     Selects a input formatter by request content type and a
     output formatter by request accept header.
@@ -40,7 +39,7 @@ class DefaultContentNegotiator(BaseContentNegotiator):
         """
         Selects the appropriated formatter that matches with the request content type.
         :param formatters: The lists of input formatters.
-        :return: The parser selected or raise `UnsupportedMediaType`.
+        :return: The parser selected or `None`.
         """
         mimetype = MimeType.parse(request.content_type)
 
@@ -48,13 +47,13 @@ class DefaultContentNegotiator(BaseContentNegotiator):
             if mimetype.match(formatter.mimetype):
                 return formatter, mimetype
 
-        raise UnsupportedMediaType(request.content_type)
+        return None
 
     def select_output_formatter(self, formatters):
         """
         Selects the appropriated formatter that matches to the request accept header.
         :param formatters: The lists of output formatters.
-        :return: The parser selected or raise `NotAcceptable`.
+        :return: The parser selected or `None`.
         """
         for mimetype in self._get_accept_list():
             accept_mimetype = MimeType.parse(mimetype)
@@ -62,7 +61,7 @@ class DefaultContentNegotiator(BaseContentNegotiator):
                 if accept_mimetype.match(formatter.mimetype):
                     return formatter, formatter.mimetype.replace(params=accept_mimetype.params)
 
-        raise NotAcceptable()
+        return None
 
     def _get_accept_list(self):
         """

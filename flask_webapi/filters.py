@@ -18,7 +18,7 @@ def filter(allow_multiple=True):
     return wrapper
 
 
-class BaseFilter(object):
+class Filter(object):
     """
     A base class from which all filter classes should inherit.
     :param order: The order in which the filter is executed.
@@ -38,7 +38,7 @@ class BaseFilter(object):
         return action
 
 
-class AuthenticationFilter(BaseFilter):
+class AuthenticationFilter(Filter):
     """
     Filter that performs authentication.
     """
@@ -46,7 +46,7 @@ class AuthenticationFilter(BaseFilter):
         pass
 
 
-class AuthorizationFilter(BaseFilter):
+class AuthorizationFilter(Filter):
     """
     Filter that performs authorization.
     """
@@ -54,7 +54,7 @@ class AuthorizationFilter(BaseFilter):
         pass
 
 
-class ActionFilter(BaseFilter):
+class ActionFilter(Filter):
     """
     Filter that allows to inject code before and after the action.
     """
@@ -66,7 +66,15 @@ class ActionFilter(BaseFilter):
         pass
 
 
-class ResponseFilter(BaseFilter):
+class ExceptionFilter(Filter):
+    """
+    Filter that handles unhandled exceptions.
+    """
+    def handle_exception(self, context):
+        pass
+
+
+class ResponseFilter(Filter):
     """
     Filter that performs authorization.
     """
@@ -75,12 +83,3 @@ class ResponseFilter(BaseFilter):
 
     def post_response(self, context):
         pass
-
-
-class ExceptionFilter(BaseFilter):
-    """
-    Filter that handles unhandled exceptions.
-    """
-    def handle_exception(self, context):
-        pass
-

@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_webapi import WebAPI, View, route, param, serialize
+from flask_webapi import WebAPI, route, param, serialize
 from flask_webapi.exceptions import NotFound, ValidationError
 from flask_webapi.serialization import Schema, StringField, IntegerField
 
@@ -31,7 +31,7 @@ users = [
 
 @route('/users')
 @serialize(UserSchema)
-class UserView(View):
+class UserView:
     @route('/', methods=['POST'])
     @param('user', UserSchema())
     def add_user(self, user):

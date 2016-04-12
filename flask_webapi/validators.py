@@ -14,7 +14,7 @@ MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key
                         'not exist in the `error_messages` dictionary.'
 
 
-class BaseValidator(metaclass=ABCMeta):
+class Validator(metaclass=ABCMeta):
     """
     A base class from which all validator classes should inherit.
     :param dict error_messages: The error messages for various kinds of errors.
@@ -47,7 +47,7 @@ class BaseValidator(metaclass=ABCMeta):
             raise AssertionError(message)
 
 
-class ChoiceValidator(BaseValidator):
+class ChoiceValidator(Validator):
     """
     Validator which succeeds if the `value` is a member of the `choices`.
 
@@ -72,7 +72,7 @@ class ChoiceValidator(BaseValidator):
             self._fail('invalid', input=value)
 
 
-class EmailValidator(BaseValidator):
+class EmailValidator(Validator):
     """
     Validator which validates an email address.
     :param dict error_messages: The error messages for various kinds of errors.
@@ -120,7 +120,7 @@ class EmailValidator(BaseValidator):
         self._fail('invalid')
 
 
-class LengthValidator(BaseValidator):
+class LengthValidator(Validator):
     """
     Validator which succeeds if the value passed to it has a length between a minimum and maximum.
 
@@ -162,7 +162,7 @@ class LengthValidator(BaseValidator):
             self._fail('max_length', max_length=self.max_length)
 
 
-class RangeValidator(BaseValidator):
+class RangeValidator(Validator):
     """
     Validator which succeeds if the value it is passed is greater
     or equal to `min_value` and less than or equal to `max_value`.
@@ -190,7 +190,7 @@ class RangeValidator(BaseValidator):
             self._fail('max_value', max_value=self.max_value)
 
 
-class RegexValidator(BaseValidator):
+class RegexValidator(Validator):
     """
     Validator which succeeds if the `value` matches with the regex.
 
@@ -212,7 +212,7 @@ class RegexValidator(BaseValidator):
         return value
 
 
-class UUIDValidator(BaseValidator):
+class UUIDValidator(Validator):
     """
     Validator which succeeds if the value is an UUID.
     :param dict error_messages: The error messages for various kinds of errors.
