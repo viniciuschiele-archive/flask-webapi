@@ -3,26 +3,13 @@ Provides a set of filter classes used to inject code into actions and views.
 """
 
 
-def filter(allow_multiple=True):
-    """
-    Decorator that allows the filter class to be used as a decorator.
-    :param bool allow_multiple: Set to `True` to allow multiples
-        filter of same type on the same action.
-    """
-    def wrapper(cls):
-        def decorator(*args, **kwargs):
-            instance = cls(*args, **kwargs)
-            instance.allow_multiple = allow_multiple
-            return instance
-        return decorator
-    return wrapper
-
-
 class Filter(object):
     """
     A base class from which all filter classes should inherit.
     :param order: The order in which the filter is executed.
     """
+
+    allow_multiple = True
 
     def __init__(self, order=-1):
         self.order = order

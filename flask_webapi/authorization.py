@@ -7,7 +7,7 @@ import inspect
 from abc import ABCMeta, abstractmethod
 from flask import request
 from .exceptions import NotAuthenticated, PermissionDenied
-from .filters import AuthorizationFilter, filter
+from .filters import AuthorizationFilter
 
 
 def allow_anonymous(action):
@@ -20,7 +20,6 @@ def allow_anonymous(action):
     return action
 
 
-@filter()
 class Authorize(AuthorizationFilter):
     """
     Specifies that access to a view or action method is

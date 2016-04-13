@@ -8,7 +8,7 @@ from collections import OrderedDict
 from flask import request, current_app
 from werkzeug.utils import cached_property
 from .exceptions import ValidationError
-from .filters import ActionFilter, filter
+from .filters import ActionFilter
 from .utils import dateparse, formatting, html, missing, timezone
 from .validators import LengthValidator, RangeValidator
 
@@ -17,7 +17,6 @@ MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key
                         'not exist in the `error_messages` dictionary.'
 
 
-@filter(allow_multiple=False)
 class Serialize(ActionFilter):
     """
     A decorator that apply a serializer to the action.
@@ -26,6 +25,8 @@ class Serialize(ActionFilter):
     :param str envelope: The key used to envelope the data.
     :return: A function.
     """
+    allow_multiple = False
+
     def __init__(self, schema, many=None, envelope=None,  order=-1):
         super().__init__(order)
 

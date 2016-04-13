@@ -5,7 +5,7 @@ Provides a set of classes to deal with input data.
 from abc import ABCMeta, abstractmethod
 from flask import request
 from .exceptions import ParseError, UnsupportedMediaType, ValidationError
-from .filters import ActionFilter, filter
+from .filters import ActionFilter
 from .serialization import Schema
 
 
@@ -21,7 +21,6 @@ def get_default_providers():
             'body': BodyProvider()}
 
 
-@filter()
 class Parameter(ActionFilter):
     """
     Filter that retrieve a specific parameter from a specific location.

@@ -128,6 +128,7 @@ class DefaultActionExecutor(ActionExecutor):
         else:
             debug = current_app.config.get('DEBUG')
             message = APIException(traceback.format_exc()) if debug else APIException()
+            context.app.logger.error(traceback.format_exc())
 
         context.result = {'errors': message.denormalize()}
         context.response.status_code = message.status_code

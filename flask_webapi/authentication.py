@@ -7,10 +7,9 @@ import inspect
 from abc import ABCMeta, abstractmethod
 from flask import request
 from .exceptions import AuthenticationFailed
-from .filters import AuthenticationFilter, filter
+from .filters import AuthenticationFilter
 
 
-@filter()
 class Authenticate(AuthenticationFilter):
     """
     Specifies the authenticator that validates the credentials for the current user.
