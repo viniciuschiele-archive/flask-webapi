@@ -3,7 +3,7 @@ Provides a set of filter classes used to inject code into actions and views.
 """
 
 
-class Filter(object):
+class Filter:
     """
     A base class from which all filter classes should inherit.
     :param order: The order in which the filter is executed.
