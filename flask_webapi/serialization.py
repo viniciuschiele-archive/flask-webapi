@@ -17,7 +17,7 @@ MISSING_ERROR_MESSAGE = 'ValidationError raised by `{class_name}`, but error key
                         'not exist in the `error_messages` dictionary.'
 
 
-class Serialize(ActionFilter):
+class SerializeFilter(ActionFilter):
     """
     A decorator that apply a serializer to the action.
     :param Schema|type schema: The schema used to serialize the data.
@@ -833,4 +833,4 @@ class Schema(Field, metaclass=SchemaMeta):
             raise ValidationError(d)
 
 
-serialize = Serialize
+serialize = SerializeFilter

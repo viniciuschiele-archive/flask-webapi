@@ -10,7 +10,7 @@ from .exceptions import AuthenticationFailed
 from .filters import AuthenticationFilter
 
 
-class Authenticate(AuthenticationFilter):
+class AuthenticateFilter(AuthenticationFilter):
     """
     Specifies the authenticator that validates the credentials for the current user.
 
@@ -120,4 +120,4 @@ class BasicAuthenticator(HttpAuthenticator):
         raise NotImplementedError()
 
 
-authenticate = Authenticate
+authenticate = AuthenticateFilter

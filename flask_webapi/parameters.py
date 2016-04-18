@@ -21,7 +21,7 @@ def get_default_providers():
             'body': BodyProvider()}
 
 
-class Parameter(ActionFilter):
+class ParameterFilter(ActionFilter):
     """
     Filter that retrieve a specific parameter from a specific location.
     :param str name: The name of parameter.
@@ -148,4 +148,4 @@ class BodyProvider(ValueProvider):
             raise ParseError('Parse error: ' + str(e))
 
 
-param = Parameter
+param = ParameterFilter

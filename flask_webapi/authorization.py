@@ -20,7 +20,7 @@ def allow_anonymous(action):
     return action
 
 
-class Authorize(AuthorizationFilter):
+class AuthorizeFilter(AuthorizationFilter):
     """
     Specifies that access to a view or action method is
     restricted to users who meet the authorization requirement.
@@ -67,4 +67,4 @@ class IsAuthenticated(Permission):
         return getattr(request, 'user', None) is not None
 
 
-authorize = Authorize
+authorize = AuthorizeFilter
