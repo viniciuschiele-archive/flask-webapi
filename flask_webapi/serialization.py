@@ -832,4 +832,4 @@ class Schema(Field, metaclass=SchemaMeta):
             raise ValidationError(d)
 
 
-serialize = SerializeFilter
+serialize = SerializeFilter  # alias to be used as a decorator

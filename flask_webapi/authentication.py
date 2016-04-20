@@ -120,4 +120,4 @@ class BasicAuthenticator(HttpAuthenticator):
         raise NotImplementedError()
 
 
-authenticate = AuthenticateFilter
+authenticate = AuthenticateFilter  # alias to be used as a decorator

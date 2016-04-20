@@ -3,12 +3,12 @@ import traceback
 from abc import ABCMeta, abstractmethod
 from flask import current_app
 from werkzeug.exceptions import HTTPException
-from .exceptions import APIException, NotAcceptable
 from . import filters
+from .exceptions import APIException, NotAcceptable
 from .utils import missing, reflect
 
 
-class ActionContext(object):
+class ActionContext:
     """
     Represents a func in the View that should be
     treated as a Flask view.
@@ -33,19 +33,14 @@ class ActionContext(object):
         self.response = self.app.response_class()
 
 
-class ActionDescriptor(object):
+class ActionDescriptor:
     def __init__(self):
         self.func = None
         self.view_class = None
         self.filters = []
-        self.authentication_filters = []
-        self.authorization_filters = []
-        self.action_filters = []
-        self.response_filters = []
-        self.exception_filters = []
 
 
-class ActionDescriptorBuilder(object):
+class ActionDescriptorBuilder:
     def build(self, func, view_class, api):
         if not reflect.has_self_parameter(func):
             func = reflect.func_to_method(func)
@@ -54,39 +49,22 @@ class ActionDescriptorBuilder(object):
         descriptor.func = func
         descriptor.view_class = view_class
 
-        self._add_filters(descriptor,
-                          getattr(func, 'filters', []),
-                          getattr(view_class, 'filters', []),
-                          api.filters)
+        descriptor.filters = self._get_filters(getattr(func, 'filters', []),
+                                               getattr(view_class, 'filters', []),
+                                               api.filters)
 
         return descriptor
 
-    def _add_filters(self, descriptor, action_filters, view_filters, api_filters):
-        filter_list = action_filters + view_filters + api_filters
+    def _get_filters(self, action_filters, view_filters, api_filters):
+        filters = sorted(action_filters + view_filters + api_filters, key=lambda x: x.order)
 
-        descriptor.filters = self._get_filters_by_type(filter_list, filters.AuthenticationFilter) + \
-                             self._get_filters_by_type(filter_list, filters.AuthorizationFilter) + \
-                             self._get_filters_by_type(filter_list, filters.ResourceFilter) + \
-                             self._get_filters_by_type(filter_list, filters.ExceptionFilter) + \
-                             self._get_filters_by_type(filter_list, filters.ActionFilter) + \
-                             self._get_filters_by_type(filter_list, filters.ResponseFilter)
+        filter_matched = []
 
-    def _get_filters_by_type(self, filters, filter_type):
-        filters_by_type = sorted([filter for filter in filters
-                                  if isinstance(filter, filter_type)], key=lambda x: x.order)
+        for filter in filters:
+            if filter.allow_multiple or not [f for f in filter_matched if type(f) == type(filter)]:
+                filter_matched.insert(0, filter)
 
-        ret = []
-
-        while len(filters_by_type) > 0:
-            filter = filters_by_type.pop(0)
-            ret.append(filter)
-            if not getattr(filter, 'allow_multiple', True):
-                for next_filter in list(filters_by_type):
-                    if not isinstance(next_filter, type(filter)):
-                        filters_by_type.remove(next_filter)
-                        ret.append(next_filter)
-
-        return ret
+        return filter_matched
 
 
 class ActionExecutor(metaclass=ABCMeta):
@@ -165,7 +143,7 @@ class DefaultActionExecutor(ActionExecutor):
         filter = cursor.get_next(filters.ResourceFilter)
 
         if filter:
-            filter.on_response_creation(context, self._execute_action_filters)
+            filter.on_resource_execution(context, self._execute_resource_filters)
         else:
             cursor.reset()
             self._execute_exception_filters(context)

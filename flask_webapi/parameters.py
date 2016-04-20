@@ -147,4 +147,4 @@ class BodyProvider(ValueProvider):
             raise ParseError('Parse error: ' + str(e))
 
 
-param = ParameterFilter
+param = ParameterFilter  # alias to be used as a decorator

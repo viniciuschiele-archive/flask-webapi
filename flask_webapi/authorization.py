@@ -67,4 +67,4 @@ class IsAuthenticated(Permission):
         return getattr(request, 'user', None) is not None
 
 
-authorize = AuthorizeFilter
+authorize = AuthorizeFilter  # alias to be used as a decorator
