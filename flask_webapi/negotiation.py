@@ -4,7 +4,7 @@ Content negotiation selects a appropriated input and output formatter for a HTTP
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from .filters import ActionFilter, ResponseFilter
+from .filters import ResourceFilter, ResponseFilter
 from .formatters import MimeType
 
 
@@ -72,7 +72,7 @@ class DefaultContentNegotiator(ContentNegotiator):
         return [token.strip() for token in header.split(',')]
 
 
-class ConsumeFilter(ActionFilter):
+class ConsumeFilter(ResourceFilter):
     """
     A filter that specifies the supported request content types
     """
@@ -83,8 +83,9 @@ class ConsumeFilter(ActionFilter):
         super().__init__(order)
         self.content_type = content_type
 
-    def pre_action(self, context):
+    def on_resource_execution(self, context, next_filter):
         request.environ['CONTENT_TYPE'] = self.content_type
+        next_filter(context)
 
 
 class ProduceFilter(ResponseFilter):
@@ -98,8 +99,9 @@ class ProduceFilter(ResponseFilter):
         super().__init__(order)
         self.content_type = ';'.join(content_types)
 
-    def pre_response(self, context):
+    def on_response_execution(self, context, next_filter):
         request.environ['HTTP_ACCEPT'] = self.content_type
+        next_filter(context)
 
 
 consume = ConsumeFilter

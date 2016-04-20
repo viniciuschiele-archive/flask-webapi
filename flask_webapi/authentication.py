@@ -21,7 +21,7 @@ class AuthenticateFilter(AuthenticationFilter):
         super().__init__(order)
         self.authenticators = [item() if inspect.isclass(item) else item for item in authenticators]
 
-    def authenticate(self, context):
+    def on_authentication(self, context):
         """
         Authenticates the current user.
         :param ActionContext context: The action context.

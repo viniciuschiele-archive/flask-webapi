@@ -27,46 +27,47 @@ class Filter:
 
 class AuthenticationFilter(Filter):
     """
-    Filter that performs authentication.
+    A filter that surrounds execution of the authentication.
     """
-    def authenticate(self, context):
+    def on_authentication(self, context):
         pass
 
 
 class AuthorizationFilter(Filter):
     """
-    Filter that performs authorization.
+    A filter that surrounds execution of the authorization.
     """
-    def authorize(self, context):
+    def on_authorization(self, context):
         pass
 
 
-class ActionFilter(Filter):
+class ResourceFilter(Filter):
     """
-    Filter that allows to inject code before and after the action.
+    A filter that surrounds execution of the action (and filters) and the response (and filters).
     """
-
-    def pre_action(self, context):
-        pass
-
-    def post_action(self, context):
+    def on_resource_execution(self, context, next_filter):
         pass
 
 
 class ExceptionFilter(Filter):
     """
-    Filter that handles unhandled exceptions.
+    A filter that runs after an action has thrown an exception.
     """
-    def handle_exception(self, context):
+    def on_exception(self, context):
+        pass
+
+
+class ActionFilter(Filter):
+    """
+    A filter that surrounds execution of the action.
+    """
+    def on_action_execution(self, context, next_filter):
         pass
 
 
 class ResponseFilter(Filter):
     """
-    Filter that performs authorization.
+    A filter that surrounds creation of the response.
     """
-    def pre_response(self, context):
-        pass
-
-    def post_response(self, context):
+    def on_response_creation(self, context, next_filter):
         pass

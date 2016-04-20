@@ -34,10 +34,9 @@ class SerializeFilter(ActionFilter):
         self.many = many
         self.envelope = envelope
 
-    def pre_action(self, context):
-        pass
+    def on_action_execution(self, context, next_filter):
+        next_filter(context)
 
-    def post_action(self, context):
         result = context.result
 
         if result is None:

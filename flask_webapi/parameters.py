@@ -43,7 +43,7 @@ class ParameterFilter(ActionFilter):
         self.field = field
         self.location = location
 
-    def pre_action(self, context):
+    def on_action_execution(self, context, next_filter):
         errors = {}
 
         data = self._get_arguments(context)
@@ -61,8 +61,7 @@ class ParameterFilter(ActionFilter):
         if errors:
             raise ValidationError(errors)
 
-    def post_action(self, context):
-        pass
+        next_filter(context)
 
     def _get_arguments(self, context):
         """

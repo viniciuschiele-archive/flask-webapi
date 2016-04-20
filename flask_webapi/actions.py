@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from flask import current_app
 from werkzeug.exceptions import HTTPException
 from .exceptions import APIException, NotAcceptable
-from .filters import AuthenticationFilter, AuthorizationFilter, ActionFilter, ResponseFilter, ExceptionFilter
+from . import filters
 from .utils import missing, reflect
 
 
@@ -19,13 +19,8 @@ class ActionContext(object):
         self.api = api
         self.app = api.app
 
-        self.authentication_filters = list(descriptor.authentication_filters)
-        self.authorization_filters = list(descriptor.authorization_filters)
-        self.action_filters = list(descriptor.action_filters)
-        self.response_filters = list(descriptor.response_filters)
-        self.exception_filters = list(descriptor.exception_filters)
-
         self.content_negotiator = api.content_negotiator
+        self.filters = list(descriptor.filters)
         self.input_formatters = list(api.input_formatters)
         self.output_formatters = list(api.output_formatters)
         self.value_providers = dict(api.value_providers)
@@ -42,6 +37,7 @@ class ActionDescriptor(object):
     def __init__(self):
         self.func = None
         self.view_class = None
+        self.filters = []
         self.authentication_filters = []
         self.authorization_filters = []
         self.action_filters = []
@@ -66,13 +62,14 @@ class ActionDescriptorBuilder(object):
         return descriptor
 
     def _add_filters(self, descriptor, action_filters, view_filters, api_filters):
-        filters = action_filters + view_filters + api_filters
+        filter_list = action_filters + view_filters + api_filters
 
-        descriptor.authentication_filters = self._get_filters_by_type(filters, AuthenticationFilter)
-        descriptor.authorization_filters = self._get_filters_by_type(filters, AuthorizationFilter)
-        descriptor.action_filters = self._get_filters_by_type(filters, ActionFilter)
-        descriptor.response_filters = self._get_filters_by_type(filters, ResponseFilter)
-        descriptor.exception_filters = self._get_filters_by_type(filters, ExceptionFilter)
+        descriptor.filters = self._get_filters_by_type(filter_list, filters.AuthenticationFilter) + \
+                             self._get_filters_by_type(filter_list, filters.AuthorizationFilter) + \
+                             self._get_filters_by_type(filter_list, filters.ResourceFilter) + \
+                             self._get_filters_by_type(filter_list, filters.ExceptionFilter) + \
+                             self._get_filters_by_type(filter_list, filters.ActionFilter) + \
+                             self._get_filters_by_type(filter_list, filters.ResponseFilter)
 
     def _get_filters_by_type(self, filters, filter_type):
         filters_by_type = sorted([filter for filter in filters
@@ -102,14 +99,19 @@ class DefaultActionExecutor(ActionExecutor):
     def execute(self, context):
         """
         Applies all steps of the pipeline on the incoming request.
-        :param ActionContext context:
+        :param context:
         :return: A `flask.Response` instance.
         """
+
         try:
+            context.cursor = _FilterCursor(context.filters)
             self._execute_authentication_filters(context)
+
+            context.cursor.reset()
             self._execute_authorization_filters(context)
-            self._execute_action_with_filters(context)
-            self._make_response_with_filters(context)
+
+            context.cursor.reset()
+            self._execute_resource_filters(context)
         except Exception as e:
             context.exception = e
             self._handle_exception(context)
@@ -133,40 +135,93 @@ class DefaultActionExecutor(ActionExecutor):
         context.result = {'errors': message.denormalize()}
         context.response.status_code = message.status_code
 
-        self._make_response_with_filters(context, force_formatter=True)
+        self._make_response(context, force_formatter=True)
 
     def _execute_authentication_filters(self, context):
-        for filter in context.authentication_filters:
-            filter.authenticate(context)
+        cursor = context.cursor
+
+        filter = cursor.get_next(filters.AuthenticationFilter)
+
+        if filter:
+            filter.on_authentication(context)
+            self._execute_authentication_filters(context)
 
     def _execute_authorization_filters(self, context):
-        for filter in context.authorization_filters:
-            filter.authorize(context)
+        cursor = context.cursor
 
-    def _execute_action_with_filters(self, context):
-        try:
-            for filter in context.action_filters:
-                filter.pre_action(context)
+        filter = cursor.get_next(filters.AuthorizationFilter)
 
-            if context.result is missing:
-                view = context.descriptor.view_class()
-                context.result = context.descriptor.func(view, *context.args, **context.kwargs)
+        if filter:
+            filter.on_authorization(context)
+            self._execute_authorization_filters(context)
 
-            for filter in reversed(context.action_filters):
-                filter.post_action(context)
-        except Exception as e:
-            context.exception = e
+    def _execute_resource_filters(self, context):
+        cursor = context.cursor
 
+        if context.result is not missing:
+            self._make_response(context)
+            return
+
+        filter = cursor.get_next(filters.ResourceFilter)
+
+        if filter:
+            filter.on_response_creation(context, self._execute_action_filters)
+        else:
+            cursor.reset()
             self._execute_exception_filters(context)
 
-            if not context.exception_handled:
-                raise
+            if context.exception and not context.exception_handled:
+                raise context.exception
+
+            cursor.reset()
+            self._execute_response_filters(context)
 
     def _execute_exception_filters(self, context):
-        for filter in context.exception_filters:
-            filter.handle_exception(context)
+        cursor = context.cursor
 
-    def _make_response_with_filters(self, context, force_formatter=False):
+        if context.result is not missing:
+            return
+
+        filter = cursor.get_next(filters.ExceptionFilter)
+
+        if filter:
+            self._execute_exception_filters(context)
+
+            if context.exception and not context.exception_handled:
+                filter.on_exception(context)
+        else:
+            cursor.reset()
+
+            try:
+                self._execute_action_filters(context)
+            except Exception as e:
+                context.exception = e
+
+    def _execute_action_filters(self, context):
+        cursor = context.cursor
+
+        if context.result is not missing:
+            return
+
+        filter = cursor.get_next(filters.ActionFilter)
+
+        if filter:
+            filter.on_action_execution(context, self._execute_action_filters)
+        else:
+            view = context.descriptor.view_class()
+            context.result = context.descriptor.func(view, *context.args, **context.kwargs)
+
+    def _execute_response_filters(self, context):
+        cursor = context.cursor
+
+        filter = cursor.get_next(filters.ResponseFilter)
+
+        if filter:
+            filter.on_response(context, self._execute_response_filters)
+        else:
+            self._make_response(context)
+
+    def _make_response(self, context, force_formatter=False):
         """
         Returns a `flask.Response` for the given data.
         The appropriated renderer is taken based on the request header Accept.
@@ -177,18 +232,11 @@ class DefaultActionExecutor(ActionExecutor):
         :return: A Flask response.
         """
 
-        if not isinstance(context.result, current_app.response_class):
-            for filter in context.response_filters:
-                filter.pre_response(context)
-
-            if context.result is None:
-                context.response.status_code = 204
-            else:
-                formatter, mimetype = self._select_output_formatter(context, force_formatter)
-                formatter.write(context.response, context.result, mimetype)
-
-        for filter in reversed(context.response_filters):
-            filter.post_response(context)
+        if context.result is None:
+            context.response.status_code = 204
+        else:
+            formatter, mimetype = self._select_output_formatter(context, force_formatter)
+            formatter.write(context.response, context.result, mimetype)
 
     def _select_output_formatter(self, context, force=False):
         """
@@ -208,3 +256,23 @@ class DefaultActionExecutor(ActionExecutor):
             return formatters[0], formatters[0].mimetype
 
         raise NotAcceptable()
+
+
+class _FilterCursor:
+    def __init__(self, filters):
+        self._index = 0
+        self._filters = filters
+
+    def get_next(self, filter_type):
+        while self._index < len(self._filters):
+            filter = self._filters[self._index]
+
+            self._index += 1
+
+            if isinstance(filter, filter_type):
+                return filter
+
+        return None
+
+    def reset(self):
+        self._index = 0

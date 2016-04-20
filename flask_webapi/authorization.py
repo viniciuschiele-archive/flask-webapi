@@ -32,7 +32,7 @@ class AuthorizeFilter(AuthorizationFilter):
         super().__init__(order)
         self.permissions = [permission() if inspect.isclass(permission) else permission for permission in permissions]
 
-    def authorize(self, context):
+    def on_authorization(self, context):
         if getattr(context.descriptor.func, 'allow_anonymous', False):
             return
 
