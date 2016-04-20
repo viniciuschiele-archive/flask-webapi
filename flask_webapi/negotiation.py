@@ -104,5 +104,5 @@ class ProduceFilter(ResponseFilter):
         next_filter(context)
 
 
-consume = ConsumeFilter
-produce = ProduceFilter
+consume = ConsumeFilter  # alias to be used as a decorator
+produce = ProduceFilter  # alias to be used as a decorator
