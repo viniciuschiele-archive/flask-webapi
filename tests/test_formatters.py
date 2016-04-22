@@ -1,9 +1,9 @@
 import pickle
 
 from flask import Flask, json, Response
-from flask_webapi import WebAPI
-from flask_webapi.formatters import OutputFormatter, JsonOutputFormatter, PickleOutputFormatter, MimeType
-from flask_webapi.routers import route
+from flask_webapi import WebAPI, route
+from flask_webapi.formatters import OutputFormatter, JsonOutputFormatter, PickleOutputFormatter
+from flask_webapi.utils.mimetypes import MimeType
 from unittest import TestCase
 
 

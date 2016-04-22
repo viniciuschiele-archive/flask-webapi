@@ -7,9 +7,9 @@ import inspect
 
 from .actions import ActionContext, ActionDescriptorBuilder, DefaultActionExecutor
 from .formatters import get_default_input_formatters, get_default_output_formatters
-from .negotiation import DefaultContentNegotiator
-from .parameters import get_default_providers
+from .negotiators import DefaultContentNegotiator
 from .routers import has_routes, DefaultRouter
+from .values import get_default_providers
 
 
 class WebAPI(object):
@@ -65,7 +65,7 @@ class WebAPI(object):
 
     def add_view(self, view):
         """
-        Adds a view to the WebAPI.
+        Adds a view to the `WebAPI`.
         The view can be either a function or a class.
         :param view: The function or class of your view.
         """
@@ -114,7 +114,7 @@ class WebAPI(object):
         :return: A function
         """
         def func_view(*args, **kwargs):
-            context = ActionContext(descriptor, self, args, kwargs)
+            context = ActionContext(self, descriptor, args, kwargs)
             self.action_executor.execute(context)
             return context.response
         return func_view
@@ -122,7 +122,7 @@ class WebAPI(object):
     def _register_routes(self, routes):
         """
         Registers a list of routes into Flask.
-        :param routes: The list of routes.
+        :param list routes: The list of routes.
         """
         builder = ActionDescriptorBuilder()
         for route in routes:

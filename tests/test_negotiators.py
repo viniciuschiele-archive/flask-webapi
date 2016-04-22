@@ -1,7 +1,6 @@
 from flask import Flask, request
-from flask_webapi.exceptions import NotAcceptable, UnsupportedMediaType
 from flask_webapi.formatters import JsonInputFormatter, JsonOutputFormatter, PickleOutputFormatter, MimeType
-from flask_webapi.negotiation import DefaultContentNegotiator
+from flask_webapi.negotiators import DefaultContentNegotiator
 from unittest import TestCase
 
 

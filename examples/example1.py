@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_webapi import WebAPI, route, param, serialize
 from flask_webapi.exceptions import NotFound, ValidationError
-from flask_webapi.serialization import Schema, StringField, IntegerField
+from flask_webapi.fields import Schema, StringField, IntegerField
 
 
 class User(object):

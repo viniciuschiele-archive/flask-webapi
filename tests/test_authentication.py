@@ -1,8 +1,7 @@
 from flask import Flask, request
-from flask_webapi import WebAPI
-from flask_webapi.authentication import authenticate, Authenticator
+from flask_webapi import WebAPI, authenticate, route
+from flask_webapi.authenticators import Authenticator
 from flask_webapi.exceptions import AuthenticationFailed
-from flask_webapi.routers import route
 from unittest import TestCase
 
 

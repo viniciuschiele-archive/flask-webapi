@@ -9,10 +9,8 @@ except ImportError:
 
 from decimal import Decimal
 from flask import Flask, json
-from flask_webapi import WebAPI, serialization
+from flask_webapi import WebAPI, fields, route, serialize
 from flask_webapi.exceptions import ValidationError
-from flask_webapi.routers import route
-from flask_webapi.serialization import serialize
 from flask_webapi.utils import timezone
 from unittest import TestCase
 from werkzeug.datastructures import MultiDict
@@ -20,101 +18,101 @@ from werkzeug.datastructures import MultiDict
 
 class TestHTMLInput(TestCase):
     def test_missing_html_integerfield(self):
-        class Schema(serialization.Schema):
-            message = serialization.IntegerField()
+        class Schema(fields.Schema):
+            message = fields.IntegerField()
 
         with self.assertRaises(ValidationError):
             Schema().load(MultiDict())
 
     def test_missing_html_integerfield_with_default(self):
-        class Schema(serialization.Schema):
-            message = serialization.IntegerField(default=123)
+        class Schema(fields.Schema):
+            message = fields.IntegerField(default=123)
 
         data = Schema().load(MultiDict())
 
         self.assertEqual(data, {'message': 123})
 
     def test_missing_html_stringfield(self):
-        class TestSerializer(serialization.Schema):
-            message = serialization.StringField()
+        class TestSerializer(fields.Schema):
+            message = fields.StringField()
 
         with self.assertRaises(ValidationError):
             TestSerializer().load(MultiDict())
 
     def test_missing_html_stringfield_with_default(self):
-        class TestSerializer(serialization.Schema):
-            message = serialization.StringField(default='happy')
+        class TestSerializer(fields.Schema):
+            message = fields.StringField(default='happy')
 
         data = TestSerializer().load(MultiDict())
 
         self.assertEqual(data, {'message': 'happy'})
 
     def test_missing_html_listfield(self):
-        class TestSerializer(serialization.Schema):
-            scores = serialization.ListField(serialization.IntegerField())
+        class TestSerializer(fields.Schema):
+            scores = fields.ListField(fields.IntegerField())
 
         with self.assertRaises(ValidationError):
             TestSerializer().load(MultiDict())
 
     def test_empty_html_integerfield(self):
-        class TestSerializer(serialization.Schema):
-            message = serialization.IntegerField()
+        class TestSerializer(fields.Schema):
+            message = fields.IntegerField()
 
         with self.assertRaises(ValidationError):
             TestSerializer().load(MultiDict({'message': ''}))
 
     def test_empty_html_integerfield_allow_none(self):
-        class TestSerializer(serialization.Schema):
-            message = serialization.IntegerField(allow_none=True)
+        class TestSerializer(fields.Schema):
+            message = fields.IntegerField(allow_none=True)
 
         data = TestSerializer().load(MultiDict({'message': ''}))
         self.assertEqual(data, {'message': None})
 
     def test_empty_html_integerfield_required_false(self):
-        class TestSerializer(serialization.Schema):
-            message = serialization.IntegerField(required=False)
+        class TestSerializer(fields.Schema):
+            message = fields.IntegerField(required=False)
 
         data = TestSerializer().load(MultiDict({'message': ''}))
         self.assertEqual(data, {})
 
     def test_empty_html_stringfield(self):
-        class Schema(serialization.Schema):
-            message = serialization.StringField()
+        class Schema(fields.Schema):
+            message = fields.StringField()
 
         with self.assertRaises(ValidationError):
             Schema().load(MultiDict({'message': ''}))
 
     def test_empty_html_stringfield_required_false(self):
-        class Schema(serialization.Schema):
-            message = serialization.StringField(required=False)
+        class Schema(fields.Schema):
+            message = fields.StringField(required=False)
 
         data = Schema().load(MultiDict({'message': ''}))
         self.assertEqual(data, {})
 
     def test_empty_html_stringfield_with_allow_blank(self):
-        class Schema(serialization.Schema):
-            message = serialization.StringField(allow_blank=True)
+        class Schema(fields.Schema):
+            message = fields.StringField(allow_blank=True)
 
         data = Schema().load(MultiDict({'message': ''}))
         self.assertEqual(data, {'message': ''})
 
     def test_empty_html_stringfield_allow_none(self):
-        class Schema(serialization.Schema):
-            message = serialization.StringField(allow_none=True)
+        class Schema(fields.Schema):
+            message = fields.StringField(allow_none=True)
 
         data = Schema().load(MultiDict({'message': ''}))
         self.assertEqual(data, {'message': None})
 
     def test_empty_html_stringfield_allow_none_allow_blank(self):
-        class Schema(serialization.Schema):
-            message = serialization.StringField(allow_none=True, allow_blank=True)
+        class Schema(fields.Schema):
+            message = fields.StringField(allow_none=True, allow_blank=True)
 
         data = Schema().load(MultiDict({'message': ''}))
         self.assertEqual(data, {'message': ''})
 
     def test_html_listfield(self):
-        class Schema(serialization.Schema):
-            scores = serialization.ListField(serialization.IntegerField())
+        class Schema(fields.Schema):
+            scores = fields.ListField(fields.IntegerField())
 
         md = MultiDict()
         md.add('scores', 1)
@@ -187,14 +185,14 @@ class TestBooleanField(TestCase, FieldValues):
         'other': True,
         None: None
     }
-    field = serialization.BooleanField()
+    field = fields.BooleanField()
 
     def test_unhashable_types(self):
         inputs = (
             [],
             {},
         )
-        field = serialization.BooleanField()
+        field = fields.BooleanField()
         for input_value in inputs:
             with self.assertRaises(ValidationError) as exc_info:
                 field.load(input_value)
@@ -219,7 +217,7 @@ class TestDateField(TestCase, FieldValues):
         datetime.date(2001, 1, 1): '2001-01-01',
         None: None,
     }
-    field = serialization.DateField()
+    field = fields.DateField()
 
 
 class TestDateTimeField(TestCase, FieldValues):
@@ -244,7 +242,7 @@ class TestDateTimeField(TestCase, FieldValues):
         datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.UTC()): '2001-01-01T13:00:00Z',
         None: None,
     }
-    field = serialization.DateTimeField(default_timezone=timezone.UTC())
+    field = fields.DateTimeField(default_timezone=timezone.UTC())
 
 
 class TestNaiveDateTimeField(TestCase, FieldValues):
@@ -259,7 +257,7 @@ class TestNaiveDateTimeField(TestCase, FieldValues):
     }
     invalid_inputs = {}
     outputs = {}
-    field = serialization.DateTimeField(default_timezone=None)
+    field = fields.DateTimeField(default_timezone=None)
 
 
 class TestDecimalField(TestCase, FieldValues):
@@ -300,13 +298,13 @@ class TestDecimalField(TestCase, FieldValues):
         Decimal('0.04'): '0.0',
         None: None,
     }
-    field = serialization.DecimalField(max_digits=3, decimal_places=1)
+    field = fields.DecimalField(max_digits=3, decimal_places=1)
 
     def test_no_limits(self):
         input_value = 200000000000.12
         expected_value = Decimal('200000000000.12')
 
-        field = serialization.DecimalField()
+        field = fields.DecimalField()
         data = field.load(input_value)
 
         self.assertEqual(data, expected_value)
@@ -325,7 +323,7 @@ class TestMinMaxDecimalField(TestCase, FieldValues):
         '20.1': 'Ensure this value is less than or equal to 20.',
     }
     outputs = {}
-    field = serialization.DecimalField(max_digits=3, decimal_places=1, min_value=10, max_value=20)
+    field = fields.DecimalField(max_digits=3, decimal_places=1, min_value=10, max_value=20)
 
 
 class TestIntegerField(TestCase, FieldValues):
@@ -354,11 +352,11 @@ class TestIntegerField(TestCase, FieldValues):
         0.0: 0,
         None: None
     }
-    field = serialization.IntegerField()
+    field = fields.IntegerField()
 
     def test_empty_html_with_default(self):
-        class Schema(serialization.Schema):
-            message = serialization.IntegerField(default=123)
+        class Schema(fields.Schema):
+            message = fields.IntegerField(default=123)
 
         data = Schema().load(MultiDict({'message': ''}))
 
@@ -382,7 +380,7 @@ class TestMinMaxIntegerField(TestCase, FieldValues):
         '4': 'Must be at most 3.',
     }
     outputs = {}
-    field = serialization.IntegerField(min_value=1, max_value=3)
+    field = fields.IntegerField(min_value=1, max_value=3)
 
 
 class TestFloatField(TestCase, FieldValues):
@@ -411,7 +409,7 @@ class TestFloatField(TestCase, FieldValues):
         0.0: 0.0,
         None: None
     }
-    field = serialization.FloatField()
+    field = fields.FloatField()
 
 
 class TestMinMaxFloatField(TestCase, FieldValues):
@@ -433,7 +431,7 @@ class TestMinMaxFloatField(TestCase, FieldValues):
         '3.1': 'Ensure this value is less than or equal to 3.',
     }
     outputs = {}
-    field = serialization.FloatField(min_value=1, max_value=3)
+    field = fields.FloatField(min_value=1, max_value=3)
 
 
 class TestDelimitedListField(TestCase, FieldValues):
@@ -454,10 +452,10 @@ class TestDelimitedListField(TestCase, FieldValues):
         (['1', '2', '3'], '1,2,3'),
         (None, None)
     ]
-    field = serialization.DelimitedListField(serialization.IntegerField())
+    field = fields.DelimitedListField(fields.IntegerField())
 
     def test_disallow_empty(self):
-        field = serialization.DelimitedListField(serialization.IntegerField(), allow_empty=False)
+        field = fields.DelimitedListField(fields.IntegerField(), allow_empty=False)
         with self.assertRaises(ValidationError):
             field.load('')
 
@@ -481,10 +479,10 @@ class TestListField(TestCase, FieldValues):
         (['1', '2', '3'], [1, 2, 3]),
         (None, None)
     ]
-    field = serialization.ListField(serialization.IntegerField())
+    field = fields.ListField(fields.IntegerField())
 
     def test_disallow_empty(self):
-        field = serialization.ListField(serialization.IntegerField(), allow_empty=False)
+        field = fields.ListField(fields.IntegerField(), allow_empty=False)
         with self.assertRaises(ValidationError):
             field.load([])
 
@@ -505,18 +503,18 @@ class TestStringField(TestCase, FieldValues):
         'abc': 'abc',
         None: None
     }
-    field = serialization.StringField()
+    field = fields.StringField()
 
     def test_trim_whitespace_default(self):
-        field = serialization.StringField()
+        field = fields.StringField()
         self.assertEqual(field.load(' abc '), 'abc')
 
     def test_trim_whitespace_disabled(self):
-        field = serialization.StringField(trim_whitespace=False)
+        field = fields.StringField(trim_whitespace=False)
         self.assertEqual(field.load(' abc '), ' abc ')
 
     def test_disallow_blank_with_trim_whitespace(self):
-        field = serialization.StringField(allow_blank=False, trim_whitespace=True)
+        field = fields.StringField(allow_blank=False, trim_whitespace=True)
 
         with self.assertRaises(ValidationError) as exc_info:
             field.load('   ')
@@ -539,7 +537,7 @@ class TestMinMaxStringField(TestCase, FieldValues):
         12345: 'Longer than maximum length 4.',
     }
     outputs = {}
-    field = serialization.StringField(min_length=2, max_length=4)
+    field = fields.StringField(min_length=2, max_length=4)
 
 
 class TestUUIDField(TestCase, FieldValues):
@@ -561,7 +559,7 @@ class TestUUIDField(TestCase, FieldValues):
         uuid.UUID('825d7aeb-05a9-45b5-a5b7-05df87923cda'): '825d7aeb-05a9-45b5-a5b7-05df87923cda',
         None: None
     }
-    field = serialization.UUIDField()
+    field = fields.UUIDField()
 
 
 if Enum is not None:
@@ -591,20 +589,20 @@ if Enum is not None:
             TestEnum.member2: 2,
             None: None
         }
-        field = serialization.EnumField(TestEnum)
+        field = fields.EnumField(TestEnum)
 
 
 class TestNotImplemented(TestCase):
     def test_load(self):
-        class Schema(serialization.Schema):
-            field = serialization.Field()
+        class Schema(fields.Schema):
+            field = fields.Field()
 
         with self.assertRaises(NotImplementedError):
             Schema().load({'field': 123})
 
     def test_dump(self):
-        class Schema(serialization.Schema):
-            field = serialization.Field()
+        class Schema(fields.Schema):
+            field = fields.Field()
 
         with self.assertRaises(NotImplementedError):
             Schema().dump({'field': 123})
@@ -612,15 +610,15 @@ class TestNotImplemented(TestCase):
 
 class TestAllowBlank(TestCase):
     def test_allow_blank(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField(allow_blank=True)
+        class Schema(fields.Schema):
+            field = fields.StringField(allow_blank=True)
 
         data = {'field': ''}
         self.assertEqual(Schema().load(data), data)
 
     def test_disallow_blank(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField()
+        class Schema(fields.Schema):
+            field = fields.StringField()
 
         with self.assertRaises(ValidationError) as exc_info:
             data = {'field': ''}
@@ -629,8 +627,8 @@ class TestAllowBlank(TestCase):
         self.assertEqual(exc_info.exception.message, {'field': [ValidationError('This field may not be blank.')]})
 
     def test_disallow_blank_and_allow_none(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField(allow_none=True)
+        class Schema(fields.Schema):
+            field = fields.StringField(allow_none=True)
 
         data = {'field': ''}
         self.assertEqual(Schema().load(data), {'field': None})
@@ -638,15 +636,15 @@ class TestAllowBlank(TestCase):
 
 class TestAllowNone(TestCase):
     def test_allow_none(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(allow_none=True)
+        class Schema(fields.Schema):
+            field = fields.IntegerField(allow_none=True)
 
         data = {'field': None}
         self.assertEqual(Schema().load(data), data)
 
     def test_disallow_none(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         with self.assertRaises(ValidationError) as exc_info:
             data = {'field': None}
@@ -657,36 +655,36 @@ class TestAllowNone(TestCase):
 
 class TestDefault(TestCase):
     def test_default_on_loading(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(default=123)
+        class Schema(fields.Schema):
+            field = fields.IntegerField(default=123)
 
         data = {}
         self.assertEqual(Schema().load(data), {'field': 123})
 
     def test_callable_default_on_loading(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(default=lambda: 123)
+        class Schema(fields.Schema):
+            field = fields.IntegerField(default=lambda: 123)
 
         data = {}
         self.assertEqual(Schema().load(data), {'field': 123})
 
     def test_bypass_default_on_loading(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(default=123)
+        class Schema(fields.Schema):
+            field = fields.IntegerField(default=123)
 
         data = {'field': 456}
         self.assertEqual(Schema().load(data), {'field': 456})
 
     def test_default_on_dumping(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(default=123)
+        class Schema(fields.Schema):
+            field = fields.IntegerField(default=123)
 
         data = {}
         self.assertEqual(Schema().dump(data), {'field': 123})
 
     def test_default_missing_on_dumping(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = {}
         self.assertEqual(Schema().dump(data), {})
@@ -694,8 +692,8 @@ class TestDefault(TestCase):
 
 class TestRequired(TestCase):
     def test_required(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField()
+        class Schema(fields.Schema):
+            field = fields.StringField()
 
         data = {}
         with self.assertRaises(ValidationError):
@@ -705,8 +703,8 @@ class TestRequired(TestCase):
         self.assertEqual(Schema().load(data), data)
 
     def test_non_required(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(required=False)
+        class Schema(fields.Schema):
+            field = fields.IntegerField(required=False)
 
         data = {}
         self.assertEqual(Schema().load(data), data)
@@ -714,8 +712,8 @@ class TestRequired(TestCase):
 
 class TestDumpTo(TestCase):
     def test_dump_to(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField(dump_to='other')
+        class Schema(fields.Schema):
+            field = fields.StringField(dump_to='other')
 
         data = Schema().dump({'field': 'abc'})
         self.assertEqual(data, {'other': 'abc'})
@@ -723,18 +721,18 @@ class TestDumpTo(TestCase):
 
 class TestDumpOnly(TestCase):
     def test_load_with_dump_only(self):
-        class Schema(serialization.Schema):
-            field_1 = serialization.IntegerField(dump_only=True)
-            field_2 = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field_1 = fields.IntegerField(dump_only=True)
+            field_2 = fields.IntegerField()
 
         data = {'field_1': 123, 'field_2': 456}
 
         self.assertEqual(Schema().load(data), {'field_2': 456})
 
     def test_dump_with_dump_only(self):
-        class Schema(serialization.Schema):
-            field_1 = serialization.IntegerField(dump_only=True)
-            field_2 = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field_1 = fields.IntegerField(dump_only=True)
+            field_2 = fields.IntegerField()
 
         data = {'field_1': 123, 'field_2': 456}
 
@@ -743,8 +741,8 @@ class TestDumpOnly(TestCase):
 
 class TestLoadFrom(TestCase):
     def test_load_from(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField(load_from='other')
+        class Schema(fields.Schema):
+            field = fields.StringField(load_from='other')
 
         data = Schema().load({'other': 'abc'})
         self.assertEqual(data, {'field': 'abc'})
@@ -752,18 +750,18 @@ class TestLoadFrom(TestCase):
 
 class TestLoadOnly(TestCase):
     def test_dump_with_load_only(self):
-        class Schema(serialization.Schema):
-            field_1 = serialization.IntegerField(load_only=True)
-            field_2 = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field_1 = fields.IntegerField(load_only=True)
+            field_2 = fields.IntegerField()
 
         data = {'field_1': 123, 'field_2': 456}
 
         self.assertEqual(Schema().dump(data), {'field_2': 456})
 
     def test_load_with_load_only(self):
-        class Schema(serialization.Schema):
-            field_1 = serialization.IntegerField(load_only=True)
-            field_2 = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field_1 = fields.IntegerField(load_only=True)
+            field_2 = fields.IntegerField()
 
         data = {'field_1': 123, 'field_2': 456}
 
@@ -772,9 +770,9 @@ class TestLoadOnly(TestCase):
 
 class TestPartial(TestCase):
     def test_required(self):
-        class Schema(serialization.Schema):
-            field_1 = serialization.IntegerField()
-            field_2 = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field_1 = fields.IntegerField()
+            field_2 = fields.IntegerField()
 
         s = Schema(partial=True)
 
@@ -783,9 +781,9 @@ class TestPartial(TestCase):
         self.assertEqual(s.load(data), data)
 
     def test_default(self):
-        class Schema(serialization.Schema):
-            field_1 = serialization.IntegerField()
-            field_2 = serialization.IntegerField(default=456)
+        class Schema(fields.Schema):
+            field_1 = fields.IntegerField()
+            field_2 = fields.IntegerField(default=456)
 
         s = Schema(partial=True)
 
@@ -796,7 +794,7 @@ class TestPartial(TestCase):
 
 class TestOnly(TestCase):
     def test_only_as_string(self):
-        class Schema(serialization.Schema):
+        class Schema(fields.Schema):
             pass
 
         with self.assertRaises(AssertionError) as exc_info:
@@ -804,9 +802,9 @@ class TestOnly(TestCase):
         self.assertEqual(str(exc_info.exception), '`only` has to be a list or tuple')
 
     def test_dump_with_only_fields(self):
-        class Schema(serialization.Schema):
-            field_1 = serialization.IntegerField()
-            field_2 = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field_1 = fields.IntegerField()
+            field_2 = fields.IntegerField()
 
         data = {'field_1': 123, 'field_2': 456}
         expected = {'field_1': 123}
@@ -815,9 +813,9 @@ class TestOnly(TestCase):
         self.assertEqual(s.dump(data), expected)
 
     def test_load_with_only_fields(self):
-        class Schema(serialization.Schema):
-            field_1 = serialization.IntegerField()
-            field_2 = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field_1 = fields.IntegerField()
+            field_2 = fields.IntegerField()
 
         data = {'field_1': 123, 'field_2': 456}
         expected = {'field_2': 456}
@@ -833,11 +831,11 @@ class TestErrorMessages(TestCase):
         error message, then raise an appropriate assertion error.
         """
 
-        class FailField(serialization.Field):
+        class FailField(fields.Field):
             def _load(self, value):
                 self._fail('incorrect')
 
-        class Schema(serialization.Schema):
+        class Schema(fields.Schema):
             field = FailField()
 
         with self.assertRaises(AssertionError) as exc_info:
@@ -848,8 +846,8 @@ class TestErrorMessages(TestCase):
                          '`incorrect` does not exist in the `error_messages` dictionary.')
 
     def test_dict_error_message(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(error_messages={'invalid': {'message': 'error message', 'code': 123}})
+        class Schema(fields.Schema):
+            field = fields.IntegerField(error_messages={'invalid': {'message': 'error message', 'code': 123}})
 
         with self.assertRaises(ValidationError) as exc_info:
             Schema().load({'field': 'value'})
@@ -862,24 +860,24 @@ class TestValidators(TestCase):
         def validate(value):
             pass
 
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(validators=[validate])
+        class Schema(fields.Schema):
+            field = fields.IntegerField(validators=[validate])
 
         data = {'field': 123}
 
         self.assertEqual(Schema().load(data), data)
 
     def test_validator_returning_true(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(validators=[lambda x: True])
+        class Schema(fields.Schema):
+            field = fields.IntegerField(validators=[lambda x: True])
 
         data = {'field': 123}
 
         self.assertEqual(Schema().load(data), data)
 
     def test_validator_returning_false(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(validators=[lambda x: False])
+        class Schema(fields.Schema):
+            field = fields.IntegerField(validators=[lambda x: False])
 
         data = {'field': 123}
 
@@ -888,8 +886,8 @@ class TestValidators(TestCase):
         self.assertEqual(exc_info.exception.message, {'field': [ValidationError('Invalid value.')]})
 
     def test_validator_throwing_exception(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(validators=[lambda x: 1 / 0])
+        class Schema(fields.Schema):
+            field = fields.IntegerField(validators=[lambda x: 1 / 0])
 
         data = {'field': 123}
 
@@ -901,8 +899,8 @@ class TestValidators(TestCase):
         def validate(value):
             raise ValidationError('Invalid value: ' + str(value))
 
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(validators=[validate])
+        class Schema(fields.Schema):
+            field = fields.IntegerField(validators=[validate])
 
         data = {'field': 123}
 
@@ -914,8 +912,8 @@ class TestValidators(TestCase):
         def validate(value):
             raise ValidationError({'field': 'Invalid value: ' + str(value.get('field'))})
 
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = {'field': 123}
 
@@ -927,8 +925,8 @@ class TestValidators(TestCase):
         def validate(value):
             raise ValidationError('Invalid value: ' + str(value.get('field')))
 
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = {'field': 123}
 
@@ -943,8 +941,8 @@ class TestValidators(TestCase):
         def validate2(value):
             raise ValidationError('Invalid value 2.')
 
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField(validators=[validate1, validate2])
+        class Schema(fields.Schema):
+            field = fields.IntegerField(validators=[validate1, validate2])
 
         data = {'field': 123}
 
@@ -960,8 +958,8 @@ class TestValidators(TestCase):
         def validate2(value):
             raise ValidationError({'field': 'Invalid value 2.'})
 
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = {'field': 123}
 
@@ -972,8 +970,8 @@ class TestValidators(TestCase):
 
 class TestPost(TestCase):
     def test_post_dump(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
             def post_dump(self, data, original_data):
                 data['field'] = 1
@@ -982,8 +980,8 @@ class TestPost(TestCase):
         self.assertEqual(Schema().dump({'field': 123}), {'field': 1})
 
     def test_post_dumps(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
             def post_dumps(self, data, original_data):
                 return {'result': data}
@@ -994,8 +992,8 @@ class TestPost(TestCase):
         self.assertEqual(Schema().dumps(data), result)
 
     def test_post_load(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
             def post_load(self, data, original_data):
                 data['field'] = 1
@@ -1004,8 +1002,8 @@ class TestPost(TestCase):
         self.assertEqual(Schema().load({'field': 123}), {'field': 1})
 
     def test_post_loads(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
             def post_loads(self, data, original_data):
                 data[0]['field'] = 1
@@ -1017,8 +1015,8 @@ class TestPost(TestCase):
         self.assertEqual(Schema().loads(data), result)
 
     def test_post_validate(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
             def post_validate(self, data):
                 raise ValidationError({'field': ['Invalid value']})
@@ -1030,16 +1028,16 @@ class TestPost(TestCase):
 
 class TestDump(TestCase):
     def test_dump_with_dict(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = {'field': 123}
         expected = {'field': 123}
         self.assertEqual(Schema().dump(data), expected)
 
     def test_dump_with_error(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = {'field': 'value'}
 
@@ -1050,16 +1048,16 @@ class TestDump(TestCase):
         class Model(object):
             field = 123
 
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         output = Schema().dump(Model())
 
         self.assertEqual(output, {'field': 123})
 
     def test_dumps(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = [{'field': 123}]
         expected = [{'field': 123}]
@@ -1068,16 +1066,16 @@ class TestDump(TestCase):
 
 class TestLoad(TestCase):
     def test_load_with_dict(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = {'field': 123}
         expected = {'field': 123}
         self.assertEqual(Schema().load(data), expected)
 
     def test_load_with_error(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = {'field': 'value'}
 
@@ -1089,16 +1087,16 @@ class TestLoad(TestCase):
         class Model(object):
             field = 123
 
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         with self.assertRaises(ValidationError) as exc_info:
             Schema().load(Model())
         self.assertEqual(exc_info.exception.message, 'Invalid data. Expected a dictionary, but got Model.')
 
     def test_loads(self):
-        class Schema(serialization.Schema):
-            field = serialization.IntegerField()
+        class Schema(fields.Schema):
+            field = fields.IntegerField()
 
         data = [{'field': 123}]
         expected = [{'field': 123}]
@@ -1112,8 +1110,8 @@ class TestView(TestCase):
         self.client = self.app.test_client()
 
     def test_single_result_with_many_none(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField()
+        class Schema(fields.Schema):
+            field = fields.StringField()
 
         @route('/view')
         @serialize(Schema)
@@ -1126,8 +1124,8 @@ class TestView(TestCase):
         self.assertEqual(json.loads(response.data), {'field': 'value'})
 
     def test_single_result_with_many_false(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField()
+        class Schema(fields.Schema):
+            field = fields.StringField()
 
         @route('/view')
         @serialize(Schema, many=False)
@@ -1140,8 +1138,8 @@ class TestView(TestCase):
         self.assertEqual(json.loads(response.data), dict(field='value'))
 
     def test_multiple_results_with_many_none(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField()
+        class Schema(fields.Schema):
+            field = fields.StringField()
 
         @route('/view')
         @serialize(Schema)
@@ -1154,8 +1152,8 @@ class TestView(TestCase):
         self.assertEqual(json.loads(response.data), [dict(field='value')])
 
     def test_multiple_results_with_many_true(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField()
+        class Schema(fields.Schema):
+            field = fields.StringField()
 
         @route('/view')
         @serialize(Schema, many=True)
@@ -1168,8 +1166,8 @@ class TestView(TestCase):
         self.assertEqual(json.loads(response.data), [dict(field='value')])
 
     def test_multiple_results_with_envelope(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField()
+        class Schema(fields.Schema):
+            field = fields.StringField()
 
         @route('/view')
         @serialize(Schema, many=True, envelope='results')
@@ -1182,8 +1180,8 @@ class TestView(TestCase):
         self.assertEqual(json.loads(response.data), dict(results=[dict(field='value')]))
 
     def test_none_with_envelope(self):
-        class Schema(serialization.Schema):
-            field = serialization.StringField()
+        class Schema(fields.Schema):
+            field = fields.StringField()
 
         @route('/view')
         @serialize(Schema, envelope='results')
@@ -1196,10 +1194,10 @@ class TestView(TestCase):
         self.assertEqual(response.data, b'')
 
     def test_fields_parameter(self):
-        class Schema(serialization.Schema):
-            first_name = serialization.StringField()
-            last_name = serialization.StringField()
-            age = serialization.IntegerField()
+        class Schema(fields.Schema):
+            first_name = fields.StringField()
+            last_name = fields.StringField()
+            age = fields.IntegerField()
 
         @route('/view')
         @serialize(Schema)
@@ -1214,10 +1212,10 @@ class TestView(TestCase):
         self.assertEqual(json.loads(response.data), {'last_name': 'bar'})
 
     def test_fields_parameter_with_empty_value(self):
-        class Schema(serialization.Schema):
-            first_name = serialization.StringField()
-            last_name = serialization.StringField()
-            age = serialization.IntegerField()
+        class Schema(fields.Schema):
+            first_name = fields.StringField()
+            last_name = fields.StringField()
+            age = fields.IntegerField()
 
         @route('/view')
         @serialize(Schema)
@@ -1232,10 +1230,10 @@ class TestView(TestCase):
         self.assertEqual(json.loads(response.data), {'first_name': 'foo', 'last_name': 'bar', 'age': 30})
 
     def test_fields_parameter_with_invalid_field_name(self):
-        class Schema(serialization.Schema):
-            first_name = serialization.StringField()
-            last_name = serialization.StringField()
-            age = serialization.IntegerField()
+        class Schema(fields.Schema):
+            first_name = fields.StringField()
+            last_name = fields.StringField()
+            age = fields.IntegerField()
 
         @route('/view')
         @serialize(Schema)

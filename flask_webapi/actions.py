@@ -1,3 +1,7 @@
+"""
+Provides a set of classes to execution of actions.
+"""
+
 import traceback
 
 from abc import ABCMeta, abstractmethod
@@ -12,12 +16,17 @@ class ActionContext:
     """
     Represents a func in the View that should be
     treated as a Flask view.
+
+    :param WebAPI api: The Flask WebAPI instance.
+    :param ActionDescriptor descriptor: The action descriptor.
+    :param tuple args: The list of arguments provided by Flask.
+    :param dict kwargs: The dict of arguments provided by Flask.
     """
 
-    def __init__(self, descriptor, api, args, kwargs):
-        self.descriptor = descriptor
+    def __init__(self, api, descriptor, args, kwargs):
         self.api = api
         self.app = api.app
+        self.descriptor = descriptor
 
         self.content_negotiator = api.content_negotiator
         self.filters = list(descriptor.filters)
@@ -34,6 +43,9 @@ class ActionContext:
 
 
 class ActionDescriptor:
+    """
+    Represents an action.
+    """
     def __init__(self):
         self.func = None
         self.view_class = None
@@ -41,7 +53,19 @@ class ActionDescriptor:
 
 
 class ActionDescriptorBuilder:
+    """
+    Creates instances of `ActionDescriptor`.
+    """
+
     def build(self, func, view_class, api):
+        """
+        Creates a instance of `ActionDescriptor`
+        from the given parameters.
+        :param func: The function.
+        :param view_class: The class which the `func` belongs to.
+        :param WebAPI api: The Flask WebAPI.
+        :return: The instance of `ActionDescriptor`.
+        """
         if not reflect.has_self_parameter(func):
             func = reflect.func_to_method(func)
 
@@ -56,6 +80,13 @@ class ActionDescriptorBuilder:
         return descriptor
 
     def _get_filters(self, action_filters, view_filters, api_filters):
+        """
+        Gets a list of filters ordered by order of execution.
+        :param action_filters: The filters from action.
+        :param view_filters: The filters from view.
+        :param api_filters: The filters from `WebAPI`.
+        :return: The list of filters.
+        """
         filters = sorted(action_filters + view_filters + api_filters, key=lambda x: x.order)
 
         filter_matched = []
@@ -68,16 +99,28 @@ class ActionDescriptorBuilder:
 
 
 class ActionExecutor(metaclass=ABCMeta):
+    """
+    A base class from which all executor classes should inherit.
+    """
+
     @abstractmethod
     def execute(self, context):
+        """
+        Executes an action.
+        :param context:
+        """
         pass
 
 
 class DefaultActionExecutor(ActionExecutor):
+    """
+    Responsible to execute an action and its filters.
+    """
+
     def execute(self, context):
         """
-        Applies all steps of the pipeline on the incoming request.
-        :param context:
+        Executes an action with all its filters.
+        :param context: The action context.
         :return: A `flask.Response` instance.
         """
 
@@ -96,8 +139,8 @@ class DefaultActionExecutor(ActionExecutor):
 
     def _handle_exception(self, context):
         """
-        Handles any error that occurs, giving the opportunity for
-        custom error handling by user code.
+        Handles any unhandled error that occurs
+        and creates a proper response for it.
         :param ActionContext context: The action context.
         """
         if isinstance(context.exception, APIException):
@@ -116,6 +159,10 @@ class DefaultActionExecutor(ActionExecutor):
         self._make_response(context, force_formatter=True)
 
     def _execute_authentication_filters(self, context):
+        """
+        Executes all authentication filters for the given action.
+        :param context: The action context.
+        """
         cursor = context.cursor
 
         filter = cursor.get_next(filters.AuthenticationFilter)
@@ -125,6 +172,10 @@ class DefaultActionExecutor(ActionExecutor):
             self._execute_authentication_filters(context)
 
     def _execute_authorization_filters(self, context):
+        """
+        Executes all authorization filters for the given action.
+        :param context: The action context.
+        """
         cursor = context.cursor
 
         filter = cursor.get_next(filters.AuthorizationFilter)
@@ -134,6 +185,10 @@ class DefaultActionExecutor(ActionExecutor):
             self._execute_authorization_filters(context)
 
     def _execute_resource_filters(self, context):
+        """
+        Executes all resource filters for the given action.
+        :param context: The action context.
+        """
         cursor = context.cursor
 
         if context.result is not missing:
@@ -146,6 +201,8 @@ class DefaultActionExecutor(ActionExecutor):
             filter.on_resource_execution(context, self._execute_resource_filters)
         else:
             cursor.reset()
+
+            # >> ExceptionFilters >> ActionFilters >> Action
             self._execute_exception_filters(context)
 
             if context.exception and not context.exception_handled:
@@ -155,6 +212,10 @@ class DefaultActionExecutor(ActionExecutor):
             self._execute_response_filters(context)
 
     def _execute_exception_filters(self, context):
+        """
+        Executes all exception filters for the given action.
+        :param context: The action context.
+        """
         cursor = context.cursor
 
         if context.result is not missing:
@@ -176,6 +237,10 @@ class DefaultActionExecutor(ActionExecutor):
                 context.exception = e
 
     def _execute_action_filters(self, context):
+        """
+        Executes all action filters for the given action.
+        :param context: The action context.
+        """
         cursor = context.cursor
 
         if context.result is not missing:
@@ -190,6 +255,10 @@ class DefaultActionExecutor(ActionExecutor):
             context.result = context.descriptor.func(view, *context.args, **context.kwargs)
 
     def _execute_response_filters(self, context):
+        """
+        Executes all response filters for the given action.
+        :param context: The action context.
+        """
         cursor = context.cursor
 
         filter = cursor.get_next(filters.ResponseFilter)
@@ -209,6 +278,8 @@ class DefaultActionExecutor(ActionExecutor):
         :param bool force_formatter: If set to `True` selects the first formatter when the appropriated is not found.
         :return: A Flask response.
         """
+        if context.response is context.app.response_class:
+            return
 
         if context.result is None:
             context.response.status_code = 204
@@ -218,8 +289,8 @@ class DefaultActionExecutor(ActionExecutor):
 
     def _select_output_formatter(self, context, force=False):
         """
-        Determines which renderer should be used to render the outgoing response.
-        :param force: If set to `True` selects the first renderer when the appropriated is not found.
+        Determines which formatter should be used to render the outgoing response.
+        :param force: If set to `True` selects the first formatter when the appropriated is not found.
         :return: A tuple with renderer and the mimetype.
         """
         negotiator = context.content_negotiator
@@ -237,6 +308,9 @@ class DefaultActionExecutor(ActionExecutor):
 
 
 class _FilterCursor:
+    """
+    Internal class to move across the filters.
+    """
     def __init__(self, filters):
         self._index = 0
         self._filters = filters
