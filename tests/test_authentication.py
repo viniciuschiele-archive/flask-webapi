@@ -1,7 +1,6 @@
 from flask import Flask, request
 from flask_webapi import WebAPI, authenticate, route
-from flask_webapi.authenticators import Authenticator
-from flask_webapi.exceptions import AuthenticationFailed
+from flask_webapi.authenticators import Authenticator, AuthenticateResult
 from unittest import TestCase
 
 
@@ -50,9 +49,9 @@ class FakeAuthenticator(Authenticator):
         auth = request.headers.get('Authorization')
 
         if not auth:
-            return None
+            return AuthenticateResult.skip()
 
         if auth != '1234':
-            raise AuthenticationFailed()
+            return AuthenticateResult.fail('Incorrect authentication credentials.')
 
-        return 'user1', auth
+        return AuthenticateResult.success('user1', auth)

@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_webapi import WebAPI, authenticate, authorize, route
-from flask_webapi.authenticators import Authenticator
+from flask_webapi.authenticators import Authenticator, AuthenticateResult
 from flask_webapi.permissions import Permission, IsAuthenticated
 from unittest import TestCase
 
@@ -50,4 +50,4 @@ class TestView(TestCase):
 
 class FakeAuthenticator(Authenticator):
     def authenticate(self):
-        return 'user1', '1234'
+        return AuthenticateResult.success('user1', '1234')

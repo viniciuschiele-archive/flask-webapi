@@ -6,7 +6,7 @@ import copy
 import inspect
 
 from flask import request
-from .exceptions import NotAuthenticated, PermissionDenied, ValidationError
+from .exceptions import AuthenticationFailed, NotAuthenticated, PermissionDenied, ValidationError
 from .fields import Schema
 
 
@@ -143,11 +143,16 @@ class AuthenticateFilter(AuthenticationFilter):
         request.auth = None
 
         for authenticator in self.authenticators:
-            auth_tuple = authenticator.authenticate()
+            result = authenticator.authenticate()
 
-            if auth_tuple:
-                request.user, request.auth = auth_tuple
-                break
+            if result.skipped:
+                continue
+
+            if result.failure:
+                raise AuthenticationFailed(result.failure)
+
+            request.user = result.user
+            request.auth = result.auth
 
 
 class AuthorizeFilter(AuthorizationFilter):

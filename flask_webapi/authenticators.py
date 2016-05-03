@@ -4,7 +4,6 @@ Provides a set of classes for authentication.
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from .exceptions import AuthenticationFailed
 
 
 def get_authorization_header():
@@ -26,6 +25,53 @@ def get_authorization_header():
     return auth_type, auth_info
 
 
+class AuthenticateResult:
+    """
+    Contains the result of an Authenticate call
+    """
+    def __init__(self):
+        self.user = None
+        self.auth = None
+        self.failure = None
+        self.skipped = False
+        self.succeeded = False
+
+    @staticmethod
+    def fail(message):
+        """
+        Creates a failed result.
+        :param str message: The error message.
+        :return: A `AuthenticateResult`.
+        """
+        result = AuthenticateResult()
+        result.failure = message
+        return result
+
+    @staticmethod
+    def success(user, auth):
+        """
+        Creates a succeeded result.
+        :param user: The user info.
+        :param auth: The authentication info.
+        :return: A `AuthenticateResult`.
+        """
+        result = AuthenticateResult()
+        result.user = user
+        result.auth = auth
+        result.succeeded = True
+        return result
+
+    @staticmethod
+    def skip():
+        """
+        Creates a skipped result.
+        :return: A `AuthenticateResult`.
+        """
+        result = AuthenticateResult()
+        result.skipped = True
+        return result
+
+
 class Authenticator(metaclass=ABCMeta):
     """
     A base class from which all authentication classes should inherit.
@@ -34,7 +80,7 @@ class Authenticator(metaclass=ABCMeta):
     @abstractmethod
     def authenticate(self):
         """
-        Authenticate the request and return a two-tuple of (user, auth).
+        Authenticate the request and return a `AuthenticateResult`.
         """
 
 
@@ -47,34 +93,30 @@ class BasicAuthenticator(Authenticator):
         """
         Returns the user authenticated if a correct username and password have been supplied
         using HTTP Basic authentication.
+        :return: A `AuthenticateResult`.
         """
         auth = get_authorization_header()
 
         if not auth:
-            return None
+            return AuthenticateResult.skip()
 
         auth_type, auth_info = auth
 
         if auth_type != 'basic':
-            return None
+            return AuthenticateResult.skip()
 
         try:
             username, password = auth_info.split(':')
         except ValueError:
-            raise AuthenticationFailed('Invalid basic header. Credentials not correctly base64 encoded.')
+            return AuthenticateResult.fail('Invalid basic header. Credentials not correctly base64 encoded.')
 
-        user_auth = self._authenticate_credentials(username, password)
-
-        if user_auth is None:
-            raise AuthenticationFailed()
-
-        return user_auth
+        return self._authenticate_credentials(username, password)
 
     def _authenticate_credentials(self, username, password):
         """
         Authenticates the given username and password.
         :param username: The username to be authenticated.
         :param password: The password to be authenticated.
-        :return: A two-tuple of (user, auth) or `None`.
+        :return: A `AuthenticateResult`.
         """
         raise NotImplementedError()
