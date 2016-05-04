@@ -1,7 +1,8 @@
 from flask import Flask
-from flask_webapi import WebAPI, route, param, serialize
-from flask_webapi.exceptions import NotFound, ValidationError
+from flask_webapi import WebAPI, route, param, result
+from flask_webapi.exceptions import ValidationError
 from flask_webapi.fields import Schema, StringField, IntegerField
+from flask_webapi.results import NotFoundResult
 
 
 class User(object):
@@ -30,7 +31,7 @@ users = [
 
 
 @route('/users')
-@serialize(UserSchema)
+@result(UserSchema)
 class UserView:
     @route('/', methods=['POST'])
     @param('user', UserSchema())
@@ -46,7 +47,7 @@ class UserView:
         found = [user for user in users if user.username == username]
 
         if not found:
-            raise NotFound('User not found: ' + username)
+            return NotFoundResult('User not found: ' + username)
 
         users.remove(found[0])
 
@@ -63,7 +64,7 @@ class UserView:
             if username == user.username:
                 return user
 
-        raise NotFound('User not found: ' + username)
+        return NotFoundResult('User not found: ' + username)
 
 
 if __name__ == '__main__':

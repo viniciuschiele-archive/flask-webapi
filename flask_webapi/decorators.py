@@ -34,4 +34,4 @@ compat = filters.CompatFilter
 consume = filters.ConsumeFilter
 produce = filters.ProduceFilter
 param = filters.ParameterFilter
-serialize = filters.SerializeFilter
+result = filters.ObjectResultFilter

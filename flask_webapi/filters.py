@@ -2,12 +2,12 @@
 Provides a set of filter classes used to inject code into actions.
 """
 
-import copy
 import inspect
 
 from flask import request
-from .exceptions import AuthenticationFailed, NotAuthenticated, PermissionDenied, ValidationError
+from .exceptions import ValidationError
 from .fields import Schema
+from .results import ForbiddenResult, UnauthorizedResult
 
 
 class Filter:
@@ -96,12 +96,12 @@ class ActionFilter(Filter):
         pass
 
 
-class ResponseFilter(Filter):
+class ResultFilter(Filter):
     """
     A filter that surrounds creation of the response.
     """
 
-    def on_response_creation(self, context, next_filter):
+    def on_result_execution(self, context, next_filter):
         """
         Called before the response creation.
         :param ActionContext context: The action context.
@@ -110,9 +110,9 @@ class ResponseFilter(Filter):
         pass
 
 
-###############################################
+####################################################
 # Below are the implementation of the above filters.
-###############################################
+####################################################
 
 
 class AllowAnonymous(Filter):
@@ -145,14 +145,14 @@ class AuthenticateFilter(AuthenticationFilter):
         for authenticator in self.authenticators:
             result = authenticator.authenticate()
 
-            if result.skipped:
-                continue
+            if result.succeeded:
+                request.user = result.user
+                request.auth = result.auth
+                break
 
             if result.failure:
-                raise AuthenticationFailed(result.failure)
-
-            request.user = result.user
-            request.auth = result.auth
+                context.result = UnauthorizedResult(result.failure)
+                break
 
 
 class AuthorizeFilter(AuthorizationFilter):
@@ -172,7 +172,6 @@ class AuthorizeFilter(AuthorizationFilter):
         Authorize the current user.
         :param ActionContext context: The action context.
         """
-
         # if there is an `AllowAnonymous` filter
         # we don't apply authorization.
         if [f for f in context.filters if isinstance(f, AllowAnonymous)]:
@@ -183,9 +182,9 @@ class AuthorizeFilter(AuthorizationFilter):
                 return
 
         if getattr(request, 'user', None):
-            raise PermissionDenied()
+            context.result = ForbiddenResult('You do not have permission to perform this action.')
         else:
-            raise NotAuthenticated()
+            context.result = UnauthorizedResult('Authentication credentials were not provided.')
 
 
 class CompatFilter(ResourceFilter):
@@ -222,7 +221,7 @@ class CompatFilter(ResourceFilter):
 
         next_filter(context)
 
-        return context.response44
+        return context.response
 
 
 class ConsumeFilter(ResourceFilter):
@@ -243,7 +242,7 @@ class ConsumeFilter(ResourceFilter):
         next_filter(context)
 
 
-class ProduceFilter(ResponseFilter):
+class ProduceFilter(ResultFilter):
     """
     A filter that specifies the supported response content types.
     :param content_types: The list of content types.
@@ -256,7 +255,7 @@ class ProduceFilter(ResponseFilter):
         super().__init__(order)
         self.content_type = ';'.join(content_types)
 
-    def on_response_execution(self, context, next_filter):
+    def on_result_execution(self, context, next_filter):
         request.environ['HTTP_ACCEPT'] = self.content_type
         next_filter(context)
 
@@ -321,57 +320,44 @@ class ParameterFilter(ActionFilter):
         return provider.get_data(context)
 
 
-class SerializeFilter(ActionFilter):
-    """
-    A decorator that apply a serializer to the action.
-    :param Schema|type schema: The schema used to serialize the data.
-    :param bool many: If set to `True` the object will be serialized to a list.
-    :param str envelope: The key used to envelope the data.
-    :return: A function.
-    """
+class ObjectResultFilter(Filter):
     allow_multiple = False
 
-    def __init__(self, schema, many=None, envelope=None,  order=-1):
-        super().__init__(order)
+    def __init__(self, schema, status_code=None):
+        super().__init__()
 
         self.schema = schema() if inspect.isclass(schema) else schema
-        self.many = many
-        self.envelope = envelope
+        self.status_code = status_code
 
-    def on_action_execution(self, context, next_filter):
-        next_filter(context)
-
-        result = context.result
-
-        if result is None:
-            return
-
-        if result is context.app.response_class:
-            return
-
-        schema = self.schema
-        many = self.many
-
-        # Gets the field names from the query string,
-        # only those fields are going to be dumped.
-        fields = request.args.get('fields')
-
-        if fields:
-            # schema has to be cloned to avoid
-            # problem with multiple threads.
-            schema = copy.copy(schema)
-            schema.only = fields.split(',')
-            schema.refresh()
-
-        if many is None:
-            many = isinstance(result, (list, tuple))
-
-        if many:
-            result = schema.dumps(result)
-        else:
-            result = schema.dump(result)
-
-        if self.envelope:
-            result = {self.envelope: result}
-
-        context.result = result
+    # def on_result_execution(self, context, next_filter):
+    #     try:
+    #         result = context.result
+    #
+    #         if not isinstance(result, ObjectResult):
+    #             return
+    #
+    #         if result.status_code is not None and not status.is_success(result.status_code):
+    #             return
+    #
+    #         if result.schema is not None:
+    #
+    #             return
+    #
+    #         schema = self.schema
+    #
+    #         # Gets the field names from the query string,
+    #         # only those fields are going to be dumped.
+    #         fields = request.args.get('fields')
+    #
+    #         if fields:
+    #             # schema has to be cloned to avoid
+    #             # problem with multiple threads.
+    #             schema = copy.copy(schema)
+    #             schema.only = fields.split(',')
+    #             schema.refresh()
+    #
+    #         result.schema = schema
+    #     except:
+    #         raise
+    #     else:
+    #         next_filter(context)

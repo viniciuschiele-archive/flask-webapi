@@ -1,7 +1,8 @@
 from flask import Flask
-from flask_webapi import WebAPI, route, param, serialize
-from flask_webapi.exceptions import NotFound, ValidationError
+from flask_webapi import WebAPI, route, param, result
+from flask_webapi.exceptions import ValidationError
 from flask_webapi.fields import Schema, StringField, IntegerField
+from flask_webapi.results import NotFoundResult
 
 
 class User(object):
@@ -31,7 +32,7 @@ users = [
 
 @route('/users', methods=['POST'])
 @param('user', UserSchema())
-@serialize(UserSchema)
+@result(UserSchema)
 def add_user(user):
     if any([db_user for db_user in users if db_user.username == user.username]):
         raise ValidationError('User already exists: ' + user.username)
@@ -45,14 +46,14 @@ def delete_user(username):
     found = [user for user in users if user.username == username]
 
     if not found:
-        raise NotFound('User not found: ' + username)
+        return NotFoundResult('User not found: ' + username)
 
     users.remove(found[0])
 
 
 @route('/users')
 @param('username', StringField(default=None))
-@serialize(UserSchema)
+@result(UserSchema)
 def get_users(username):
     if username:
         return [user for user in users if username in user.username]
@@ -60,13 +61,13 @@ def get_users(username):
 
 
 @route('/users/<username>')
-@serialize(UserSchema)
+@result(UserSchema)
 def get_user(username):
     for user in users:
         if username == user.username:
             return user
 
-    raise NotFound('User not found: ' + username)
+    return NotFoundResult('User not found: ' + username)
 
 
 if __name__ == '__main__':

@@ -1,15 +1,10 @@
-"""
-Provides a set of classes to execution of actions.
-"""
-
 import traceback
 
-from abc import ABCMeta, abstractmethod
 from flask import current_app
 from werkzeug.exceptions import HTTPException
-from . import filters
-from .exceptions import APIException, NotAcceptable
-from .utils import missing, reflect
+from . import filters, results, status
+from .exceptions import APIException
+from .utils import collections, reflect
 
 
 class ActionContext:
@@ -36,7 +31,7 @@ class ActionContext:
 
         self.args = args
         self.kwargs = kwargs
-        self.result = missing
+        self.result = None
         self.exception = None
         self.exception_handled = False
         self.response = self.app.response_class()
@@ -98,21 +93,7 @@ class ActionDescriptorBuilder:
         return filter_matched
 
 
-class ActionExecutor(metaclass=ABCMeta):
-    """
-    A base class from which all executor classes should inherit.
-    """
-
-    @abstractmethod
-    def execute(self, context):
-        """
-        Executes an action.
-        :param context:
-        """
-        pass
-
-
-class DefaultActionExecutor(ActionExecutor):
+class ActionExecutor:
     """
     Responsible to execute an action and its filters.
     """
@@ -153,16 +134,18 @@ class DefaultActionExecutor(ActionExecutor):
             message = APIException(traceback.format_exc()) if debug else APIException()
             context.app.logger.error(traceback.format_exc())
 
-        context.result = {'errors': message.denormalize()}
-        context.response.status_code = message.status_code
-
-        self._make_response(context, force_formatter=True)
+        result = results.ObjectResult({'errors': message.denormalize()}, status_code=message.status_code)
+        result.execute(context)
 
     def _execute_authentication_filters(self, context):
         """
         Executes all authentication filters for the given action.
         :param context: The action context.
         """
+        if context.result is not None:
+            self._execute_action_result(context)
+            return
+
         cursor = context.cursor
 
         filter = cursor.get_next(filters.AuthenticationFilter)
@@ -176,6 +159,10 @@ class DefaultActionExecutor(ActionExecutor):
         Executes all authorization filters for the given action.
         :param context: The action context.
         """
+        if context.result is not None:
+            self._execute_action_result(context)
+            return
+
         cursor = context.cursor
 
         filter = cursor.get_next(filters.AuthorizationFilter)
@@ -189,11 +176,11 @@ class DefaultActionExecutor(ActionExecutor):
         Executes all resource filters for the given action.
         :param context: The action context.
         """
-        cursor = context.cursor
-
-        if context.result is not missing:
-            self._make_response(context)
+        if context.result is not None:
+            self._execute_action_result(context)
             return
+
+        cursor = context.cursor
 
         filter = cursor.get_next(filters.ResourceFilter)
 
@@ -209,17 +196,17 @@ class DefaultActionExecutor(ActionExecutor):
                 raise context.exception
 
             cursor.reset()
-            self._execute_response_filters(context)
+            self._execute_result_filters(context)
 
     def _execute_exception_filters(self, context):
         """
         Executes all exception filters for the given action.
         :param context: The action context.
         """
-        cursor = context.cursor
-
-        if context.result is not missing:
+        if context.result is not None:
             return
+
+        cursor = context.cursor
 
         filter = cursor.get_next(filters.ExceptionFilter)
 
@@ -241,51 +228,74 @@ class DefaultActionExecutor(ActionExecutor):
         Executes all action filters for the given action.
         :param context: The action context.
         """
-        cursor = context.cursor
-
-        if context.result is not missing:
+        if context.result is not None:
             return
+
+        cursor = context.cursor
 
         filter = cursor.get_next(filters.ActionFilter)
 
         if filter:
             filter.on_action_execution(context, self._execute_action_filters)
         else:
-            view = context.descriptor.view_class()
-            context.result = context.descriptor.func(view, *context.args, **context.kwargs)
+            descriptor = context.descriptor
+            view = descriptor.view_class()
+            result = descriptor.func(view, *context.args, **context.kwargs)
 
-    def _execute_response_filters(self, context):
+            if isinstance(result, context.app.response_class):
+                context.response = result
+            elif isinstance(result, results.ActionResult):
+                context.result = result
+            else:
+                object_result_factory = context.api.object_result_factory
+                context.result = object_result_factory.create(result, context)
+
+    def _execute_result_filters(self, context):
         """
-        Executes all response filters for the given action.
+        Executes all result filters for the given action.
         :param context: The action context.
         """
-        cursor = context.cursor
-
-        filter = cursor.get_next(filters.ResponseFilter)
-
-        if filter:
-            filter.on_response(context, self._execute_response_filters)
-        else:
-            self._make_response(context)
-
-    def _make_response(self, context, force_formatter=False):
-        """
-        Returns a `flask.Response` for the given data.
-        The appropriated renderer is taken based on the request header Accept.
-        If there is not data to be serialized the response status code is 204.
-
-        :param context: The Python object to be serialized.
-        :param bool force_formatter: If set to `True` selects the first formatter when the appropriated is not found.
-        :return: A Flask response.
-        """
-        if context.response is context.app.response_class:
+        if context.result is None:
             return
 
-        if context.result is None:
-            context.response.status_code = 204
+        cursor = context.cursor
+
+        filter = cursor.get_next(filters.ResultFilter)
+
+        if filter:
+            filter.on_result_execution(context, self._execute_result_filters)
         else:
-            formatter, mimetype = self._select_output_formatter(context, force_formatter)
-            formatter.write(context.response, context.result, mimetype)
+            self._execute_action_result(context)
+
+    def _execute_action_result(self, context):
+        context.result.execute(context)
+
+
+class ObjectResultExecutor:
+    def execute(self, context, result):
+        value = result.value
+
+        if result.status_code is None:
+            context.response.status_code = 204 if value is None else 200
+        else:
+            context.response.status_code = result.status_code
+
+        if value is None:
+            return
+
+        if result.schema:
+            if collections.is_collection(value):
+                value = result.schema.dumps(value)
+            else:
+                value = result.schema.dump(value)
+
+        formatter_pair = self._select_output_formatter(context)
+
+        if formatter_pair is None:
+            context.response.status_code = status.HTTP_406_NOT_ACCEPTABLE
+        else:
+            formatter, mimetype = formatter_pair
+            formatter.write(context.response, value, mimetype)
 
     def _select_output_formatter(self, context, force=False):
         """
@@ -304,7 +314,26 @@ class DefaultActionExecutor(ActionExecutor):
         if force:
             return formatters[0], formatters[0].mimetype
 
-        raise NotAcceptable()
+        return None
+
+
+class ObjectResultFactory:
+    def create(self, value, context):
+        object_result_filter = None
+
+        for f in context.filters:
+            if isinstance(f, filters.ObjectResultFilter):
+                object_result_filter = f
+                break
+
+        schema = None
+        status_code = None
+
+        if object_result_filter:
+            schema = object_result_filter.schema
+            status_code = object_result_filter.status_code
+
+        return results.ObjectResult(value, schema=schema, status_code=status_code)
 
 
 class _FilterCursor:

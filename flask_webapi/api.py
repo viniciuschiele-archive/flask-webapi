@@ -5,8 +5,8 @@ Provides the main class for Flask WebAPI.
 import importlib
 import inspect
 
-from .actions import ActionContext, ActionDescriptorBuilder, DefaultActionExecutor
 from .formatters import get_default_input_formatters, get_default_output_formatters
+from .internal import ActionContext, ActionDescriptorBuilder, ActionExecutor, ObjectResultFactory, ObjectResultExecutor
 from .negotiators import DefaultContentNegotiator
 from .routers import has_routes, DefaultRouter
 from .values import get_default_providers
@@ -36,11 +36,13 @@ class WebAPI(object):
         self._routes = []
 
         self.app = None
-        self.action_executor = DefaultActionExecutor()
+        self.action_executor = ActionExecutor()
         self.content_negotiator = DefaultContentNegotiator()
         self.filters = []
         self.input_formatters = get_default_input_formatters()
         self.output_formatters = get_default_output_formatters()
+        self.object_result_factory = ObjectResultFactory()
+        self.object_result_executor = ObjectResultExecutor()
         self.router = DefaultRouter()
         self.value_providers = get_default_providers()
 
