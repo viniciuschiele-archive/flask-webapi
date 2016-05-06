@@ -28,7 +28,7 @@ class ObjectResult(ActionResult):
         self.status_code = status_code
 
     def execute(self, context):
-        executor = context.api.object_result_executor
+        executor = context.object_result_executor
         executor.execute(context, self)
 
 

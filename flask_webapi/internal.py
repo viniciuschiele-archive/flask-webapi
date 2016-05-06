@@ -1,6 +1,7 @@
 import traceback
 
-from flask import current_app
+from flask import current_app, request
+from flask_webapi.utils.mimetypes import MimeType
 from werkzeug.exceptions import HTTPException
 from . import filters, results, status
 from .exceptions import APIException
@@ -23,7 +24,9 @@ class ActionContext:
         self.app = api.app
         self.descriptor = descriptor
 
-        self.content_negotiator = api.content_negotiator
+        self.object_result_factory = api.object_result_factory
+        self.object_result_executor = api.object_result_executor
+
         self.filters = list(descriptor.filters)
         self.input_formatters = list(api.input_formatters)
         self.output_formatters = list(api.output_formatters)
@@ -247,7 +250,7 @@ class ActionExecutor:
             elif isinstance(result, results.ActionResult):
                 context.result = result
             else:
-                object_result_factory = context.api.object_result_factory
+                object_result_factory = context.object_result_factory
                 context.result = object_result_factory.create(result, context)
 
     def _execute_result_filters(self, context):
@@ -299,22 +302,30 @@ class ObjectResultExecutor:
 
     def _select_output_formatter(self, context, force=False):
         """
-        Determines which formatter should be used to render the outgoing response.
+        Selects the appropriated formatter that matches to the request accept header.
+        :param context: The action context.
         :param force: If set to `True` selects the first formatter when the appropriated is not found.
         :return: A tuple with renderer and the mimetype.
         """
-        negotiator = context.content_negotiator
         formatters = context.output_formatters
 
-        formatter_pair = negotiator.select_output_formatter(formatters)
-
-        if formatter_pair:
-            return formatter_pair
+        for mimetype in self._get_accept_list():
+            accept_mimetype = MimeType.parse(mimetype)
+            for formatter in formatters:
+                if accept_mimetype.match(formatter.mimetype):
+                    return formatter, formatter.mimetype.replace(params=accept_mimetype.params)
 
         if force:
             return formatters[0], formatters[0].mimetype
 
         return None
+
+    def _get_accept_list(self):
+        """
+        Given the incoming request, return a list of accepted media type strings.
+        """
+        header = request.environ.get('HTTP_ACCEPT') or '*/*'
+        return [token.strip() for token in header.split(',')]
 
 
 class ObjectResultFactory:

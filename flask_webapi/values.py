@@ -4,7 +4,8 @@ Provides a set of classes to deal with input data.
 
 from abc import ABCMeta, abstractmethod
 from flask import request
-from .exceptions import ParseError, UnsupportedMediaType
+from .exceptions import UnsupportedMediaType
+from .utils.mimetypes import MimeType
 
 
 def get_default_providers():
@@ -69,17 +70,27 @@ class BodyProvider(ValueProvider):
     Provides arguments from the request body.
     """
     def get_data(self, context):
-        negotiator = context.content_negotiator
         formatters = context.input_formatters
 
-        formatter_pair = negotiator.select_input_formatter(formatters)
+        formatter_pair = self._select_input_formatter(formatters)
 
         if formatter_pair is None:
             raise UnsupportedMediaType(request.content_type)
 
         formatter, mimetype = formatter_pair
 
-        try:
-            return formatter.read(request, mimetype)
-        except ValueError as e:
-            raise ParseError('Parse error: ' + str(e))
+        return formatter.read(request, mimetype)
+
+    def _select_input_formatter(self, formatters):
+        """
+        Selects the appropriated formatter that matches with the request content type.
+        :param formatters: The lists of input formatters.
+        :return: The formatter selected or `None`.
+        """
+        mimetype = MimeType.parse(request.content_type)
+
+        for formatter in formatters:
+            if mimetype.match(formatter.mimetype):
+                return formatter, mimetype
+
+        return None

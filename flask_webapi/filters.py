@@ -5,9 +5,9 @@ Provides a set of filter classes used to inject code into actions.
 import inspect
 
 from flask import request
-from .exceptions import ValidationError
+from .exceptions import ValidationError, UnsupportedMediaType
 from .fields import Schema
-from .results import ForbiddenResult, UnauthorizedResult
+from .results import BadRequestResult, ForbiddenResult, UnauthorizedResult, UnsupportedMediaTypeResult
 
 
 class Filter:
@@ -283,22 +283,26 @@ class ParameterFilter(ActionFilter):
         self.location = location
 
     def on_action_execution(self, context, next_filter):
-        errors = {}
-
-        data = self._get_arguments(context)
-
         try:
-            result = self.field.load(data)
+            data = self._get_arguments(context)
+        except UnsupportedMediaType as e:
+            context.result = UnsupportedMediaTypeResult(e.message)
+        except ValueError as e:
+            context.result = BadRequestResult(str(e))
+        else:
+            try:
+                result = self.field.load(data)
 
-            if self.is_schema:
-                context.kwargs[self.name] = result
-            else:
-                context.kwargs.update(result)
-        except ValidationError as e:
-            errors.update(e.message)
+                if self.is_schema:
+                    context.kwargs[self.name] = result
+                else:
+                    context.kwargs.update(result)
+            except ValidationError as e:
+                errors = {}
+                errors.update(e.message)
 
-        if errors:
-            raise ValidationError(errors)
+                if errors:
+                    raise ValidationError(errors)
 
         next_filter(context)
 
@@ -328,36 +332,3 @@ class ObjectResultFilter(Filter):
 
         self.schema = schema() if inspect.isclass(schema) else schema
         self.status_code = status_code
-
-    # def on_result_execution(self, context, next_filter):
-    #     try:
-    #         result = context.result
-    #
-    #         if not isinstance(result, ObjectResult):
-    #             return
-    #
-    #         if result.status_code is not None and not status.is_success(result.status_code):
-    #             return
-    #
-    #         if result.schema is not None:
-    #
-    #             return
-    #
-    #         schema = self.schema
-    #
-    #         # Gets the field names from the query string,
-    #         # only those fields are going to be dumped.
-    #         fields = request.args.get('fields')
-    #
-    #         if fields:
-    #             # schema has to be cloned to avoid
-    #             # problem with multiple threads.
-    #             schema = copy.copy(schema)
-    #             schema.only = fields.split(',')
-    #             schema.refresh()
-    #
-    #         result.schema = schema
-    #     except:
-    #         raise
-    #     else:
-    #         next_filter(context)

@@ -7,7 +7,6 @@ import inspect
 
 from .formatters import get_default_input_formatters, get_default_output_formatters
 from .internal import ActionContext, ActionDescriptorBuilder, ActionExecutor, ObjectResultFactory, ObjectResultExecutor
-from .negotiators import DefaultContentNegotiator
 from .routers import has_routes, DefaultRouter
 from .values import get_default_providers
 
@@ -37,7 +36,6 @@ class WebAPI(object):
 
         self.app = None
         self.action_executor = ActionExecutor()
-        self.content_negotiator = DefaultContentNegotiator()
         self.filters = []
         self.input_formatters = get_default_input_formatters()
         self.output_formatters = get_default_output_formatters()

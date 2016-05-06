@@ -121,16 +121,10 @@ class ValidationError(APIException):
             self.kwargs = kwargs
 
 
-class ParseError(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_message = 'Malformed request.'
-
-
-class UnsupportedMediaType(APIException):
-    status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+class UnsupportedMediaType(Exception):
     default_message = 'Unsupported media type "{mimetype}" in request.'
 
     def __init__(self, mimetype, message=None):
         if message is None:
             message = self.default_message.format(mimetype=mimetype)
-        super().__init__(message)
+        self.message = message
